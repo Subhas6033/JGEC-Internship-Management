@@ -1,0 +1,35 @@
+name: Deploy JGEC Internship Management
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Hostinger VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Hostinger VPS
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+
+          script: |
+            set -e
+
+            echo "======================================"
+            echo "Starting JGEC deployment"
+            echo "======================================"
+
+            /root/deploy-jgec.sh
+
+            echo "======================================"
+            echo "Deployment completed successfully"
+            echo "======================================"
