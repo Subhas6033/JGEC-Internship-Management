@@ -61,22 +61,19 @@ const StudentDetailsStep = ({ register, errors }) => {
       <Card.Content className="px-5 py-5 sm:px-6">
         <div className="grid gap-5 sm:grid-cols-2 m-2">
           <div className="sm:col-span-2">
-            <ReadOnlyField label="Full name" value="Aarav Sharma" />
+            <ReadOnlyField label="Full name" value="Indrani Mukherjee" />
           </div>
 
-          <ReadOnlyField label="Student ID" value="CS2026-0184" />
+          <ReadOnlyField label="Student ID" value="23101106035" />
 
-          <ReadOnlyField
-            label="Department"
-            value="Computer Science & Engineering"
-          />
+          <ReadOnlyField label="Department" value="Information Technology" />
 
           <ReadOnlyField label="Year" value="3rd Year" />
 
           <ReadOnlyField label="Phone" value="+91 98765 43210" />
 
           <div className="sm:col-span-2">
-            <ReadOnlyField label="Email" value="aarav.sharma@university.edu" />
+            <ReadOnlyField label="Email" value="im2735@it.jgec.ac.in" />
           </div>
 
           <div className="sm:col-span-2">

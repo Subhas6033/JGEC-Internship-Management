@@ -1,7 +1,13 @@
-import { motion } from "motion/react";
-import { ArrowRight, ClipboardCheck, Clock3, FileText } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Card } from "../../../../Components/index";
+import DashboardStats from "./DashboardStats";
+import ApplicationProgress from "./ApplicationProgress";
+import ProfileCompletion from "./ProfileCompletion";
+import RecentApplications from "./RecentApplications";
+import RequiredDocuments from "./RequiredDocuments";
+import RecentNotifications from "./RecentNotifications";
+import UpcomingDeadlines from "./UpcomingDeadlines";
 import {
   cardAnimation,
   staggerContainer,
@@ -9,136 +15,112 @@ import {
 
 const StudentDashboard = () => {
   return (
-    <section className="w-full px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-7xl">
-        {/* Header */}
-        <motion.div
-          variants={cardAnimation}
-          initial="hidden"
-          animate="visible"
-          className="mb-6"
-        >
-          <p className="eyebrow">Student workspace</p>
+    <>
+      <title>Student Dashboard | JGEC Internship Portal</title>
+      <meta
+        name="description"
+        content="Manage your internship applications, documents, verification status, notifications, and upcoming deadlines from your JGEC student dashboard."
+      />
+      <meta name="robots" content="noindex, nofollow" />
+      <meta name="theme-color" content="#ffffff" />
+      <meta
+        property="og:title"
+        content="Student Dashboard | JGEC Internship Portal"
+      />
+      <meta
+        property="og:description"
+        content="Manage your internship applications, documents, verification status, and important updates."
+      />
+      <meta property="og:type" content="website" />
 
-          <div className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
-              <h1
+      <section className="w-full px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl space-y-6">
+          {/* Header */}
+          <motion.div
+            variants={cardAnimation}
+            initial="hidden"
+            animate="visible"
+          >
+            <p className="eyebrow">Student workspace</p>
+
+            <div className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <h1
+                  className="
+                    font-display
+                    text-3xl
+                    leading-tight
+                    tracking-tight
+                    text-ink
+                    sm:text-4xl
+                  "
+                >
+                  Welcome back, Indrani.
+                </h1>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
+                  Manage your internship applications, documents, verification,
+                  and important updates from one place.
+                </p>
+              </div>
+
+              <Link
+                to="/student/applications/new"
                 className="
-                  font-display
-                  text-3xl leading-tight
-                  tracking-tight
-                  text-ink
-                  sm:text-4xl
+                  focus-ring
+                  inline-flex
+                  shrink-0
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-lg
+                  bg-brand-700
+                  px-4
+                  py-2.5
+                  text-sm
+                  font-semibold
+                  text-white
+                  shadow-sm
+                  transition-all
+                  duration-150
+                  hover:bg-brand-800
                 "
               >
-                Welcome back, Aarav.
-              </h1>
-
-              <p className="mt-2 text-sm leading-6 text-ink-muted">
-                Manage your internship applications and required documents from
-                one place.
-              </p>
+                New Application
+                <ArrowRight size={16} strokeWidth={1.9} />
+              </Link>
             </div>
+          </motion.div>
 
-            <Link
-              to="/student/applications/new"
-              className="
-                focus-ring
-                inline-flex shrink-0
-                items-center justify-center gap-2
-                rounded-lg
-                bg-brand-700
-                px-4 py-2.5
-                text-sm font-semibold
-                text-white
-                shadow-sm
-                transition-all duration-150
-                hover:bg-brand-800
-              "
-            >
-              New Application
-              <ArrowRight size={16} strokeWidth={1.9} />
-            </Link>
+          {/* Stats */}
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            <DashboardStats />
+          </motion.div>
+
+          {/* Current status */}
+          <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+            <ApplicationProgress />
+            <ProfileCompletion />
           </div>
-        </motion.div>
 
-        {/* Stats */}
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="
-            grid gap-4
-            sm:grid-cols-2
-            xl:grid-cols-3
-          "
-        >
-          <Card className="border-border bg-cream-soft p-5 shadow-card">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium text-ink-muted">
-                  Applications
-                </p>
+          {/* Applications + Documents */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <RecentApplications />
+            <RequiredDocuments />
+          </div>
 
-                <p className="mt-2 text-2xl font-semibold text-ink">2</p>
-              </div>
-
-              <div
-                className="
-                  flex size-10 items-center justify-center
-                  rounded-lg bg-brand-50
-                  text-brand-700
-                "
-              >
-                <FileText size={18} strokeWidth={1.8} />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="border-border bg-cream-soft p-5 shadow-card">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium text-ink-muted">
-                  Pending review
-                </p>
-
-                <p className="mt-2 text-2xl font-semibold text-ink">1</p>
-              </div>
-
-              <div
-                className="
-                  flex size-10 items-center justify-center
-                  rounded-lg bg-cream-dark
-                  text-ink
-                "
-              >
-                <Clock3 size={18} strokeWidth={1.8} />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="border-border bg-cream-soft p-5 shadow-card">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium text-ink-muted">Approved</p>
-
-                <p className="mt-2 text-2xl font-semibold text-ink">1</p>
-              </div>
-
-              <div
-                className="
-                  flex size-10 items-center justify-center
-                  rounded-lg bg-brand-50
-                  text-brand-700
-                "
-              >
-                <ClipboardCheck size={18} strokeWidth={1.8} />
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-    </section>
+          {/* Notifications + Deadlines */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <RecentNotifications />
+            <UpcomingDeadlines />
+          </div>
+        </div>
+      </section>
+    </>
   );
 };
 
