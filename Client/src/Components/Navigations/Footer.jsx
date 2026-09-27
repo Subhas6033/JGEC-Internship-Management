@@ -189,62 +189,145 @@ const Footer = () => {
       <div className="border-t border-cream/10">
         <div
           className="
-            mx-auto flex w-full max-w-6xl
-            flex-col gap-3
-            px-5 py-4
-            sm:flex-row sm:items-center
-            sm:justify-between
-            sm:px-6
-            lg:px-8
-          "
+      mx-auto w-full
+      px-5 py-5
+      sm:px-6 sm:py-5
+      lg:px-8
+    "
         >
-          <p className="text-[10px] leading-5 text-cream/45 sm:text-xs">
-            © {currentYear} Internship NOC · JGEC. All rights reserved.
-          </p>
-
-          <div className="flex items-center gap-4">
-            <Link
-              to="/privacy"
+          {/* Copyright + Links */}
+          <div
+            className="
+        mt-3
+        flex flex-col
+        items-center
+        gap-3
+        sm:flex-row
+        sm:items-center
+        sm:justify-between
+      "
+          >
+            {/* Copyright */}
+            <p
               className="
-                focus-ring rounded-md
-                text-[10px] text-cream/45
-                transition-colors
-                hover:text-cream/80
-                sm:text-xs
-              "
+          text-center
+          text-[10px]
+          leading-5
+          text-cream/45
+          sm:text-left
+          sm:text-xs
+        "
             >
-              Privacy
-            </Link>
+              © {currentYear} Internship NOC · JGEC. All rights reserved.
+            </p>
 
-            <Link
-              to="/terms"
+            {/* Maintainer */}
+            <p
               className="
-                focus-ring rounded-md
-                text-[10px] text-cream/45
-                transition-colors
-                hover:text-cream/80
-                sm:text-xs
-              "
+        text-center
+        text-[10px]
+        font-medium
+        leading-5
+        tracking-wide
+        text-cream/50
+        sm:text-xs
+      "
             >
-              Terms
-            </Link>
+              Maintained and developed by{" "}
+              <Link
+                to="https://subhas.vercel.app"
+                target="_blank"
+                rel="noreferrer"
+                className="
+    group
+    inline-flex
+    items-center
+    text-sm
+    font-semibold
+    tracking-wide
+    text-brand-300
+    transition-all
+    duration-200
+    hover:text-brand-200
+  "
+              >
+                <span className="relative">
+                  Subhas
+                  <span
+                    className="
+        absolute
+        -bottom-0.5
+        left-0
+        h-px
+        w-0
+        bg-brand-300
+        transition-all
+        duration-300
+        group-hover:w-full
+      "
+                  />
+                </span>
+              </Link>
+            </p>
 
-            <a
-              href="#top"
+            {/* Footer Links */}
+            <div
               className="
-                focus-ring
-                inline-flex items-center gap-1
-                rounded-md
-                text-[10px] font-medium
-                text-brand-300
-                transition-colors
-                hover:text-brand-200
-                sm:text-xs
-              "
+          flex
+          items-center
+          gap-4
+        "
             >
-              Back to top
-              <ArrowUpRight aria-hidden="true" size={12} strokeWidth={1.8} />
-            </a>
+              <Link
+                to="/privacy"
+                className="
+            focus-ring
+            rounded-md
+            text-[10px]
+            text-cream/45
+            transition-colors
+            hover:text-cream/80
+            sm:text-xs
+          "
+              >
+                Privacy
+              </Link>
+
+              <Link
+                to="/terms"
+                className="
+            focus-ring
+            rounded-md
+            text-[10px]
+            text-cream/45
+            transition-colors
+            hover:text-cream/80
+            sm:text-xs
+          "
+              >
+                Terms
+              </Link>
+
+              <a
+                href="#top"
+                className="
+            focus-ring
+            inline-flex
+            items-center
+            gap-1
+            rounded-md
+            text-[10px]
+            font-medium
+            text-brand-300
+            transition-colors
+            hover:text-brand-200
+            sm:text-xs
+          "
+              >
+                Back to top
+                <ArrowUpRight aria-hidden="true" size={12} strokeWidth={1.8} />
+              </a>
+            </div>
           </div>
         </div>
       </div>
