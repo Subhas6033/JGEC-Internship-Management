@@ -177,7 +177,7 @@ const Footer = () => {
                 <span className="leading-5">
                   Jalpaiguri Government Engineering College
                   <br />
-                  Jalpaiguri, West Bengal
+                  Jalpaiguri, West Bengal, 735102
                 </span>
               </div>
             </div>
