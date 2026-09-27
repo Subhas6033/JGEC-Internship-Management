@@ -5,7 +5,9 @@ import App from "./App.jsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Loading } from "./Components/index.js";
 import StudentLayout from "./Layout/StudentLayout.jsx";
+import ErrorBoundary from "./Error/ErrorBoundary.jsx";
 
+const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
 const Landing = lazy(() => import("./Pages/Landing/Landing.jsx"));
 const Login = lazy(() => import("./Pages/Auth/Login.jsx"));
 const Signup = lazy(() => import("./Pages/Auth/Signup.jsx"));
@@ -25,14 +27,17 @@ const router = createBrowserRouter([
         path: "/",
         element: <Landing />,
       },
+
       {
         path: "/auth/login",
         element: <Login />,
       },
+
       {
         path: "/auth/signup",
         element: <Signup />,
       },
+
       {
         path: "/students",
         element: <StudentLayout />,
@@ -47,14 +52,20 @@ const router = createBrowserRouter([
           },
         ],
       },
+      {
+        path: "*",
+        element: <NotFound />,
+      },
     ],
   },
 ]);
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Suspense fallback={<Loading message="Loading..." />}>
-      <RouterProvider router={router} />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<Loading message="Loading..." />}>
+        <RouterProvider router={router} />
+      </Suspense>
+    </ErrorBoundary>
   </StrictMode>,
 );
