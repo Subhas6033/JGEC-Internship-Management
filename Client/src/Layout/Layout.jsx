@@ -1,6 +1,20 @@
+import { useLocation } from "react-router-dom";
 import { Nav, Footer } from "../Components";
 
 const Layout = ({ children }) => {
+  const { pathname } = useLocation();
+  const isAuthRoute = pathname.startsWith("/auth");
+
+  if (isAuthRoute) {
+    return (
+      <div className="min-h-screen bg-cream text-ink">
+        <main className="w-full">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-cream text-ink">
       <Nav />
