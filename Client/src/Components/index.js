@@ -6,5 +6,6 @@ import Input from "./Common/Input";
 import Modal from "./Common/Modal";
 import Select from "./Common/Select";
 import Toast from "./Common/Toast";
+import Loading from "./Loader/Loading";
 
-export { Nav, Footer, Button, Card, Input, Modal, Select, Toast };
+export { Nav, Footer, Button, Card, Input, Modal, Select, Toast, Loading };

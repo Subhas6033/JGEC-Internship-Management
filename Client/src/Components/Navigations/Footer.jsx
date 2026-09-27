@@ -115,7 +115,7 @@ const Footer = () => {
               </Link>
 
               <Link
-                to="/login"
+                to="/auth/login"
                 className="
                   focus-ring rounded-md
                   text-xs text-cream/65

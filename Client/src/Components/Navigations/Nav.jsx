@@ -89,7 +89,7 @@ const Nav = () => {
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           {/* Login */}
           <NavLink
-            to="/login"
+            to="/auth/login"
             className={({ isActive }) =>
               [
                 "focus-ring rounded-lg px-2.5 py-2 sm:px-3",
