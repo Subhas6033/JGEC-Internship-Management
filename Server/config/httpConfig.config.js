@@ -1,0 +1,19 @@
+const HTTP_STATUS = {
+  // 2XX status code
+  SUCCESS: 200,
+  CREATED: 201,
+  NO_CONTENT: 204,
+
+  //   4XX Status code
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  TOO_MANY_REQUEST: 429,
+
+  // 5XX Status Code
+  INTERNAL_SERVER_ERROR: 502,
+};
+
+export { HTTP_STATUS };
