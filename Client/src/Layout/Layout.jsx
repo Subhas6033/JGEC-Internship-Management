@@ -10,18 +10,18 @@ const Layout = ({ children }) => {
   const isTPORoutes = pathname.startsWith("/tpo");
   const isAdmin = pathname.startsWith("/admin");
 
-  // Authentication pages
-  if (isAuthRoute) {
-    return (
-      <div className="min-h-screen bg-cream text-ink">
-        <main className="w-full">{children}</main>
-      </div>
-    );
-  }
+  // Error / Not Found page
+  const isNotFoundRoute = pathname === "/404";
 
-  // Authenticated routes
-  // Do not render the public navbar or footer here.
-  if (isStudentRoute || isDeptTPORoutes || isTPORoutes || isAdmin) {
+  // Pages without public navigation
+  if (
+    isAuthRoute ||
+    isStudentRoute ||
+    isDeptTPORoutes ||
+    isTPORoutes ||
+    isAdmin ||
+    isNotFoundRoute
+  ) {
     return (
       <div className="min-h-screen bg-cream text-ink">
         <main className="w-full">{children}</main>

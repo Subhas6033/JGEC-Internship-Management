@@ -437,7 +437,7 @@ const WorkflowCard = ({ step, index, scrollYProgress }) => {
 
         {/* Applications Details */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-b border-border p-4 sm:grid-cols-3 sm:gap-5 sm:p-5 lg:p-6">
-          <InfoItem label="Student" value="Ayan Sharma" />
+          <InfoItem label="Student" value="Indrani Mukherjee" />
 
           <InfoItem label="Submitted" value="12 Jan 2026" />
 

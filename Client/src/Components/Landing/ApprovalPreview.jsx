@@ -114,7 +114,7 @@ const ApprovalComponents = () => {
             </p>
 
             <p className="mt-1 text-[11px] font-medium text-ink">
-              Aayan Sharma
+              Indrani Mukherjee
             </p>
           </div>
 

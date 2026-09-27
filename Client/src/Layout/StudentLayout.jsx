@@ -19,9 +19,9 @@ const StudentLayout = () => {
         onMenuClick={() => setSidebarOpen(true)}
         onLogout={handleLogout}
         student={{
-          name: "Aarav Sharma",
+          name: "Indrani Mukherjee",
           role: "Student",
-          initials: "AS",
+          initials: "IM",
         }}
       />
 
