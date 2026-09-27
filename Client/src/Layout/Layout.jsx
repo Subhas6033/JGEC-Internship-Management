@@ -3,20 +3,35 @@ import { Nav, Footer } from "../Components";
 
 const Layout = ({ children }) => {
   const { pathname } = useLocation();
-  const isAuthRoute = pathname.startsWith("/auth");
 
+  const isAuthRoute = pathname.startsWith("/auth");
+  const isStudentRoute = pathname.startsWith("/students");
+  const isDeptTPORoutes = pathname.startsWith("/dpttpo");
+  const isTPORoutes = pathname.startsWith("/tpo");
+  const isAdmin = pathname.startsWith("/admin");
+
+  // Authentication pages
   if (isAuthRoute) {
     return (
       <div className="min-h-screen bg-cream text-ink">
-        <main className="w-full">
-          {children}
-        </main>
+        <main className="w-full">{children}</main>
       </div>
     );
   }
 
+  // Authenticated routes
+  // Do not render the public navbar or footer here.
+  if (isStudentRoute || isDeptTPORoutes || isTPORoutes || isAdmin) {
+    return (
+      <div className="min-h-screen bg-cream text-ink">
+        <main className="w-full">{children}</main>
+      </div>
+    );
+  }
+
+  // Public application pages
   return (
-    <div className="min-h-screen bg-cream text-ink">
+    <div className="flex min-h-screen flex-col bg-cream text-ink">
       <Nav />
 
       <main className="w-full flex-1">

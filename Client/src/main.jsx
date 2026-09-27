@@ -4,10 +4,17 @@ import "./index.css";
 import App from "./App.jsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Loading } from "./Components/index.js";
+import StudentLayout from "./Layout/StudentLayout.jsx";
 
 const Landing = lazy(() => import("./Pages/Landing/Landing.jsx"));
 const Login = lazy(() => import("./Pages/Auth/Login.jsx"));
 const Signup = lazy(() => import("./Pages/Auth/Signup.jsx"));
+const StudentDashboard = lazy(
+  () => import("./Pages/Services/Students/Dashboard/StudentDashboard.jsx"),
+);
+const StudentApplications = lazy(
+  () => import("./Pages/Services/Students/Applications/StudentApplication.jsx"),
+);
 
 const router = createBrowserRouter([
   {
@@ -25,6 +32,20 @@ const router = createBrowserRouter([
       {
         path: "/auth/signup",
         element: <Signup />,
+      },
+      {
+        path: "/students",
+        element: <StudentLayout />,
+        children: [
+          {
+            path: "/students/dashboard",
+            element: <StudentDashboard />,
+          },
+          {
+            path: "/students/applications/new",
+            element: <StudentApplications />,
+          },
+        ],
       },
     ],
   },
