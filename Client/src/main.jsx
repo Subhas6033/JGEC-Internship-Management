@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Loading } from "./Components/index.js";
 import StudentLayout from "./Layout/StudentLayout.jsx";
+import DeptTPOLayout from "./Layout/DeptTPOLayout.jsx";
 import ErrorBoundary from "./Error/ErrorBoundary.jsx";
 
 const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
@@ -37,6 +38,64 @@ const StudentsSettings = lazy(
   () => import("./Pages/Services/Students/Settings/Settings.jsx"),
 );
 
+const DeptTPOSignUp = lazy(() => import("./Pages/Auth/DeptTPOSignup.jsx"));
+
+const DeptTPOLogin = lazy(() => import("./Pages/Auth/DeptTPOLogin.jsx"));
+
+const DeptTPODashboard = lazy(
+  () => import("./Pages/Services/DeptTPO/Dashboard/DeptTPODashboard.jsx"),
+);
+
+const DeptTPOApplications = lazy(
+  () => import("./Pages/Services/DeptTPO/Applications/DeptTPOApplications.jsx"),
+);
+
+const AllCompanyApplications = lazy(
+  () =>
+    import("./Pages/Services/DeptTPO/Applications/AllCompanyApplications.jsx"),
+);
+
+const PendingApplications = lazy(
+  () => import("./Pages/Services/DeptTPO/Applications/PendingApplications.jsx"),
+);
+
+const AcceptedApplications = lazy(
+  () =>
+    import("./Pages/Services/DeptTPO/Applications/ApprovedApplications.jsx"),
+);
+
+const RejectedApplications = lazy(
+  () =>
+    import("./Pages/Services/DeptTPO/Applications/RejectedApplications.jsx"),
+);
+
+const SentToTPOApplications = lazy(
+  () =>
+    import("./Pages/Services/DeptTPO/Applications/SentToTPOApplications.jsx"),
+);
+
+const CompanyApplicationDetails = lazy(
+  () =>
+    import("./Pages/Services/DeptTPO/Applications/CompanyApplicationDetails.jsx"),
+);
+
+const InternshipDeadlines = lazy(
+  () => import("./Pages/Services/DeptTPO/Deadlines/InternshipDeadlines.jsx"),
+);
+
+const DeptTPONotifications = lazy(
+  () =>
+    import("./Pages/Services/DeptTPO/Notifications/DeptTPONotifications.jsx"),
+);
+
+const DeptTPOProfile = lazy(
+  () => import("./Pages/Services/DeptTPO/Profile/DeptTPOProfile.jsx"),
+);
+
+const DeptTPOSettings = lazy(
+  () => import("./Pages/Services/DeptTPO/Settings/Settings.jsx"),
+);
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -55,6 +114,14 @@ const router = createBrowserRouter([
       {
         path: "/auth/signup",
         element: <Signup />,
+      },
+      {
+        path: "/auth/depttpo/signup",
+        element: <DeptTPOSignUp />,
+      },
+      {
+        path: "/auth/depttpo/login",
+        element: <DeptTPOLogin />,
       },
       {
         path: "/contact",
@@ -92,6 +159,67 @@ const router = createBrowserRouter([
           {
             path: "/students/settings",
             element: <StudentsSettings />,
+          },
+        ],
+      },
+      {
+        path: "depttpo",
+        element: <DeptTPOLayout />,
+        children: [
+          {
+            path: "dashboard",
+            element: <DeptTPODashboard />,
+          },
+          {
+            path: "applications",
+            element: <DeptTPOApplications />,
+            children: [
+              {
+                index: true,
+                element: <AllCompanyApplications />,
+              },
+
+              {
+                path: "pending",
+                element: <PendingApplications />,
+              },
+
+              {
+                path: "accepted",
+                element: <AcceptedApplications />,
+              },
+
+              {
+                path: "rejected",
+                element: <RejectedApplications />,
+              },
+
+              {
+                path: "sent",
+                element: <SentToTPOApplications />,
+              },
+
+              {
+                path: ":companyId",
+                element: <CompanyApplicationDetails />,
+              },
+            ],
+          },
+          {
+            path: "deadlines",
+            element: <InternshipDeadlines />,
+          },
+          {
+            path: "notifications",
+            element: <DeptTPONotifications />,
+          },
+          {
+            path: "profile",
+            element: <DeptTPOProfile />,
+          },
+          {
+            path: "settings",
+            element: <DeptTPOSettings />,
           },
         ],
       },

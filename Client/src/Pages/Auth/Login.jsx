@@ -245,7 +245,7 @@ const Login = () => {
 
               <div className="grid grid-cols-2 gap-2.5">
                 <Link
-                  to="/auth/deptpo/login"
+                  to="/auth/depttpo/login"
                   className="
         flex items-center justify-center
         rounded-lg

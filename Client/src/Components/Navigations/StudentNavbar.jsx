@@ -9,7 +9,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-
 import { Button, Card } from "../index";
 
 const StudentNavbar = ({
@@ -70,12 +69,9 @@ const StudentNavbar = ({
                 items-center justify-center
                 overflow-hidden
                 rounded-lg
-                bg-brand-700
-                text-white
-                shadow-sm
               "
             >
-              <span className="text-sm font-semibold">J</span>
+              <img src="/jgecLogo.png" alt="jgec logo" />
             </span>
 
             <span className="flex min-w-0 flex-col">

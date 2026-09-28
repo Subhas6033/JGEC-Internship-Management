@@ -52,7 +52,7 @@ const CTASection = () => {
         </p>
 
         <Link
-          to="/apply"
+          to="/students/applications/new"
           className="
             mt-6
             inline-flex

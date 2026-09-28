@@ -103,7 +103,7 @@ const HeroSection = () => {
             className="mt-7 flex flex-wrap items-center gap-3"
           >
             <Link
-              to="/apply"
+              to="/students/applications/new"
               className="
                 inline-flex
                 min-h-10
