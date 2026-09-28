@@ -103,7 +103,7 @@ const Footer = () => {
               </Link>
 
               <Link
-                to="/apply"
+                to="/students/applications/new"
                 className="
                   focus-ring rounded-md
                   text-xs text-cream/65

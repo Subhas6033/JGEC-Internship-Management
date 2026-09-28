@@ -6,7 +6,7 @@ const Layout = ({ children }) => {
 
   const isAuthRoute = pathname.startsWith("/auth");
   const isStudentRoute = pathname.startsWith("/students");
-  const isDeptTPORoutes = pathname.startsWith("/dpttpo");
+  const isDeptTPORoutes = pathname.startsWith("/depttpo");
   const isTPORoutes = pathname.startsWith("/tpo");
   const isAdmin = pathname.startsWith("/admin");
 

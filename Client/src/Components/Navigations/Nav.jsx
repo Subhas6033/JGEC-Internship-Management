@@ -104,7 +104,7 @@ const Nav = () => {
 
           {/* Apply CTA */}
           <Link
-            to="/apply"
+            to="/students/applications/new"
             className="
               focus-ring
               inline-flex min-h-9
