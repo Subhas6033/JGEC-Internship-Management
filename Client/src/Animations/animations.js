@@ -741,11 +741,35 @@ export const motionPropsCenter = {
   viewport: viewportCenter,
 };
 
+// Page Animations
+export const pageAnimation = {
+  hidden: {
+    opacity: 0,
+    y: 10,
+  },
+
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      ...transitions.normal,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+
+  exit: {
+    opacity: 0,
+    y: 6,
+    transition: transitions.fast,
+  },
+};
+
 const animations = {
   transitions,
 
   pageEnter,
   pageFade,
+  pageAnimation,
 
   fadeIn,
   fadeUp,

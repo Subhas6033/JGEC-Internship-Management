@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, Card, Input } from "../../Components/index";
+import { Button, Input } from "../../Components/index";
 
 const DeptTPOLogin = () => {
   const navigate = useNavigate();
@@ -77,8 +77,8 @@ const DeptTPOLogin = () => {
           {/* Branding */}
           <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
             <div>
-              <div className="flex size-11 items-center justify-center rounded-xl bg-white/10">
-                <LockKeyhole size={22} strokeWidth={1.8} />
+              <div className="flex size-11 items-center justify-center rounded-full bg-white">
+                <img src="/jgecLogo.png" alt="college logo" />
               </div>
 
               <p className="mt-8 text-xs font-medium uppercase tracking-[0.16em] text-white/70">
@@ -131,24 +131,16 @@ const DeptTPOLogin = () => {
                     College email
                   </label>
 
-                  <div className="relative">
-                    <Mail
-                      size={17}
-                      strokeWidth={1.8}
-                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-                    />
-
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      placeholder="name@college.edu"
-                      autoComplete="email"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="name@college.edu"
+                    autoComplete="email"
+                    startIcon={<Mail size={17} strokeWidth={1.8} />}
+                  />
 
                   {errors.email && (
                     <p className="mt-1.5 text-xs text-red-600">
@@ -176,12 +168,6 @@ const DeptTPOLogin = () => {
                   </div>
 
                   <div className="relative">
-                    <LockKeyhole
-                      size={17}
-                      strokeWidth={1.8}
-                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-                    />
-
                     <Input
                       id="password"
                       name="password"
@@ -190,7 +176,23 @@ const DeptTPOLogin = () => {
                       onChange={handleChange}
                       placeholder="Enter your password"
                       autoComplete="current-password"
-                      className="pl-10 pr-10"
+                      startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
+                      endIcon={
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((value) => !value)}
+                          className="pointer-events-auto text-gray-400 transition hover:text-gray-900 focus:outline-none"
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <EyeOff size={17} strokeWidth={1.8} />
+                          ) : (
+                            <Eye size={17} strokeWidth={1.8} />
+                          )}
+                        </button>
+                      }
                     />
 
                     <button

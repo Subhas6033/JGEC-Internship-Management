@@ -9,7 +9,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, Card, Input, Select } from "../../Components/index";
+import { Button, Input, Select } from "../../Components/index";
 
 const departments = [
   {
@@ -142,8 +142,8 @@ const DeptTPOSignup = () => {
           {/* Left panel */}
           <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
             <div>
-              <div className="flex size-11 items-center justify-center rounded-xl bg-white/10">
-                <UserRound size={22} strokeWidth={1.8} />
+              <div className="flex size-11 items-center justify-center rounded-full bg-white">
+                <img src="/jgecLogo.png" alt="" />
               </div>
 
               <p className="mt-8 text-xs font-medium uppercase tracking-[0.16em] text-white/70">
@@ -197,24 +197,16 @@ const DeptTPOSignup = () => {
                     Full name
                   </label>
 
-                  <div className="relative">
-                    <UserRound
-                      size={17}
-                      strokeWidth={1.8}
-                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-                    />
-
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      value={form.name}
-                      onChange={handleChange}
-                      placeholder="Enter your full name"
-                      autoComplete="name"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                    autoComplete="name"
+                    startIcon={<UserRound size={17} strokeWidth={1.8} />}
+                  />
 
                   {errors.name && (
                     <p className="mt-1.5 text-xs text-red-600">{errors.name}</p>
@@ -231,24 +223,16 @@ const DeptTPOSignup = () => {
                       College email
                     </label>
 
-                    <div className="relative">
-                      <Mail
-                        size={17}
-                        strokeWidth={1.8}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-                      />
-
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={form.email}
-                        onChange={handleChange}
-                        placeholder="name@college.edu"
-                        autoComplete="email"
-                        className="pl-10"
-                      />
-                    </div>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="name@college.edu"
+                      autoComplete="email"
+                      startIcon={<Mail size={17} strokeWidth={1.8} />}
+                    />
 
                     {errors.email && (
                       <p className="mt-1.5 text-xs text-red-600">
@@ -265,26 +249,18 @@ const DeptTPOSignup = () => {
                       Mobile number
                     </label>
 
-                    <div className="relative">
-                      <Phone
-                        size={17}
-                        strokeWidth={1.8}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-                      />
-
-                      <Input
-                        id="mobile"
-                        name="mobile"
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={10}
-                        value={form.mobile}
-                        onChange={handleChange}
-                        placeholder="10-digit mobile number"
-                        autoComplete="tel"
-                        className="pl-10"
-                      />
-                    </div>
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={form.mobile}
+                      onChange={handleChange}
+                      placeholder="10-digit mobile number"
+                      autoComplete="tel"
+                      startIcon={<Phone size={17} strokeWidth={1.8} />}
+                    />
 
                     {errors.mobile && (
                       <p className="mt-1.5 text-xs text-red-600">
@@ -329,39 +305,32 @@ const DeptTPOSignup = () => {
                       Password
                     </label>
 
-                    <div className="relative">
-                      <LockKeyhole
-                        size={17}
-                        strokeWidth={1.8}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-                      />
-
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        value={form.password}
-                        onChange={handleChange}
-                        placeholder="Minimum 8 characters"
-                        autoComplete="new-password"
-                        className="pl-10 pr-10"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((value) => !value)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted transition hover:text-ink focus:outline-none"
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
-                      >
-                        {showPassword ? (
-                          <EyeOff size={17} strokeWidth={1.8} />
-                        ) : (
-                          <Eye size={17} strokeWidth={1.8} />
-                        )}
-                      </button>
-                    </div>
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={handleChange}
+                      placeholder="Minimum 8 characters"
+                      autoComplete="new-password"
+                      startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
+                      endIcon={
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((value) => !value)}
+                          className="text-ink-muted transition hover:text-ink focus:outline-none"
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <EyeOff size={17} strokeWidth={1.8} />
+                          ) : (
+                            <Eye size={17} strokeWidth={1.8} />
+                          )}
+                        </button>
+                      }
+                    />
 
                     {errors.password && (
                       <p className="mt-1.5 text-xs text-red-600">
@@ -379,43 +348,36 @@ const DeptTPOSignup = () => {
                       Confirm password
                     </label>
 
-                    <div className="relative">
-                      <LockKeyhole
-                        size={17}
-                        strokeWidth={1.8}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-                      />
-
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={form.confirmPassword}
-                        onChange={handleChange}
-                        placeholder="Re-enter password"
-                        autoComplete="new-password"
-                        className="pl-10 pr-10"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword((value) => !value)
-                        }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted transition hover:text-ink focus:outline-none"
-                        aria-label={
-                          showConfirmPassword
-                            ? "Hide confirm password"
-                            : "Show confirm password"
-                        }
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff size={17} strokeWidth={1.8} />
-                        ) : (
-                          <Eye size={17} strokeWidth={1.8} />
-                        )}
-                      </button>
-                    </div>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={form.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Re-enter password"
+                      autoComplete="new-password"
+                      startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
+                      endIcon={
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword((value) => !value)
+                          }
+                          className="text-ink-muted transition hover:text-ink focus:outline-none"
+                          aria-label={
+                            showConfirmPassword
+                              ? "Hide confirm password"
+                              : "Show confirm password"
+                          }
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff size={17} strokeWidth={1.8} />
+                          ) : (
+                            <Eye size={17} strokeWidth={1.8} />
+                          )}
+                        </button>
+                      }
+                    />
 
                     {errors.confirmPassword && (
                       <p className="mt-1.5 text-xs text-red-600">
@@ -442,7 +404,7 @@ const DeptTPOSignup = () => {
                 <p className="text-sm text-ink-muted">
                   Already have a Department TPO account?{" "}
                   <Link
-                    to="/auth/dept-tpo/login"
+                    to="/auth/depttpo/login"
                     className="font-medium text-brand-700 hover:underline"
                   >
                     Sign in

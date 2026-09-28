@@ -267,7 +267,7 @@ const Login = () => {
                 </Link>
 
                 <Link
-                  to="/auth/tpo/login"
+                  to="/auth/spoc/login"
                   className="
         flex items-center justify-center
         rounded-lg
@@ -285,7 +285,7 @@ const Login = () => {
         focus:ring-brand-700/20
       "
                 >
-                  TPO Login
+                  SPOC Login
                 </Link>
               </div>
             </div>

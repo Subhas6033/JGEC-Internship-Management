@@ -79,7 +79,7 @@ const HeroSection = () => {
           >
             Your Internship NOC,
             <br />
-            Without the Paperwork.
+            With minimal Paperwork.
           </motion.h1>
 
           <motion.p

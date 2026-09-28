@@ -1,8 +1,6 @@
 import React, { forwardRef, useId } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-
 import { formItemAnimation, transitions } from "../../Animations/animations";
-
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const Input = forwardRef(

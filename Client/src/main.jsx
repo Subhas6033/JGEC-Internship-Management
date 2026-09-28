@@ -6,12 +6,14 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Loading } from "./Components/index.js";
 import StudentLayout from "./Layout/StudentLayout.jsx";
 import DeptTPOLayout from "./Layout/DeptTPOLayout.jsx";
+import SPOCLayout from "./Layout/SPOCLayout.jsx";
 import ErrorBoundary from "./Error/ErrorBoundary.jsx";
 
 const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
 const Landing = lazy(() => import("./Pages/Landing/Landing.jsx"));
 const Contact = lazy(() => import("./Pages/Contact/Contact.jsx"));
 
+// Students Routes
 const Login = lazy(() => import("./Pages/Auth/Login.jsx"));
 const Signup = lazy(() => import("./Pages/Auth/Signup.jsx"));
 const StudentDashboard = lazy(
@@ -38,63 +40,63 @@ const StudentsSettings = lazy(
   () => import("./Pages/Services/Students/Settings/Settings.jsx"),
 );
 
+// Dept TPO Routes
 const DeptTPOSignUp = lazy(() => import("./Pages/Auth/DeptTPOSignup.jsx"));
-
 const DeptTPOLogin = lazy(() => import("./Pages/Auth/DeptTPOLogin.jsx"));
-
 const DeptTPODashboard = lazy(
   () => import("./Pages/Services/DeptTPO/Dashboard/DeptTPODashboard.jsx"),
 );
-
 const DeptTPOApplications = lazy(
   () => import("./Pages/Services/DeptTPO/Applications/DeptTPOApplications.jsx"),
 );
-
 const AllCompanyApplications = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Applications/AllCompanyApplications.jsx"),
 );
-
 const PendingApplications = lazy(
   () => import("./Pages/Services/DeptTPO/Applications/PendingApplications.jsx"),
 );
-
 const AcceptedApplications = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Applications/ApprovedApplications.jsx"),
 );
-
 const RejectedApplications = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Applications/RejectedApplications.jsx"),
 );
-
 const SentToTPOApplications = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Applications/SentToTPOApplications.jsx"),
 );
-
 const CompanyApplicationDetails = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Applications/CompanyApplicationDetails.jsx"),
 );
-
 const InternshipDeadlines = lazy(
   () => import("./Pages/Services/DeptTPO/Deadlines/InternshipDeadlines.jsx"),
 );
-
 const DeptTPONotifications = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Notifications/DeptTPONotifications.jsx"),
 );
-
 const DeptTPOProfile = lazy(
   () => import("./Pages/Services/DeptTPO/Profile/DeptTPOProfile.jsx"),
 );
-
 const DeptTPOSettings = lazy(
   () => import("./Pages/Services/DeptTPO/Settings/Settings.jsx"),
 );
+
+// SPOC Routes
+const SPOCSignup = lazy(() => import("./Pages/Auth/SPOCSignup.jsx"));
+const SPOCLogin = lazy(() => import("./Pages/Auth/SPOCLogin.jsx"));
+const SPOCDashboard = lazy(
+  () => import("./Pages/Services/SPOC/SPOCDashboard.jsx.jsx"),
+);
+const SPOCApplications = lazy(
+  () => import("./Pages/Services/SPOC/SPOCApplications.jsx"),
+);
+const SPOCNOC = lazy(() => import("./Pages/Services/SPOC/SPOCNOC.jsx"));
+const SPOCProfile = lazy(() => import("./Pages/Services/SPOC/SPOCProfile.jsx"));
 
 const router = createBrowserRouter([
   {
@@ -124,10 +126,19 @@ const router = createBrowserRouter([
         element: <DeptTPOLogin />,
       },
       {
+        path: "/auth/spoc/signup",
+        element: <SPOCSignup />,
+      },
+      {
+        path: "/auth/spoc/login",
+        element: <SPOCLogin />,
+      },
+      {
         path: "/contact",
         element: <Contact />,
       },
 
+      // Students Routes
       {
         path: "/students",
         element: <StudentLayout />,
@@ -162,6 +173,8 @@ const router = createBrowserRouter([
           },
         ],
       },
+
+      // Dept TPO Routes
       {
         path: "depttpo",
         element: <DeptTPOLayout />,
@@ -220,6 +233,30 @@ const router = createBrowserRouter([
           {
             path: "settings",
             element: <DeptTPOSettings />,
+          },
+        ],
+      },
+
+      // SPOC Routes
+      {
+        path: "/spoc",
+        element: <SPOCLayout />,
+        children: [
+          {
+            path: "/spoc/dashboard",
+            element: <SPOCDashboard />,
+          },
+          {
+            path: "/spoc/applications",
+            element: <SPOCApplications />,
+          },
+          {
+            path: "/spoc/nocs",
+            element: <SPOCNOC />,
+          },
+          {
+            path: "/spoc/profile",
+            element: <SPOCProfile />,
           },
         ],
       },
