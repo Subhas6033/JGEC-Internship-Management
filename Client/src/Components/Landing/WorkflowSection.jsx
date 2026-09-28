@@ -28,9 +28,9 @@ const workflowSteps = [
   },
   {
     id: "tpo",
-    label: "TPO Review",
-    eyebrow: "TPO review",
-    title: "Your application is being reviewed by the TPO Coordinator.",
+    label: "SPOC Review",
+    eyebrow: "SPOC review",
+    title: "Your application is being reviewed by the SPOC Coordinator.",
     description:
       "The TPO Coordinator verifies your application details and supporting documents.",
     status: "In Review",

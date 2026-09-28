@@ -7,7 +7,7 @@ const Layout = ({ children }) => {
   const isAuthRoute = pathname.startsWith("/auth");
   const isStudentRoute = pathname.startsWith("/students");
   const isDeptTPORoutes = pathname.startsWith("/depttpo");
-  const isTPORoutes = pathname.startsWith("/tpo");
+  const isTPORoutes = pathname.startsWith("/spoc");
   const isAdmin = pathname.startsWith("/admin");
 
   // Error / Not Found page
