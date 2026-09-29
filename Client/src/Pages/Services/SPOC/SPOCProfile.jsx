@@ -164,7 +164,7 @@ const SPOCProfile = () => {
                   />
                 </div>
 
-                <div className="min-w-0">
+                <div className="sm: p-2 min-w-0">
                   <div
                     className="
                       flex
@@ -296,7 +296,7 @@ const SPOCProfile = () => {
                 lg:p-6
               "
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 p-2">
                 <span
                   className="
                     flex
@@ -383,7 +383,7 @@ const SPOCProfile = () => {
                 lg:p-6
               "
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 p-2">
                 <span
                   className="
                     flex

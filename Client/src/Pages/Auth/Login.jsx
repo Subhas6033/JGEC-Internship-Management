@@ -180,7 +180,7 @@ const Login = () => {
                 </label>
 
                 <Link
-                  to="/forgot-password"
+                  to="/auth/forgot-password"
                   className="
                     text-xs font-semibold
                     text-brand-700

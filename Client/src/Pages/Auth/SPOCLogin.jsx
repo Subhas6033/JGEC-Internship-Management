@@ -184,7 +184,7 @@ const SPOCLogin = () => {
                       </label>
 
                       <Link
-                        to="/forgot-password"
+                        to="/auth/forgot-password"
                         className="text-sm font-medium text-brand-700 hover:text-brand-900"
                       >
                         Forgot password?
