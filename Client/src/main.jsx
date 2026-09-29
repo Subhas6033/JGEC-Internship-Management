@@ -43,6 +43,9 @@ const StudentsSettings = lazy(
 // Dept TPO Routes
 const DeptTPOSignUp = lazy(() => import("./Pages/Auth/DeptTPOSignup.jsx"));
 const DeptTPOLogin = lazy(() => import("./Pages/Auth/DeptTPOLogin.jsx"));
+const DeptTPOForgotPassword = lazy(
+  () => import("./Pages/Auth/DeptTPOForgotPassword.jsx"),
+);
 const DeptTPODashboard = lazy(
   () => import("./Pages/Services/DeptTPO/Dashboard/DeptTPODashboard.jsx"),
 );
@@ -124,6 +127,10 @@ const router = createBrowserRouter([
       {
         path: "/auth/depttpo/login",
         element: <DeptTPOLogin />,
+      },
+      {
+        path: "/auth/dept-tpo/forgot-password",
+        element: <DeptTPOForgotPassword />,
       },
       {
         path: "/auth/spoc/signup",
