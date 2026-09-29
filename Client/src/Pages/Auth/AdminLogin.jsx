@@ -3,7 +3,7 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Input } from "../../Components/index";
 
-const DeptTPOLogin = () => {
+const AdminLogin = () => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -35,9 +35,9 @@ const DeptTPOLogin = () => {
     const nextErrors = {};
 
     if (!form.email.trim()) {
-      nextErrors.email = "College email is required.";
+      nextErrors.email = "Admin email is required.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      nextErrors.email = "Enter a valid college email.";
+      nextErrors.email = "Enter a valid email address.";
     }
 
     if (!form.password) {
@@ -61,10 +61,10 @@ const DeptTPOLogin = () => {
     setIsSubmitting(true);
 
     try {
-      // Connect your login API here.
+      // Connect admin login API here.
       await new Promise((resolve) => setTimeout(resolve, 700));
 
-      navigate("/depttpo/dashboard");
+      navigate("/admin/dashboard");
     } finally {
       setIsSubmitting(false);
     }
@@ -74,11 +74,11 @@ const DeptTPOLogin = () => {
     <main className="min-h-screen bg-cream px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-2xl border border-border bg-white shadow-card lg:grid-cols-[1fr_1.05fr]">
-          {/* Branding */}
+          {/* Branding panel */}
           <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
             <div>
               <div className="flex size-11 items-center justify-center rounded-full bg-white">
-                <img src="/jgecLogo.png" alt="college logo" />
+                <img src="/jgecLogo.png" alt="JGEC logo" />
               </div>
 
               <p className="mt-8 text-xs font-medium uppercase tracking-[0.16em] text-white/70">
@@ -86,18 +86,19 @@ const DeptTPOLogin = () => {
               </p>
 
               <h1 className="mt-3 max-w-md text-3xl font-semibold leading-tight">
-                Department TPO Portal
+                Administration Portal
               </h1>
 
               <p className="mt-4 max-w-md text-sm leading-6 text-white/75">
-                Sign in to review student applications, manage internship
-                deadlines, and forward approved applications to the central TPO.
+                Manage users, departments, internship activities, and portal
+                operations from one centralized administration workspace.
               </p>
             </div>
 
             <div className="mt-10 border-t border-white/10 pt-5">
               <p className="text-xs leading-5 text-white/65">
-                Access is restricted to registered Department TPO coordinators.
+                Administrative access is restricted to authorized portal
+                administrators.
               </p>
             </div>
           </section>
@@ -106,14 +107,14 @@ const DeptTPOLogin = () => {
           <section className="flex items-center p-5 sm:p-8 xl:p-10">
             <div className="mx-auto w-full max-w-md">
               <div>
-                <p className="eyebrow">Department TPO</p>
+                <p className="eyebrow">Portal Administration</p>
 
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
                   Welcome back
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-ink-muted">
-                  Sign in with your college email to continue.
+                  Sign in with your administrator credentials to continue.
                 </p>
               </div>
 
@@ -128,7 +129,7 @@ const DeptTPOLogin = () => {
                     htmlFor="email"
                     className="mb-1.5 block text-sm font-medium text-ink"
                   >
-                    College email
+                    Admin email
                   </label>
 
                   <Input
@@ -137,7 +138,7 @@ const DeptTPOLogin = () => {
                     type="email"
                     value={form.email}
                     onChange={handleChange}
-                    placeholder="name@college.edu"
+                    placeholder="admin@college.edu"
                     autoComplete="email"
                     startIcon={<Mail size={17} strokeWidth={1.8} />}
                   />
@@ -181,7 +182,7 @@ const DeptTPOLogin = () => {
                         <button
                           type="button"
                           onClick={() => setShowPassword((value) => !value)}
-                          className="pointer-events-auto text-gray-400 transition hover:text-gray-900 focus:outline-none"
+                          className="pointer-events-auto text-ink-muted transition hover:text-ink focus:outline-none"
                           aria-label={
                             showPassword ? "Hide password" : "Show password"
                           }
@@ -194,21 +195,6 @@ const DeptTPOLogin = () => {
                         </button>
                       }
                     />
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((value) => !value)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted transition hover:text-ink focus:outline-none"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff size={17} strokeWidth={1.8} />
-                      ) : (
-                        <Eye size={17} strokeWidth={1.8} />
-                      )}
-                    </button>
                   </div>
 
                   {errors.password && (
@@ -233,9 +219,9 @@ const DeptTPOLogin = () => {
 
               <div className="mt-7 border-t border-border pt-5 text-center">
                 <p className="text-sm text-ink-muted">
-                  Don't have an account?{" "}
+                  Need to create an administrator account?{" "}
                   <Link
-                    to="/auth/depttpo/signup"
+                    to="/auth/admin/signup"
                     className="font-medium text-brand-700 hover:underline"
                   >
                     Create account
@@ -250,4 +236,4 @@ const DeptTPOLogin = () => {
   );
 };
 
-export default DeptTPOLogin;
+export default AdminLogin;

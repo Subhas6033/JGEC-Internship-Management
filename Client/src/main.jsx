@@ -12,6 +12,7 @@ import ErrorBoundary from "./Error/ErrorBoundary.jsx";
 const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
 const Landing = lazy(() => import("./Pages/Landing/Landing.jsx"));
 const Contact = lazy(() => import("./Pages/Contact/Contact.jsx"));
+const ForgotPassword = lazy(() => import("./Pages/Auth/ForgotPassword.jsx"));
 
 // Students Routes
 const Login = lazy(() => import("./Pages/Auth/Login.jsx"));
@@ -98,6 +99,10 @@ const SPOCApplications = lazy(
 const SPOCNOC = lazy(() => import("./Pages/Services/SPOC/SPOCNOC.jsx"));
 const SPOCProfile = lazy(() => import("./Pages/Services/SPOC/SPOCProfile.jsx"));
 
+// Admin Routes
+const AdminSignup = lazy(() => import("./Pages/Auth/AdminSignup.jsx"));
+const AdminLogin = lazy(() => import("./Pages/Auth/AdminLogin.jsx"));
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -132,6 +137,18 @@ const router = createBrowserRouter([
       {
         path: "/auth/spoc/login",
         element: <SPOCLogin />,
+      },
+      {
+        path: "/auth/admin/signup",
+        element: <AdminSignup />,
+      },
+      {
+        path: "/auth/admin/login",
+        element: <AdminLogin />,
+      },
+      {
+        path: "/auth/forgot-password",
+        element: <ForgotPassword />,
       },
       {
         path: "/contact",
