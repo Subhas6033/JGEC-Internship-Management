@@ -59,7 +59,7 @@ const CompanyDetailsStep = ({ register, errors }) => {
           </div>
 
           <Input
-            label="HR / Supervisor name"
+            label="Apply to "
             placeholder="e.g. Priya Menon"
             required
             startIcon={<UserRound size={16} strokeWidth={1.8} />}
@@ -70,7 +70,7 @@ const CompanyDetailsStep = ({ register, errors }) => {
           />
 
           <Input
-            label="HR / Supervisor email"
+            label="application email"
             type="email"
             placeholder="name@company.com"
             required

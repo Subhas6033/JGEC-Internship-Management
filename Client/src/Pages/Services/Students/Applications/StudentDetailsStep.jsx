@@ -64,7 +64,7 @@ const StudentDetailsStep = ({ register, errors }) => {
             <ReadOnlyField label="Full name" value="Indrani Mukherjee" />
           </div>
 
-          <ReadOnlyField label="Student ID" value="23101106035" />
+          <ReadOnlyField label="Roll Number" value="23101106035" />
 
           <ReadOnlyField label="Department" value="Information Technology" />
 

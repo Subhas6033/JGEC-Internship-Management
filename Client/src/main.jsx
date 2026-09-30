@@ -7,6 +7,7 @@ import { Loading } from "./Components/index.js";
 import StudentLayout from "./Layout/StudentLayout.jsx";
 import DeptTPOLayout from "./Layout/DeptTPOLayout.jsx";
 import SPOCLayout from "./Layout/SPOCLayout.jsx";
+import AdminLayout from "./Layout/AdminLayout.jsx";
 import ErrorBoundary from "./Error/ErrorBoundary.jsx";
 
 const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
@@ -102,6 +103,12 @@ const SPOCProfile = lazy(() => import("./Pages/Services/SPOC/SPOCProfile.jsx"));
 // Admin Routes
 const AdminSignup = lazy(() => import("./Pages/Auth/AdminSignup.jsx"));
 const AdminLogin = lazy(() => import("./Pages/Auth/AdminLogin.jsx"));
+const AdminDashboard = lazy(
+  () => import("./Pages/Services/Admin/Dashboard/AdminDashboard.jsx"),
+);
+const AdminStudents = lazy(
+  () => import("./Pages/Services/Admin/Students/AdminStudents.jsx"),
+);
 
 const router = createBrowserRouter([
   {
@@ -274,6 +281,22 @@ const router = createBrowserRouter([
           {
             path: "/spoc/profile",
             element: <SPOCProfile />,
+          },
+        ],
+      },
+
+      // Admin Routes
+      {
+        path: "/admin",
+        element: <AdminLayout />,
+        children: [
+          {
+            path: "/admin/dashboard",
+            element: <AdminDashboard />,
+          },
+          {
+            path: "/admin/students",
+            element: <AdminStudents />,
           },
         ],
       },

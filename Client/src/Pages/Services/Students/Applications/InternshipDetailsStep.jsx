@@ -68,9 +68,9 @@ const InternshipDetailsStep = ({ register, errors, watch }) => {
           />
 
           <Input
-            label="Work location"
+            label="Tentative Internship Location"
             placeholder="e.g. Bengaluru, Karnataka"
-            required
+            // required
             startIcon={<MapPin size={16} strokeWidth={1.8} />}
             error={errors.workLocation?.message}
             {...register("workLocation", {
@@ -79,9 +79,9 @@ const InternshipDetailsStep = ({ register, errors, watch }) => {
           />
 
           <Input
-            label="Start date"
+            label="Tentative Start date"
             type="date"
-            required
+            // required
             startIcon={<CalendarDays size={16} strokeWidth={1.8} />}
             error={errors.startDate?.message}
             {...register("startDate", {
@@ -90,9 +90,9 @@ const InternshipDetailsStep = ({ register, errors, watch }) => {
           />
 
           <Input
-            label="End date"
+            label="Tentative End date"
             type="date"
-            required
+            // required
             startIcon={<CalendarDays size={16} strokeWidth={1.8} />}
             error={errors.endDate?.message}
             {...register("endDate", {
