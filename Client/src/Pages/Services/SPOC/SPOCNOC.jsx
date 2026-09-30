@@ -11,7 +11,7 @@ import {
 const generatedNOCs = [
   {
     id: "NOC-001",
-    referenceNumber: "TNP/JGEC/INT/IT/2023/SEPT/005",
+    referenceNumber: "TNP/JGEC/INT/IT/2027/005",
     company: "TakeUForward",
     location: "Bengaluru",
     department: "Computer Science & Engineering",

@@ -53,7 +53,7 @@ const applications = [
     location: "Bengaluru",
     deadline: "25 Sep 2026",
     status: "noc",
-    nocReference: "TNP/JGEC/INT/IT/2023/SEPT/005",
+    nocReference: "TNP/JGEC/INT/IT/2027/005",
     students: [
       {
         id: "STU-004",

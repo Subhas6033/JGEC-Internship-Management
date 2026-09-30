@@ -84,11 +84,11 @@ const SPOCNavbar = ({ onMenuClick }) => {
               {/* User information */}
               <span className="hidden text-right sm:block">
                 <span className="block text-sm font-semibold leading-tight text-ink">
-                  SPOC
+                  SPOC Training and Internship
                 </span>
 
                 <span className="mt-0.5 block text-[11px] leading-tight text-ink-muted">
-                  Training & Placement
+                  Training & Placement Co-ordinator, JGEC
                 </span>
               </span>
 
