@@ -79,7 +79,7 @@ const StudentsTable = () => {
 
       {/* Desktop table */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[850px]">
+        <table className="w-full min-w-212.5">
           <thead>
             <tr className="border-b border-border bg-cream-soft text-left">
               <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
