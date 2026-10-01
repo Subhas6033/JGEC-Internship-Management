@@ -1,16 +1,19 @@
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
-const ALLOWED_EMAIL_DOMAINS = process.env.COLLEGE_MAILS;
+const ALLOWED_EMAIL_DOMAINS = process.env.COLLEGE_MAILS
+  ? JSON.parse(process.env.COLLEGE_MAILS).map((domain) =>
+      domain.trim().toLowerCase(),
+    )
+  : [];
 
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   if (!emailRegex.test(email)) {
     return false;
   }
-
   const domain = email.split("@")[1].toLowerCase();
-
   return ALLOWED_EMAIL_DOMAINS.includes(domain);
 };
 
@@ -22,7 +25,6 @@ const studentSchema = new mongoose.Schema(
       trim: true,
       maxlength: [50, "Full name can't be more than 50 characters"],
     },
-
     email: {
       type: String,
       required: [true, "Please provide the college email"],
@@ -35,7 +37,6 @@ const studentSchema = new mongoose.Schema(
         message: "Please use your official college email address",
       },
     },
-
     mobileNumber: {
       type: String,
       required: [true, "Please provide the mobile number"],
@@ -45,21 +46,17 @@ const studentSchema = new mongoose.Schema(
         "Please provide a valid Indian mobile number",
       ],
     },
-
     password: {
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must have at least 6 characters"],
       maxlength: [20, "Password can't have more than 20 characters"],
+      match: [
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,20}$/,
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+      ],
       select: false,
     },
-    type: String,
-    required: [true, "Please provide the mobile number"],
-    trim: true,
-    match: [
-      /^(?:\+91|91)?[6-9]\d{9}$/,
-      "Please provide a valid Indian mobile number",
-    ],
     rollNumber: {
       type: String,
       required: [true, "Please provide the roll number"],
@@ -68,32 +65,29 @@ const studentSchema = new mongoose.Schema(
     },
     department: {
       type: String,
-      enum: [("CE", "EE", "ME", "CSE", "ECE", "IT")],
+      enum: ["CE", "EE", "ME", "CSE", "ECE", "IT"],
       required: [true, "Department Name is required"],
       default: "CE",
     },
-    // Cloudinary URL of the uploaded signature image
     signature: {
       type: String,
       required: [true, "Signature is required"],
       trim: true,
     },
-
     gurdianName: {
       type: String,
-      required: [true, "Gurdiain Name is required"],
+      required: [true, "Guardian Name is required"],
       trim: true,
     },
     gurdianMobile: {
       type: String,
-      required: [true, "Please provide the mobile number"],
+      required: [true, "Please provide the guardian mobile number"],
       trim: true,
       match: [
         /^(?:\+91|91)?[6-9]\d{9}$/,
         "Please provide a valid Indian mobile number",
       ],
     },
-
     refreshToken: {
       type: String,
       select: false,
@@ -103,5 +97,49 @@ const studentSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+// Hash the Password before saving in DB
+studentSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password, 10);
+});
+
+// Compare password
+studentSchema.methods.isPasswordValid = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Generate Access Token
+studentSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      name: this.fullName,
+      email: this.email,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    },
+  );
+};
+
+// Generate Refresh Token
+studentSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    },
+  );
+};
+
+// Hash refresh token
+studentSchema.methods.hashRefreshToken = async function (token) {
+  return await bcrypt.hash(token, 10);
+};
 
 export const Student = mongoose.model("Student", studentSchema);

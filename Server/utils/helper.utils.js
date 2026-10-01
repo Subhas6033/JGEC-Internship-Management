@@ -2,9 +2,13 @@ const asyncHandler = (requestHandler) => async (req, res, next) => {
   try {
     return await requestHandler(req, res, next);
   } catch (error) {
-    console.log(`Err!!! Coming from the asyncHandler... ${error}`);
-    res.status(Error.statusCode || 500).json({
-      statusCode: Error.statusCode || 500,
+    console.error("Err!!! Coming from the asyncHandler...");
+    console.error("Message:", error.message);
+    console.error("Stack Trace:");
+    console.error(error.stack);
+
+    return res.status(error.statusCode || 500).json({
+      statusCode: error.statusCode || 500,
       message: "Something Went Wrong",
       success: false,
     });
@@ -14,18 +18,18 @@ const asyncHandler = (requestHandler) => async (req, res, next) => {
 class APIERR extends Error {
   constructor(
     statusCode,
-    messge = "Something Went Wrong",
+    message = "Something Went Wrong",
     success = false,
     data = null,
     stack,
     error = [],
   ) {
-    super(messge);
-    ((this.statusCode = statusCode),
-      (this.message = messge),
-      (this.success = success),
-      (this.data = data));
-    this.stack = stack;
+    super(message);
+
+    this.statusCode = statusCode;
+    this.message = message;
+    this.success = success;
+    this.data = data;
     this.error = error;
 
     if (stack) {
@@ -38,9 +42,10 @@ class APIERR extends Error {
 
 class APIRES {
   constructor(statusCode, data, message = "Success", success = true) {
-    ((this.statusCode = statusCode),
-      (this.data = data)((this.message = message)),
-      (this.success = success));
+    this.statusCode = statusCode;
+    this.data = data;
+    this.message = message;
+    this.success = success;
   }
 }
 
