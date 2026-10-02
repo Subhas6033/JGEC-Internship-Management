@@ -7,7 +7,6 @@ import {
   Phone,
   UserRound,
 } from "lucide-react";
-
 import { Input, Select } from "./index";
 
 const departmentOptions = [
@@ -57,19 +56,14 @@ const StepOneFields = ({
   const password = watch("password") || "";
 
   const passwordHasLowercase = /[a-z]/.test(password);
-
   const passwordHasUppercase = /[A-Z]/.test(password);
-
   const passwordHasNumber = /\d/.test(password);
-
   const passwordHasSpecial = /[@$!%*?&]/.test(password);
-
   const passwordHasLength = password.length >= 6 && password.length <= 20;
 
   return (
     <div className="space-y-6">
       {/* PERSONAL DETAILS */}
-
       <section>
         <p className="eyebrow">Personal details</p>
 
@@ -82,11 +76,11 @@ const StepOneFields = ({
           "
         >
           {/* Full Name */}
-
           <Input
             label="Full name"
             placeholder="Your full name"
             icon={UserRound}
+            required
             className={inputClassName}
             {...register("fullName", {
               required: "Full name is required.",
@@ -95,14 +89,14 @@ const StepOneFields = ({
                 message: "Full name cannot exceed 50 characters.",
               },
             })}
-            error={errors.fullName?.message}
+            error={errors?.fullName?.message}
           />
 
           {/* Email */}
-
           <Input
             label="Email address"
             type="email"
+            required
             placeholder="you@jgec.ac.in"
             icon={Mail}
             className={inputClassName}
@@ -113,14 +107,14 @@ const StepOneFields = ({
                 message: "Please enter a valid email address.",
               },
             })}
-            error={errors.email?.message}
+            error={errors?.email?.message}
           />
 
           {/* Mobile */}
-
           <Input
             label="Mobile number"
             type="tel"
+            required
             placeholder="98765 43210"
             icon={Phone}
             className={inputClassName}
@@ -135,15 +129,15 @@ const StepOneFields = ({
                 );
               },
             })}
-            error={errors.mobileNumber?.message}
+            error={errors?.mobileNumber?.message}
           />
 
           {/* Password */}
-
           <div className="relative">
             <Input
               label="Password"
               type={showPassword ? "text" : "password"}
+              required
               placeholder="Create a strong password"
               icon={LockKeyhole}
               className={inputClassName}
@@ -170,7 +164,7 @@ const StepOneFields = ({
                     "Password must contain a special character.",
                 },
               })}
-              error={errors.password?.message}
+              error={errors?.password?.message}
             />
 
             <button
@@ -199,7 +193,6 @@ const StepOneFields = ({
       </section>
 
       {/* ACADEMIC DETAILS */}
-
       <section
         className="
           border-t
@@ -218,27 +211,27 @@ const StepOneFields = ({
           "
         >
           {/* Roll number */}
-
           <Input
             label="Roll number"
             placeholder="e.g. 23101106033"
+            required
             className={inputClassName}
             {...register("rollNumber", {
               required: "Roll number is required.",
             })}
-            error={errors.rollNumber?.message}
+            error={errors?.rollNumber?.message}
           />
 
           {/* Department */}
-
           <Select
             label="Department"
+            required
             options={departmentOptions}
             className={inputClassName}
             {...register("department", {
               required: "Please select your department.",
             })}
-            error={errors.department?.message}
+            error={errors?.department?.message}
           />
         </div>
       </section>
@@ -252,7 +245,6 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
   return (
     <div className="space-y-6">
       {/* GUARDIAN DETAILS */}
-
       <section>
         <p className="eyebrow">Guardian details</p>
 
@@ -264,21 +256,25 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
             sm:grid-cols-2
           "
         >
+          {/* Guardian Name */}
           <Input
             label="Guardian name"
             placeholder="Enter guardian name"
+            required
             icon={UserRound}
             className={inputClassName}
             {...register("gurdianName", {
               required: "Guardian name is required.",
             })}
-            error={errors.gurdianName?.message}
+            error={errors?.gurdianName?.message}
           />
 
+          {/* Guardian Mobile */}
           <Input
             label="Guardian mobile"
             type="tel"
-            placeholder="98765 43210"
+            required
+            placeholder="9876543210"
             icon={Phone}
             className={inputClassName}
             {...register("gurdianMobile", {
@@ -292,13 +288,12 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
                 );
               },
             })}
-            error={errors.gurdianMobile?.message}
+            error={errors?.gurdianMobile?.message}
           />
         </div>
       </section>
 
       {/* SIGNATURE */}
-
       <section
         className="
           border-t
@@ -306,7 +301,12 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
           pt-5
         "
       >
-        <p className="eyebrow">Signature</p>
+        <p className="eyebrow">
+          Signature
+          <span className="ml-1 text-red-500" aria-hidden="true">
+            *
+          </span>
+        </p>
 
         <label
           htmlFor="signature"
@@ -380,7 +380,7 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
           />
         </label>
 
-        {errors.signature && (
+        {errors?.signature && (
           <p
             className="
               mt-1.5

@@ -154,7 +154,6 @@ const Input = forwardRef(
                 disabled:bg-gray-100
                 disabled:text-gray-500
               `,
-
               error
                 ? `
                   border-red-500
@@ -166,7 +165,6 @@ const Input = forwardRef(
                   focus:border-brand-600
                   focus:ring-brand-600/15
                 `,
-
               hasStartAddon
                 ? hasStartIcon
                   ? "pl-27"
@@ -174,9 +172,7 @@ const Input = forwardRef(
                 : hasStartIcon
                   ? "pl-10"
                   : "",
-
               endIcon ? "pr-12" : "",
-
               className,
             )}
             {...props}

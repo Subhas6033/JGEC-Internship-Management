@@ -4,6 +4,7 @@ const Select = ({
   options = [],
   className = "",
   placeholder = "Select your department",
+  required = false,
   ...props
 }) => {
   return (
@@ -11,12 +12,19 @@ const Select = ({
       {label && (
         <label className="mb-2 block text-sm font-medium text-ink">
           {label}
+
+          {required && (
+            <span className="ml-1 text-red-500" aria-hidden="true">
+              *
+            </span>
+          )}
         </label>
       )}
 
       <div className="relative">
         <select
           {...props}
+          required={required}
           className={`
             block
             h-12

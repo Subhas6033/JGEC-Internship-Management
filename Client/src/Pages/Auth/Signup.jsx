@@ -10,10 +10,12 @@ import { setAuth } from "../../Store/Slice/authSlice";
 const Signup = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState("");
+
   const { signup, isLoading, error } = useSignup();
 
   const {
@@ -25,7 +27,6 @@ const Signup = () => {
     formState: { errors },
   } = useForm({
     mode: "onTouched",
-
     defaultValues: {
       fullName: "",
       email: "",
@@ -41,6 +42,7 @@ const Signup = () => {
 
   const goToStepTwo = async () => {
     setApiError("");
+
     const fields = [
       "fullName",
       "email",
@@ -49,12 +51,16 @@ const Signup = () => {
       "rollNumber",
       "department",
     ];
+
     const isValid = await trigger(fields);
+
     if (!isValid) {
       return;
     }
+
     setDirection(1);
     setStep(2);
+
     window.scrollTo({
       top: 0,
       behavior: "smooth",
@@ -65,9 +71,11 @@ const Signup = () => {
     if (isLoading) {
       return;
     }
+
     setApiError("");
     setDirection(-1);
     setStep(1);
+
     window.scrollTo({
       top: 0,
       behavior: "smooth",
@@ -76,10 +84,11 @@ const Signup = () => {
 
   const handleSignatureChange = (event) => {
     const file = event.target.files?.[0] || null;
+
     setValue("signature", file, {
-      shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
+      shouldValidate: true,
     });
   };
 
@@ -100,14 +109,17 @@ const Signup = () => {
 
     try {
       const response = await signup(studentData);
+
       const student = response?.data?.student;
       const accessToken = response?.data?.accessToken;
+
       dispatch(
         setAuth({
           user: student,
           accessToken,
         }),
       );
+
       navigate("/students/dashboard", {
         replace: true,
       });
@@ -120,12 +132,45 @@ const Signup = () => {
 
   const submitStepTwo = async () => {
     setApiError("");
-    const fields = ["gurdianName", "gurdianMobile", "signature"];
-    const isValid = await trigger(fields);
-    if (!isValid) {
+
+    const signature = watch("signature");
+
+    if (!(signature instanceof File)) {
+      setApiError("Signature is required.");
       return;
     }
-    await handleSubmit(submitRegistration)();
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(signature.type)) {
+      setApiError("Only JPG, JPEG, PNG or WEBP images are allowed.");
+      return;
+    }
+
+    const minSize = 30 * 1024;
+    const maxSize = 100 * 1024;
+
+    if (signature.size < minSize) {
+      setApiError("Signature must be at least 30KB.");
+      return;
+    }
+
+    if (signature.size > maxSize) {
+      setApiError("Signature must not exceed 100KB.");
+      return;
+    }
+
+    await handleSubmit(
+      async (data) => {
+        await submitRegistration(data);
+      },
+      (formErrors) => {
+        const firstError = Object.values(formErrors)[0];
+        if (firstError?.message) {
+          setApiError(firstError.message);
+        }
+      },
+    )();
   };
 
   const displayedError = apiError || error?.message || "";
