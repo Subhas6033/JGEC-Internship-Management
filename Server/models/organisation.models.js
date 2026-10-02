@@ -8,18 +8,33 @@ const organisationSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
+
     organisationSite: {
       type: String,
       required: [true, "Organisation Site is required"],
       trim: true,
     },
+
     organisationLocation: {
       type: String,
       required: [true, "Organisation Location is required"],
       trim: true,
     },
+
+    organisationMail: {
+      type: String,
+      required: [true, "Organisation Mail is required"],
+      trim: true,
+      lowercase: true,
+      match: [
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        "Please provide a valid organisation email",
+      ],
+    },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
 organisationSchema.index({ organisationName: 1 });

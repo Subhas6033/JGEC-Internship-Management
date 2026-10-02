@@ -5,8 +5,10 @@ import {
   loginStudents,
   refreshAccessToken,
   logoutStudent,
-} from "../services/auth/auth.controller.js";
+  getCurrentStudent,
+} from "../services/auth/auth.service.js";
 import { verifyStudentJWT } from "../middlewares/auth.middleware.js";
+import { get } from "mongoose";
 
 const authRoutes = Router();
 const storage = multer.memoryStorage();
@@ -38,6 +40,7 @@ authRoutes
   .post("/students/register", upload.single("signature"), registerStudents)
   .post("/students/login", loginStudents)
   .post("/students/refresh-token", refreshAccessToken)
-  .post("/students/logout", verifyStudentJWT, logoutStudent);
+  .post("/students/logout", verifyStudentJWT, logoutStudent)
+  .get("/students/me", verifyStudentJWT, getCurrentStudent);
 
 export { authRoutes };

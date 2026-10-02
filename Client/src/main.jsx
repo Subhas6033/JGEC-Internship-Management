@@ -13,6 +13,8 @@ import SPOCLayout from "./Layout/SPOCLayout.jsx";
 import AdminLayout from "./Layout/AdminLayout.jsx";
 import ErrorBoundary from "./Error/ErrorBoundary.jsx";
 import ProtectedRoute from "./Components/ProtectedRoute.jsx";
+import AuthBootstrap from "./Components/AuthBootstrap.jsx";
+import AuthRoute from "./Components/AuthRoute.jsx";
 
 const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
 const Landing = lazy(() => import("./Pages/Landing/Landing.jsx"));
@@ -136,7 +138,7 @@ const ProtectedRoutes = () => {
 // Student protected routes
 const StudentProtectedRoutes = () => {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["student"]} requireRole={true}>
       <StudentLayout />
     </ProtectedRoute>
   );
@@ -145,7 +147,7 @@ const StudentProtectedRoutes = () => {
 // Dept TPO protected routes
 const DeptTPOProtectedRoutes = () => {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["tpo"]} requireRole={true}>
       <DeptTPOLayout />
     </ProtectedRoute>
   );
@@ -154,7 +156,7 @@ const DeptTPOProtectedRoutes = () => {
 // SPOC protected routes
 const SPOCProtectedRoutes = () => {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["spoc"]} requireRole={true}>
       <SPOCLayout />
     </ProtectedRoute>
   );
@@ -163,7 +165,7 @@ const SPOCProtectedRoutes = () => {
 // Admin protected routes
 const AdminProtectedRoutes = () => {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["admin"]} requireRole={true}>
       <AdminLayout />
     </ProtectedRoute>
   );
@@ -181,24 +183,44 @@ const router = createBrowserRouter([
 
       {
         path: "/auth/login",
-        element: <Login />,
+        element: (
+          <AuthRoute>
+            <Login />
+          </AuthRoute>
+        ),
       },
 
       {
         path: "/auth/signup",
-        element: <Signup />,
+        element: (
+          <AuthRoute>
+            <Signup />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/depttpo/signup",
-        element: <DeptTPOSignUp />,
+        element: (
+          <AuthRoute>
+            <DeptTPOSignUp />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/depttpo/login",
-        element: <DeptTPOLogin />,
+        element: (
+          <AuthRoute>
+            <DeptTPOLogin />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/spoc/signup",
-        element: <SPOCSignup />,
+        element: (
+          <AuthRoute>
+            <SPOCSignup />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/spoc/login",
@@ -206,11 +228,19 @@ const router = createBrowserRouter([
       },
       {
         path: "/auth/admin/signup",
-        element: <AdminSignup />,
+        element: (
+          <AuthRoute>
+            <AdminSignup />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/admin/login",
-        element: <AdminLogin />,
+        element: (
+          <AuthRoute>
+            <AdminLogin />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/forgot-password",
@@ -274,27 +304,22 @@ const router = createBrowserRouter([
                 index: true,
                 element: <AllCompanyApplications />,
               },
-
               {
                 path: "pending",
                 element: <PendingApplications />,
               },
-
               {
                 path: "accepted",
                 element: <AcceptedApplications />,
               },
-
               {
                 path: "rejected",
                 element: <RejectedApplications />,
               },
-
               {
                 path: "sent",
                 element: <SentToTPOApplications />,
               },
-
               {
                 path: ":companyId",
                 element: <CompanyApplicationDetails />,
@@ -374,9 +399,11 @@ createRoot(document.getElementById("root")).render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
-          <Suspense fallback={<Loading message="Loading..." />}>
-            <RouterProvider router={router} />
-          </Suspense>
+          <AuthBootstrap>
+            <Suspense fallback={<Loading message="Loading..." />}>
+              <RouterProvider router={router} />
+            </Suspense>
+          </AuthBootstrap>
         </ErrorBoundary>
       </QueryClientProvider>
     </Provider>

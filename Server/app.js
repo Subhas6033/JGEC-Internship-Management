@@ -18,8 +18,14 @@ app.use(helmet());
 
 // Routes
 import { authRoutes } from "./routes/auth.routes.js";
+import { studentApplicationRoutes } from "./routes/studentApplication.routes.js";
+import { organisationRoutes } from "./routes/organisation.routes.js";
+import { studentDashboardRoutes } from "./routes/studentDashboard.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/application", studentApplicationRoutes);
+app.use("/api/v1/organisation", organisationRoutes);
+app.use("/api/v1/dashboard", studentDashboardRoutes);
 
 //Centralize err handlers
 app.use(errorMiddleware);

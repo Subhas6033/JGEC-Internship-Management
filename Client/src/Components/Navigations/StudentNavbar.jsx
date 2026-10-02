@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   CircleHelp,
@@ -9,18 +9,69 @@ import {
   UserRound,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useDispatch, useSelector } from "react-redux";
 import { Button, Card } from "../index";
+import {
+  logout,
+  selectAccessToken,
+  selectUser,
+} from "../../Store/Slice/authSlice";
+import { logoutStudent } from "../../Services/Auth/studentAuth.api";
 
-const StudentNavbar = ({
-  onMenuClick,
-  student = {
-    name: "Ayan Sharma",
-    role: "Student",
-    initials: "AS",
-  },
-  onLogout,
-}) => {
+const getInitials = (name = "") => {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length === 0) {
+    return "S";
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+};
+
+const StudentNavbar = ({ onMenuClick, onLogout }) => {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const student = useSelector(selectUser);
+  const accessToken = useSelector(selectAccessToken);
+
+  const studentName = student?.fullName || "Student";
+  const studentRole = student?.role || "student";
+  const studentInitials = getInitials(student?.fullName);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    setProfileOpen(false);
+
+    try {
+      await logoutStudent(accessToken);
+    } catch (error) {
+      console.error("Student logout failed:", error);
+    } finally {
+      // Clear client-side authentication state even if
+      // the backend request fails.
+      dispatch(logout());
+
+      if (onLogout) {
+        onLogout();
+      } else {
+        navigate("/auth/login", { replace: true });
+      }
+
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header
@@ -120,7 +171,6 @@ const StudentNavbar = ({
             "
           >
             <CircleHelp size={15} strokeWidth={1.8} />
-
             <span>Help & Support</span>
           </Link>
 
@@ -135,6 +185,7 @@ const StudentNavbar = ({
               onClick={() => setProfileOpen((current) => !current)}
               aria-expanded={profileOpen}
               aria-haspopup="menu"
+              disabled={isLoggingOut}
               className="
                 h-auto!
                 px-1.5!
@@ -153,7 +204,7 @@ const StudentNavbar = ({
                   text-ink
                 "
               >
-                {student.initials}
+                {studentInitials}
               </span>
 
               <span className="hidden min-w-0 text-left sm:block">
@@ -165,17 +216,18 @@ const StudentNavbar = ({
                     text-ink
                   "
                 >
-                  {student.name}
+                  {studentName}
                 </span>
 
                 <span
                   className="
                     block text-[10px]
                     leading-tight
+                    capitalize
                     text-ink-muted
                   "
                 >
-                  {student.role}
+                  {studentRole}
                 </span>
               </span>
 
@@ -225,11 +277,11 @@ const StudentNavbar = ({
                     {/* Profile information */}
                     <div className="border-b border-border px-4 py-3">
                       <p className="truncate text-sm font-semibold text-ink">
-                        {student.name}
+                        {studentName}
                       </p>
 
-                      <p className="mt-0.5 text-xs text-ink-muted">
-                        {student.role}
+                      <p className="mt-0.5 text-xs capitalize text-ink-muted">
+                        {studentRole}
                       </p>
                     </div>
 
@@ -275,7 +327,8 @@ const StudentNavbar = ({
                         type="button"
                         variant="danger"
                         size="sm"
-                        onClick={onLogout}
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
                         className="
                           mt-1
                           w-full
@@ -283,7 +336,8 @@ const StudentNavbar = ({
                         "
                       >
                         <LogOut size={15} strokeWidth={1.8} />
-                        Sign out
+
+                        {isLoggingOut ? "Signing out..." : "Sign out"}
                       </Button>
                     </div>
                   </Card>

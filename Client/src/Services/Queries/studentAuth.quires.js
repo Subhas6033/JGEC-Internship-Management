@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { registerStudent } from "../Auth/studentAuth.api";
+import { loginStudent, registerStudent } from "../Auth/studentAuth.api";
 
 const useRegisterStudent = () => {
   return useMutation({
@@ -7,4 +7,10 @@ const useRegisterStudent = () => {
   });
 };
 
-export { useRegisterStudent };
+const useLoginStudent = () => {
+  return useMutation({
+    mutationFn: loginStudent,
+  });
+};
+
+export { useRegisterStudent, useLoginStudent };

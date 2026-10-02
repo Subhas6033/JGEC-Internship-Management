@@ -1,35 +1,29 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-
 import {
   selectUser,
   selectIsAuthenticated,
   selectStatus,
 } from "../Store/Slice/authSlice";
-
 import Loading from "./Loader/Loading";
 
-const ProtectedRoute = ({ children, allowedRoles, requireRole = false }) => {
+const ProtectedRoute = ({
+  children,
+  allowedRoles = [],
+  requireRole = false,
+}) => {
   const location = useLocation();
 
   const user = useSelector(selectUser);
-
   const isAuthenticated = useSelector(selectIsAuthenticated);
-
   const status = useSelector(selectStatus);
 
-  /* ------------------------------------------------------------------------ */
-  /* AUTHENTICATION CHECK                                                     */
-  /* ------------------------------------------------------------------------ */
-
+  // Authentication is still being restored
   if (status === "loading") {
     return <Loading message="Verifying authentication..." />;
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* NOT AUTHENTICATED                                                        */
-  /* ------------------------------------------------------------------------ */
-
+  // User is not authenticated
   if (!isAuthenticated || !user) {
     return (
       <Navigate
@@ -42,18 +36,21 @@ const ProtectedRoute = ({ children, allowedRoles, requireRole = false }) => {
     );
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* ROLE CHECK                                                               */
-  /* ------------------------------------------------------------------------ */
-
-  if (requireRole && Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+  // Role-based authorization
+  if (requireRole) {
     const userRole = user?.role;
 
+    // Authenticated user does not have a role
     if (!userRole) {
       return <Navigate to="/auth/login" replace />;
     }
 
-    if (!allowedRoles.includes(userRole)) {
+    // User has a role but it is not allowed for this route
+    if (
+      !Array.isArray(allowedRoles) ||
+      allowedRoles.length === 0 ||
+      !allowedRoles.includes(userRole)
+    ) {
       switch (userRole) {
         case "student":
           return <Navigate to="/students/dashboard" replace />;
@@ -72,10 +69,6 @@ const ProtectedRoute = ({ children, allowedRoles, requireRole = false }) => {
       }
     }
   }
-
-  /* ------------------------------------------------------------------------ */
-  /* AUTHENTICATED + AUTHORIZED                                               */
-  /* ------------------------------------------------------------------------ */
 
   return children;
 };

@@ -1,13 +1,23 @@
 import { LockKeyhole, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
+import { departmentMap } from "./profile.data";
+
+const getInitials = (name = "") => {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length === 0) {
+    return "";
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+};
 
 const ProfileHeader = ({ profile }) => {
-  const initials = profile.fullName
-    .split(" ")
-    .map((name) => name[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const initials = getInitials(profile?.fullName);
 
   return (
     <motion.div
@@ -22,15 +32,17 @@ const ProfileHeader = ({ profile }) => {
 
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold text-foreground sm:text-2xl">
-            {profile.fullName}
+            {profile?.fullName || "Student"}
           </h1>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            {profile.department}
+            {departmentMap[profile?.department] ||
+              profile?.department ||
+              "Department not available"}
           </p>
 
           <p className="mt-1 text-xs text-muted-foreground">
-            Roll No. {profile.rollNo}
+            Roll No. {profile?.rollNumber || "Not available"}
           </p>
         </div>
       </div>

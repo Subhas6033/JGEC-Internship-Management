@@ -1,25 +1,49 @@
-import { apiClient } from "../api/apiClient";
+import {
+  apiClient,
+  refreshAccessToken as refreshAccessTokenFromClient,
+} from "../api/apiClient";
 
 const registerStudent = async (studentData) => {
   const formData = new FormData();
 
-  formData.append("fullName", studentData.fullName);
-  formData.append("email", studentData.email);
-  formData.append("mobileNumber", studentData.mobileNumber);
-  formData.append("password", studentData.password);
-  formData.append("rollNumber", studentData.rollNumber);
-  formData.append("department", studentData.department);
-  formData.append("gurdianName", studentData.gurdianName);
-  formData.append("gurdianMobile", studentData.gurdianMobile);
+  [
+    "fullName",
+    "email",
+    "mobileNumber",
+    "password",
+    "rollNumber",
+    "department",
+    "gurdianName",
+    "gurdianMobile",
+  ].forEach((key) => formData.append(key, studentData[key]));
 
   if (studentData.signature instanceof File) {
     formData.append("signature", studentData.signature);
   }
 
-  return apiClient("/auth/students/register", {
-    method: "POST",
-    body: formData,
+  return apiClient.post("/auth/students/register", formData, {
+    skipAuthRefresh: true,
+    timeout: 60000, // includes the Cloudinary upload
   });
 };
 
-export { registerStudent };
+const loginStudent = async ({ email, password }) =>
+  apiClient.post(
+    "/auth/students/login",
+    { email: email.trim().toLowerCase(), password },
+    { skipAuthRefresh: true },
+  );
+
+/* Uses the same single-flight + cross-tab lock as the interceptor. */
+const refreshStudentAccessToken = () => refreshAccessTokenFromClient();
+const getCurrentStudent = () => apiClient.get("/auth/students/me");
+const logoutStudent = () =>
+  apiClient.post("/auth/students/logout", null, { skipAuthRefresh: true });
+
+export {
+  registerStudent,
+  loginStudent,
+  refreshStudentAccessToken,
+  getCurrentStudent,
+  logoutStudent,
+};

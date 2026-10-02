@@ -1,34 +1,17 @@
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
 import { asyncHandler, APIERR, APIRES } from "../../utils/helper.utils.js";
 import { Student } from "../../models/students.models.js";
 import { uploadToCloudinary } from "../../upload/uploadOnCloudinary.upload.js";
-import { cookieConfig } from "../../config/cookieConfig.config.js";
+import {
+  cookieConfig,
+  clearCookieConfig,
+  REFRESH_COOKIE_NAME,
+} from "../../config/cookieConfig.config.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-
-const generateAccessAndRefreshTokens = async (userId) => {
-  try {
-    const user = await Student.findById(userId);
-    if (!user) {
-      throw new APIERR(HTTP_STATUS.NOT_FOUND, "Student not found");
-    }
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-    // Hash refresh token before storing it
-    const hashedRefreshToken = await user.hashRefreshToken(refreshToken);
-    user.refreshToken = hashedRefreshToken;
-    await user.save({
-      validateBeforeSave: false,
-    });
-    return {
-      accessToken,
-      refreshToken,
-    };
-  } catch (error) {
-    console.log("Error while generating the tokens:", error);
-    throw error;
-  }
-};
+import {
+  createStudentSession,
+  rotateStudentSession,
+  revokeStudentSession,
+} from "../../services/auth/studentSession.service.js";
 
 const registerStudents = asyncHandler(async (req, res) => {
   const {
@@ -67,7 +50,7 @@ const registerStudents = asyncHandler(async (req, res) => {
   }
 
   const signatureFile = req.file;
-  // Minimum and maximum signature file size
+
   const MIN_SIGNATURE_SIZE = 30 * 1024;
   const MAX_SIGNATURE_SIZE = 100 * 1024;
 
@@ -97,16 +80,9 @@ const registerStudents = asyncHandler(async (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedRollNumber = rollNumber.trim();
-  // Check if the students already exist or not
+
   const isStudentExist = await Student.findOne({
-    $or: [
-      {
-        email: normalizedEmail,
-      },
-      {
-        rollNumber: normalizedRollNumber,
-      },
-    ],
+    $or: [{ email: normalizedEmail }, { rollNumber: normalizedRollNumber }],
   });
 
   if (isStudentExist) {
@@ -125,7 +101,6 @@ const registerStudents = asyncHandler(async (req, res) => {
     }
   }
 
-  // Upload signature on cloudinary
   let uploadedSignature;
 
   try {
@@ -151,36 +126,41 @@ const registerStudents = asyncHandler(async (req, res) => {
     password,
     rollNumber: normalizedRollNumber,
     department,
-    // Store Cloudinary URL
     signature: uploadedSignature.secure_url,
     gurdianName: gurdianName.trim(),
     gurdianMobile: gurdianMobile.trim(),
   });
 
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    student._id,
+  // Drop any session left over from this browser so stale sessions don't pile up
+  await revokeStudentSession(
+    req.cookies?.[REFRESH_COOKIE_NAME],
+    "replaced_by_new_login",
+  );
+
+  const { accessToken, refreshToken } = await createStudentSession(
+    student,
+    req,
   );
 
   const registeredStudent = await Student.findById(student._id).select(
-    "-__v -password -refreshToken",
+    "-__v -password",
   );
 
-  res.cookie("refreshToken", refreshToken, cookieConfig);
-
-  return res.status(HTTP_STATUS.CREATED).json(
-    new APIRES(
-      HTTP_STATUS.CREATED,
-      {
-        student: registeredStudent,
-        accessToken,
-      },
-      "Student registered successfully",
-    ),
-  );
+  return res
+    .status(HTTP_STATUS.CREATED)
+    .cookie(REFRESH_COOKIE_NAME, refreshToken, cookieConfig)
+    .json(
+      new APIRES(
+        HTTP_STATUS.CREATED,
+        { student: registeredStudent, accessToken },
+        "Student registered successfully",
+      ),
+    );
 });
 
 const loginStudents = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+
   if (!email || !password) {
     throw new APIERR(
       HTTP_STATUS.BAD_REQUEST,
@@ -190,130 +170,129 @@ const loginStudents = asyncHandler(async (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  // Find if the students exist or not
   const isStudentExist = await Student.findOne({
     email: normalizedEmail,
   }).select("+password");
+
   if (!isStudentExist) {
     throw new APIERR(
       HTTP_STATUS.NOT_FOUND,
-      `We don't find your account with this mail. Please signup`,
+      "We don't find your account with this mail. Please signup",
     );
   }
 
-  // Compare the password
   const isPasswordCorrect = await isStudentExist.isPasswordValid(password);
+
   if (!isPasswordCorrect) {
     throw new APIERR(
       HTTP_STATUS.BAD_REQUEST,
-      `Wrong Password!!! Please provide the right password`,
+      "Wrong Password!!! Please provide the right password",
     );
   }
 
-  const student = await Student.findOne({ email: normalizedEmail }).select(
-    "-__v -password -refreshToken",
+  const student = await Student.findOne({
+    email: normalizedEmail,
+  }).select("-__v -password");
+
+  await revokeStudentSession(
+    req.cookies?.[REFRESH_COOKIE_NAME],
+    "replaced_by_new_login",
   );
 
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    student._id,
+  const { accessToken, refreshToken } = await createStudentSession(
+    student,
+    req,
   );
 
   return res
     .status(HTTP_STATUS.SUCCESS)
-    .cookie("refreshToken", refreshToken, cookieConfig)
+    .cookie(REFRESH_COOKIE_NAME, refreshToken, cookieConfig)
     .json(
       new APIRES(
         HTTP_STATUS.SUCCESS,
         { student, accessToken },
-        `Successfully logged in`,
+        "Successfully logged in",
       ),
     );
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookies?.refreshToken;
+  const incomingRefreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
 
   if (!incomingRefreshToken) {
     throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Refresh token is required");
   }
 
-  let decodedToken;
+  let result;
+
   try {
-    decodedToken = jwt.verify(
-      incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET,
-    );
+    result = await rotateStudentSession(incomingRefreshToken, req);
   } catch (error) {
-    throw new APIERR(
-      HTTP_STATUS.UNAUTHORIZED,
-      "Invalid or expired refresh token",
-    );
+    // Dead session: remove the dead cookie. A 409 keeps the cookie.
+    const status = error?.statusCode ?? error?.status;
+
+    if (status === HTTP_STATUS.UNAUTHORIZED) {
+      res.clearCookie(REFRESH_COOKIE_NAME, clearCookieConfig);
+    }
+
+    throw error;
   }
 
-  const student = await Student.findById(decodedToken._id).select(
-    "+refreshToken",
-  );
+  res.set("Cache-Control", "no-store");
 
-  if (!student) {
-    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Student not found");
+  // refreshToken is null when rotation was skipped: never overwrite the existing cookie
+  if (result.refreshToken) {
+    res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, cookieConfig);
   }
-
-  if (!student.refreshToken) {
-    throw new APIERR(
-      HTTP_STATUS.UNAUTHORIZED,
-      "Refresh token is no longer valid. Please login again.",
-    );
-  }
-
-  // Compare incoming refresh token with the hashed token stored in DB
-  const isRefreshTokenValid = await bcrypt.compare(
-    incomingRefreshToken,
-    student.refreshToken,
-  );
-
-  if (!isRefreshTokenValid) {
-    throw new APIERR(
-      HTTP_STATUS.UNAUTHORIZED,
-      "Invalid refresh token. Please login again.",
-    );
-  }
-
-  // Generate new tokens
-  const accessToken = student.generateAccessToken();
-  const newRefreshToken = student.generateRefreshToken();
-
-  // Hash the new refresh token before storing it
-  const hashedRefreshToken = await student.hashRefreshToken(newRefreshToken);
-  student.refreshToken = hashedRefreshToken;
-  await student.save({
-    validateBeforeSave: false,
-  });
 
   return res
     .status(HTTP_STATUS.SUCCESS)
-    .cookie("refreshToken", newRefreshToken, cookieConfig)
     .json(
       new APIRES(
         HTTP_STATUS.SUCCESS,
-        {
-          accessToken,
-        },
+        { accessToken: result.accessToken },
         "Access token refreshed successfully",
       ),
     );
 });
 
 const logoutStudent = asyncHandler(async (req, res) => {
-  await Student.findByIdAndUpdate(req.student._id, {
-    $unset: {
-      refreshToken: 1,
-    },
-  });
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+
+  await revokeStudentSession(refreshToken);
 
   return res
     .status(HTTP_STATUS.SUCCESS)
-    .clearCookie("refreshToken", cookieConfig)
+    .clearCookie(REFRESH_COOKIE_NAME, clearCookieConfig)
     .json(new APIRES(HTTP_STATUS.SUCCESS, null, "Logged out successfully"));
 });
 
-export { registerStudents, loginStudents, refreshAccessToken, logoutStudent };
+const getCurrentStudent = asyncHandler(async (req, res) => {
+  const student = await Student.findById(req.student._id).select(
+    "-__v -password",
+  );
+
+  if (!student) {
+    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Student not found");
+  }
+
+  res.set("Cache-Control", "no-store");
+
+  return res
+    .status(HTTP_STATUS.SUCCESS)
+    .json(
+      new APIRES(
+        HTTP_STATUS.SUCCESS,
+        { student },
+        "Current student fetched successfully",
+      ),
+    );
+});
+
+export {
+  registerStudents,
+  loginStudents,
+  refreshAccessToken,
+  logoutStudent,
+  getCurrentStudent,
+};

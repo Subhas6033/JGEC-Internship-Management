@@ -8,22 +8,9 @@ import { pageFade } from "../Animations/animations";
 const StudentLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-    // Connect your authentication logout logic here.
-    console.log("Student logout");
-  };
-
   return (
     <div className="min-h-dvh overflow-x-clip bg-cream text-ink">
-      <StudentNavbar
-        onMenuClick={() => setSidebarOpen(true)}
-        onLogout={handleLogout}
-        student={{
-          name: "Indrani Mukherjee",
-          role: "Student",
-          initials: "IM",
-        }}
-      />
+      <StudentNavbar onMenuClick={() => setSidebarOpen(true)} />
 
       <StudentSidebar
         open={sidebarOpen}

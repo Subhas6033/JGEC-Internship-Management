@@ -1,7 +1,17 @@
-import { Building2, Globe2, Mail, Phone, UserRound } from "lucide-react";
-import { Card, Input } from "../../../../Components/index";
+import { Building2, Globe2, Mail, UserRound } from "lucide-react";
+import { Card, Input, Select } from "../../../../Components/index";
 
-const CompanyDetailsStep = ({ register, errors }) => {
+const CompanyDetailsStep = ({
+  register,
+  errors,
+  organisations = [],
+  selectedOrganisation,
+}) => {
+  const organisationOptions = organisations.map((organisation) => ({
+    label: organisation.organisationName,
+    value: organisation._id,
+  }));
+
   return (
     <Card className="overflow-hidden border-border bg-cream-soft shadow-card">
       <Card.Header className="border-b border-border px-5 py-5 sm:px-6">
@@ -10,116 +20,104 @@ const CompanyDetailsStep = ({ register, errors }) => {
         </Card.Title>
 
         <Card.Description className="mt-1.5 leading-5 text-ink-muted">
-          Tell us about the organisation where you will complete your
-          internship.
+          Select the organisation where you will complete your internship.
         </Card.Description>
       </Card.Header>
 
       <Card.Content className="px-5 py-5 sm:px-6">
         <div className="grid gap-5 sm:grid-cols-2 m-2">
-          <Input
-            label="Company name"
-            placeholder="e.g. Microsoft"
-            required
-            startIcon={<Building2 size={16} strokeWidth={1.8} />}
-            error={errors.companyName?.message}
-            {...register("companyName", {
-              required: "Company name is required.",
-              minLength: {
-                value: 2,
-                message: "Enter a valid company name.",
-              },
-            })}
-          />
-
-          <Input
-            label="Internship role"
-            placeholder="e.g. Software Engineering Intern"
-            required
-            error={errors.internshipRole?.message}
-            {...register("internshipRole", {
-              required: "Internship role is required.",
-            })}
-          />
-
+          {/* Organisation */}
           <div className="sm:col-span-2">
-            <Input
-              label="Company website"
-              type="url"
-              placeholder="https://company.com"
-              startIcon={<Globe2 size={16} strokeWidth={1.8} />}
-              error={errors.companyWebsite?.message}
-              {...register("companyWebsite", {
-                pattern: {
-                  value: /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i,
-                  message: "Enter a valid website URL.",
-                },
+            <Select
+              label="Organisation"
+              required
+              options={organisationOptions}
+              error={errors.organisation?.message}
+              startIcon={<Building2 size={16} strokeWidth={1.8} />}
+              {...register("organisation", {
+                required: "Please select an organisation.",
               })}
             />
           </div>
 
+          {/* Organisation website - backend controlled */}
+          <ReadOnlyField
+            label="Organisation website"
+            value={selectedOrganisation?.organisationSite}
+            icon={<Globe2 size={16} strokeWidth={1.8} />}
+          />
+
+          {/* Organisation email - backend controlled */}
+          <ReadOnlyField
+            label="Organisation email"
+            value={selectedOrganisation?.organisationMail}
+            icon={<Mail size={16} strokeWidth={1.8} />}
+          />
+
+          {/* Organisation location - backend controlled */}
+          <div className="sm:col-span-2">
+            <ReadOnlyField
+              label="Organisation location"
+              value={selectedOrganisation?.organisationLocation}
+              icon={<Building2 size={16} strokeWidth={1.8} />}
+            />
+          </div>
+
+          {/* Employee/contact person - student enters */}
           <Input
-            label="Apply to "
+            label="Apply to"
             placeholder="e.g. Priya Menon"
             required
             startIcon={<UserRound size={16} strokeWidth={1.8} />}
-            error={errors.supervisorName?.message}
-            {...register("supervisorName", {
-              required: "Supervisor name is required.",
+            error={errors.organisationsEmployye?.message}
+            {...register("organisationsEmployye", {
+              required: "Please provide the person you are applying to.",
             })}
           />
 
+          {/* Designation - student enters */}
           <Input
-            label="application email"
-            type="email"
-            placeholder="name@company.com"
+            label="Internship role"
+            placeholder="e.g. Software Engineering Intern"
             required
-            startIcon={<Mail size={16} strokeWidth={1.8} />}
-            error={errors.supervisorEmail?.message}
-            {...register("supervisorEmail", {
-              required: "Supervisor email is required.",
-              pattern: {
-                value: /^\S+@\S+\.\S+$/,
-                message: "Enter a valid email address.",
-              },
+            error={errors.designation?.message}
+            {...register("designation", {
+              required: "Internship role is required.",
             })}
           />
+        </div>
 
-          <Input
-            label="Company contact number"
-            type="tel"
-            placeholder="10 digit mobile number"
-            startIcon={<Phone size={16} strokeWidth={1.8} />}
-            error={errors.companyPhone?.message}
-            {...register("companyPhone", {
-              pattern: {
-                value: /^[6-9]\d{9}$/,
-                message: "Enter a valid 10-digit number.",
-              },
-            })}
-          />
+        <div className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-cream px-3.5 py-3">
+          <Building2 size={15} className="mt-0.5 shrink-0 text-ink-muted" />
 
-          <Input
-            label="Company location"
-            placeholder="e.g. Bengaluru, Karnataka"
-            required
-            error={errors.companyLocation?.message}
-            {...register("companyLocation", {
-              required: "Company location is required.",
-            })}
-          />
-
-          <div className="sm:col-span-2">
-            <Input
-              label="Company address"
-              placeholder="Office / campus address"
-              error={errors.companyAddress?.message}
-              {...register("companyAddress")}
-            />
-          </div>
+          <p className="text-xs leading-5 text-ink-muted">
+            Organisation information is fetched directly from the portal. You
+            cannot modify the organisation website, location or email.
+          </p>
         </div>
       </Card.Content>
     </Card>
+  );
+};
+
+const ReadOnlyField = ({ label, value, icon }) => {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-ink">{label}</label>
+
+      <div
+        className="
+          flex min-h-10 w-full items-center gap-2
+          rounded-md border border-border
+          bg-cream px-3 py-2
+          text-sm text-ink
+        "
+      >
+        <span className="shrink-0 text-ink-muted">{icon}</span>
+
+        <span className="truncate">{value || "Select an organisation"}</span>
+      </div>
+    </div>
   );
 };
 

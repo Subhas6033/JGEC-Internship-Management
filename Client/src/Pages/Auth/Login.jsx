@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { Button, Card, Input } from "../../Components";
@@ -9,14 +10,22 @@ import {
   transitions,
   viewport,
 } from "../../Animations/animations";
+import useLogin from "../../Hooks/Auth/useLogin";
+import { setAuth } from "../../Store/Slice/authSlice";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [apiError, setApiError] = useState("");
+
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { login, isLoading, error: loginError } = useLogin();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     mode: "onBlur",
     defaultValues: {
@@ -27,14 +36,37 @@ const Login = () => {
   });
 
   const onSubmit = async (data) => {
-    try {
-      console.log("Student login:", data);
+    setApiError("");
 
-      // Connect  login API here.
+    try {
+      const response = await login({
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+      });
+
+      const student = response?.data?.student;
+      const accessToken = response?.data?.accessToken;
+
+      if (!student || !accessToken) {
+        throw new Error("Invalid login response from server.");
+      }
+
+      dispatch(
+        setAuth({
+          user: student,
+          accessToken,
+        }),
+      );
+
+      navigate("/students/dashboard", {
+        replace: true,
+      });
     } catch (error) {
-      console.error("Login failed:", error);
+      setApiError(error?.message || "Login failed. Please try again.");
     }
   };
+
+  const displayedError = apiError || loginError?.message || "";
 
   return (
     <motion.section
@@ -59,7 +91,6 @@ const Login = () => {
             bg-brand-700/5 blur-3xl
           "
         />
-
         <div
           className="
             absolute -bottom-32 -right-32
@@ -96,6 +127,23 @@ const Login = () => {
               </Card.Description>
             </div>
 
+            {displayedError && (
+              <div
+                className="
+                  mb-5
+                  rounded-lg
+                  border border-red-200
+                  bg-red-50
+                  px-3.5 py-3
+                  text-sm
+                  text-red-600
+                "
+                role="alert"
+              >
+                {displayedError}
+              </div>
+            )}
+
             <form
               onSubmit={handleSubmit(onSubmit)}
               noValidate
@@ -109,7 +157,7 @@ const Login = () => {
                 autoComplete="email"
                 required
                 startIcon={<Mail size={17} strokeWidth={1.8} />}
-                error={errors.email?.message}
+                error={errors?.email?.message}
                 {...register("email", {
                   required: "Email address is required.",
                   pattern: {
@@ -153,7 +201,7 @@ const Login = () => {
                     )}
                   </button>
                 }
-                error={errors.password?.message}
+                error={errors?.password?.message}
                 {...register("password", {
                   required: "Password is required.",
                 })}
@@ -196,16 +244,16 @@ const Login = () => {
 
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isLoading}
                 className="
                   w-full
                   justify-center
                   gap-2
                 "
               >
-                {isSubmitting ? "Signing in..." : "Sign in"}
+                {isLoading ? "Signing in..." : "Sign in"}
 
-                {!isSubmitting && <ArrowRight size={17} strokeWidth={2} />}
+                {!isLoading && <ArrowRight size={17} strokeWidth={2} />}
               </Button>
             </form>
 
@@ -223,21 +271,21 @@ const Login = () => {
               <Link
                 to="/auth/signup"
                 className="
-      flex w-full items-center justify-center
-      gap-2 rounded-lg
-      border border-border
-      bg-transparent
-      px-4 py-2.5
-      text-sm font-semibold
-      text-ink
-      transition-all duration-150
-      hover:border-brand-700/30
-      hover:bg-brand-700/5
-      hover:text-brand-700
-      focus:outline-none
-      focus:ring-2
-      focus:ring-brand-700/20
-    "
+                  flex w-full items-center justify-center
+                  gap-2 rounded-lg
+                  border border-border
+                  bg-transparent
+                  px-4 py-2.5
+                  text-sm font-semibold
+                  text-ink
+                  transition-all duration-150
+                  hover:border-brand-700/30
+                  hover:bg-brand-700/5
+                  hover:text-brand-700
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-brand-700/20
+                "
               >
                 Create student account
                 <ArrowRight size={16} strokeWidth={1.9} />
@@ -247,21 +295,21 @@ const Login = () => {
                 <Link
                   to="/auth/depttpo/login"
                   className="
-        flex items-center justify-center
-        rounded-lg
-        border border-border
-        bg-transparent
-        px-3 py-2.5
-        text-center text-xs font-semibold
-        text-ink-muted
-        transition-all duration-150
-        hover:border-brand-700/30
-        hover:bg-brand-700/5
-        hover:text-brand-700
-        focus:outline-none
-        focus:ring-2
-        focus:ring-brand-700/20
-      "
+                    flex items-center justify-center
+                    rounded-lg
+                    border border-border
+                    bg-transparent
+                    px-3 py-2.5
+                    text-center text-xs font-semibold
+                    text-ink-muted
+                    transition-all duration-150
+                    hover:border-brand-700/30
+                    hover:bg-brand-700/5
+                    hover:text-brand-700
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-brand-700/20
+                  "
                 >
                   Dept. TPO Login
                 </Link>
@@ -269,21 +317,21 @@ const Login = () => {
                 <Link
                   to="/auth/spoc/login"
                   className="
-        flex items-center justify-center
-        rounded-lg
-        border border-border
-        bg-transparent
-        px-3 py-2.5
-        text-center text-xs font-semibold
-        text-ink-muted
-        transition-all duration-150
-        hover:border-brand-700/30
-        hover:bg-brand-700/5
-        hover:text-brand-700
-        focus:outline-none
-        focus:ring-2
-        focus:ring-brand-700/20
-      "
+                    flex items-center justify-center
+                    rounded-lg
+                    border border-border
+                    bg-transparent
+                    px-3 py-2.5
+                    text-center text-xs font-semibold
+                    text-ink-muted
+                    transition-all duration-150
+                    hover:border-brand-700/30
+                    hover:bg-brand-700/5
+                    hover:text-brand-700
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-brand-700/20
+                  "
                 >
                   SPOC Login
                 </Link>

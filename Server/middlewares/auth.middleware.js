@@ -1,41 +1,54 @@
 import jwt from "jsonwebtoken";
-import { asyncHandler, APIERR } from "../utils/helper.utils.js";
+
+import { APIERR } from "../utils/helper.utils.js";
 import { HTTP_STATUS } from "../config/httpConfig.config.js";
-import { Student } from "../models/students.models.js";
 
-export const verifyStudentJWT = asyncHandler(async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+const verifyStudentJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Access token is required");
+  if (!authorization || !authorization.startsWith("Bearer ")) {
+    return next(
+      new APIERR(HTTP_STATUS.UNAUTHORIZED, "Access token is required"),
+    );
   }
 
-  const accessToken = authHeader.split(" ")[1];
+  const accessToken = authorization.substring(7).trim();
+
   if (!accessToken) {
-    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Access token is required");
+    return next(
+      new APIERR(HTTP_STATUS.UNAUTHORIZED, "Access token is required"),
+    );
   }
 
-  let decodedToken;
   try {
-    decodedToken = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+    const decodedToken = jwt.verify(
+      accessToken,
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        issuer: process.env.ACCESS_TOKEN_ISSUER,
+        audience: process.env.ACCESS_TOKEN_AUDIENCE,
+      },
+    );
+
+    req.student = {
+      _id: decodedToken.sub,
+      role: decodedToken.role,
+      name: decodedToken.name,
+      email: decodedToken.email,
+    };
+
+    return next();
   } catch (error) {
-    throw new APIERR(
-      HTTP_STATUS.UNAUTHORIZED,
-      "Invalid or expired access token",
-    );
+    if (error.name === "TokenExpiredError") {
+      return next(new APIERR(HTTP_STATUS.UNAUTHORIZED, "Access token expired"));
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      return next(new APIERR(HTTP_STATUS.UNAUTHORIZED, "Invalid access token"));
+    }
+
+    return next(new APIERR(HTTP_STATUS.UNAUTHORIZED, "Authentication failed"));
   }
+};
 
-  const student = await Student.findById(decodedToken._id).select(
-    "-password -refreshToken -__v",
-  );
-
-  if (!student) {
-    throw new APIERR(
-      HTTP_STATUS.UNAUTHORIZED,
-      "Student associated with this token no longer exists",
-    );
-  }
-
-  req.student = student;
-  next();
-});
+export { verifyStudentJWT };
