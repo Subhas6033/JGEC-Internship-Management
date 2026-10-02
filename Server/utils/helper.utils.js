@@ -9,8 +9,10 @@ const asyncHandler = (requestHandler) => async (req, res, next) => {
 
     return res.status(error.statusCode || 500).json({
       statusCode: error.statusCode || 500,
-      message: "Something Went Wrong",
-      success: false,
+      message: error.message || "Something Went Wrong",
+      success: error.success ?? false,
+      data: error.data ?? null,
+      error: error.error ?? [],
     });
   }
 };
@@ -26,6 +28,7 @@ class APIERR extends Error {
   ) {
     super(message);
 
+    this.name = "APIERR";
     this.statusCode = statusCode;
     this.message = message;
     this.success = success;

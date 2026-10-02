@@ -2,6 +2,7 @@ import express, { json, urlencoded } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
+import { errorMiddleware } from "./middlewares/error.middleware.js";
 
 const app = express();
 const CORS_ORIGIN = process.env.CORS_ORIGIN;
@@ -20,4 +21,6 @@ import { authRoutes } from "./routes/auth.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 
+//Centralize err handlers
+app.use(errorMiddleware);
 export { app };

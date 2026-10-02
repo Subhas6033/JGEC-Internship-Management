@@ -1,6 +1,4 @@
-import { useMemo } from "react";
 import {
-  Check,
   Eye,
   EyeOff,
   FileSignature,
@@ -9,7 +7,8 @@ import {
   Phone,
   UserRound,
 } from "lucide-react";
-import { Input, Select } from "../Components";
+
+import { Input, Select } from "./index";
 
 const departmentOptions = [
   {
@@ -38,405 +37,363 @@ const departmentOptions = [
   },
 ];
 
-const passwordRules = [
-  {
-    id: "length",
-    label: "8-20 characters",
-    test: (value) => value.length >= 8 && value.length <= 20,
-  },
-  {
-    id: "letter",
-    label: "At least one letter",
-    test: (value) => /[A-Za-z]/.test(value),
-  },
-  {
-    id: "number",
-    label: "At least one number",
-    test: (value) => /\d/.test(value),
-  },
-];
+const inputClassName = `
+  h-12
+  border-border
+  bg-cream-soft
+  text-ink
+  placeholder:text-ink-muted/60
+  focus:border-brand-600
+  focus:ring-brand-600/15
+`;
 
-// Password Strength Meter Component
-const PasswordStrengthMeter = ({ password }) => {
-  const passwordState = useMemo(() => {
-    const value = password || "";
-    const rules = passwordRules.map((rule) => ({
-      ...rule,
-      passed: rule.test(value),
-    }));
+const StepOneFields = ({
+  register,
+  errors,
+  watch,
+  showPassword,
+  setShowPassword,
+}) => {
+  const password = watch("password") || "";
 
-    const passedCount = rules.filter((rule) => rule.passed).length;
+  const passwordHasLowercase = /[a-z]/.test(password);
 
-    let label = "Not started";
+  const passwordHasUppercase = /[A-Z]/.test(password);
 
-    if (value) {
-      if (passedCount === rules.length) {
-        label = "Strong";
-      } else if (passedCount === 2) {
-        label = "Good";
-      } else {
-        label = "Needs improvement";
-      }
-    }
+  const passwordHasNumber = /\d/.test(password);
 
-    return {
-      rules,
-      passedCount,
-      percentage: (passedCount / rules.length) * 100,
-      label,
-      complete: passedCount === rules.length,
-    };
-  }, [password]);
+  const passwordHasSpecial = /[@$!%*?&]/.test(password);
 
-  if (!password) return null;
+  const passwordHasLength = password.length >= 6 && password.length <= 20;
 
   return (
-    <div className="overflow-hidden" aria-live="polite">
-      <div className="mt-2 flex items-center gap-2">
-        <div className="flex flex-1 gap-1">
-          {[0, 1, 2].map((index) => (
-            <div
-              key={index}
-              className={[
-                "h-1 flex-1 origin-left rounded-full",
-                passwordState.complete
-                  ? "bg-brand-700"
-                  : "bg-ink-muted",
-              ].join(" ")}
-              style={{
-                opacity:
-                  index < passwordState.passedCount ? 1 : 0.25,
-                transform: `scaleX(${
-                  index < passwordState.passedCount ? 1 : 0.7
-                })`,
-                transformOrigin: "left",
-              }}
-            />
-          ))}
-        </div>
+    <div className="space-y-6">
+      {/* PERSONAL DETAILS */}
 
-        <span
-          className={[
-            "shrink-0 text-[10px] font-semibold",
-            passwordState.complete
-              ? "text-brand-700"
-              : "text-ink-muted",
-          ].join(" ")}
-        >
-          {passwordState.label}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-// Step One Fields Component
-export const StepOneFields = ({ register, errors, watch }) => {
-  const showPassword = false; // Will be managed by parent
-  const setShowPassword = () => {}; // Will be managed by parent
-  const password = watch("password");
-
-  return (
-    <div className="min-w-0 space-y-5">
-      <div>
+      <section>
         <p className="eyebrow">Personal details</p>
 
-        <div className="mt-3 grid min-w-0 gap-x-4 gap-y-3.5 sm:grid-cols-2">
+        <div
+          className="
+            mt-4
+            grid
+            gap-4
+            sm:grid-cols-2
+          "
+        >
+          {/* Full Name */}
+
           <Input
             label="Full name"
             placeholder="Your full name"
-            startIcon={<UserRound size={15} />}
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15"
-            error={errors.fullName?.message}
+            icon={UserRound}
+            className={inputClassName}
             {...register("fullName", {
               required: "Full name is required.",
-              minLength: {
-                value: 2,
-                message: "Name must contain at least 2 characters.",
-              },
               maxLength: {
-                value: 80,
-                message: "Name cannot exceed 80 characters.",
+                value: 50,
+                message: "Full name cannot exceed 50 characters.",
               },
-              validate: (value) =>
-                /^[A-Za-z\s.'-]+$/.test(value.trim()) ||
-                "Please enter a valid name.",
             })}
+            error={errors.fullName?.message}
           />
+
+          {/* Email */}
 
           <Input
             label="Email address"
             type="email"
             placeholder="you@jgec.ac.in"
-            startIcon={<Mail size={15} />}
-            description="Use your official college email."
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15"
-            error={errors.email?.message}
+            icon={Mail}
+            className={inputClassName}
             {...register("email", {
               required: "Email address is required.",
               pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: "Enter a valid email address.",
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: "Please enter a valid email address.",
               },
             })}
+            error={errors.email?.message}
           />
+
+          {/* Mobile */}
 
           <Input
             label="Mobile number"
             type="tel"
-            inputMode="numeric"
-            autoComplete="tel"
             placeholder="98765 43210"
-            startIcon={
-              <span
-                className="flex items-center gap-2 whitespace-nowrap"
-                aria-hidden="true"
-              >
-                <Phone size={15} />
-                <span className="h-4 w-px bg-border" />
-                <span className="text-xs font-semibold text-ink-muted">
-                  +91
-                </span>
-              </span>
-            }
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15 pl-[5.75rem]"
-            error={errors.mobileNumber?.message}
+            icon={Phone}
+            className={inputClassName}
             {...register("mobileNumber", {
               required: "Mobile number is required.",
-              setValueAs: (value) =>
-                value.replace(/\D/g, "").slice(0, 10),
-              validate: (value) =>
-                /^[6-9]\d{9}$/.test(value) ||
-                "Enter a valid 10-digit Indian mobile number.",
+              validate: (value) => {
+                const digits = value.replace(/\D/g, "");
+
+                return (
+                  /^[6-9]\d{9}$/.test(digits) ||
+                  "Enter a valid 10-digit mobile number."
+                );
+              },
             })}
+            error={errors.mobileNumber?.message}
           />
 
-          <div className="min-w-0">
+          {/* Password */}
+
+          <div className="relative">
             <Input
               label="Password"
               type={showPassword ? "text" : "password"}
               placeholder="Create a strong password"
-              startIcon={<LockKeyhole size={15} />}
-              endIcon={
-                <button
-                  type="button"
-                  onClick={setShowPassword}
-                  className="pointer-events-auto rounded-md p-1 text-ink-muted transition-colors hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-600"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              }
-              description="Use 6-20 characters with letters and numbers."
-              className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15"
-              error={errors.password?.message}
+              icon={LockKeyhole}
+              className={inputClassName}
               {...register("password", {
                 required: "Password is required.",
-                minLength: {
-                  value: 6,
-                  message: "Password must contain at least 6 characters.",
+                validate: {
+                  length: (value) =>
+                    (value.length >= 6 && value.length <= 20) ||
+                    "Password must be 6–20 characters.",
+
+                  lowercase: (value) =>
+                    /[a-z]/.test(value) ||
+                    "Password must contain a lowercase letter.",
+
+                  uppercase: (value) =>
+                    /[A-Z]/.test(value) ||
+                    "Password must contain an uppercase letter.",
+
+                  number: (value) =>
+                    /\d/.test(value) || "Password must contain a number.",
+
+                  special: (value) =>
+                    /[@$!%*?&]/.test(value) ||
+                    "Password must contain a special character.",
                 },
-                maxLength: {
-                  value: 20,
-                  message: "Password cannot exceed 20 characters.",
-                },
-                validate: (value) =>
-                  (/[A-Za-z]/.test(value) && /\d/.test(value)) ||
-                  "Password must contain at least one letter and one number.",
               })}
+              error={errors.password?.message}
             />
 
-            <PasswordStrengthMeter password={password} />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="
+                absolute
+                right-3
+                top-[2.35rem]
+                flex
+                size-8
+                items-center
+                justify-center
+                rounded-md
+                text-ink-muted
+                transition-colors
+                hover:bg-cream-dark
+                hover:text-ink
+              "
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="border-t border-border pt-5">
+      {/* ACADEMIC DETAILS */}
+
+      <section
+        className="
+          border-t
+          border-border
+          pt-5
+        "
+      >
         <p className="eyebrow">Academic details</p>
 
-        <div className="mt-3 grid min-w-0 gap-x-4 gap-y-3.5 sm:grid-cols-2">
+        <div
+          className="
+            mt-4
+            grid
+            gap-4
+            sm:grid-cols-2
+          "
+        >
+          {/* Roll number */}
+
           <Input
             label="Roll number"
             placeholder="e.g. 23101106033"
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15"
-            error={errors.rollNumber?.message}
+            className={inputClassName}
             {...register("rollNumber", {
               required: "Roll number is required.",
-              minLength: {
-                value: 4,
-                message: "Enter a valid roll number.",
-              },
-              maxLength: {
-                value: 30,
-                message: "Roll number cannot exceed 30 characters.",
-              },
-              validate: (value) =>
-                /^[A-Za-z0-9-]+$/.test(value.trim()) ||
-                "Use only letters, numbers, and hyphens.",
             })}
+            error={errors.rollNumber?.message}
           />
+
+          {/* Department */}
 
           <Select
             label="Department"
             options={departmentOptions}
-            placeholder="Select your department"
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15"
-            error={errors.department?.message}
+            className={inputClassName}
             {...register("department", {
               required: "Please select your department.",
             })}
+            error={errors.department?.message}
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 };
 
-// Step Two Fields Component
-export const StepTwoFields = ({
-  register,
-  errors,
-  watch,
-  handleSignatureChange,
-}) => {
+const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
   const signature = watch("signature");
 
   return (
-    <div className="min-w-0 space-y-5">
-      <div>
+    <div className="space-y-6">
+      {/* GUARDIAN DETAILS */}
+
+      <section>
         <p className="eyebrow">Guardian details</p>
 
-        <div className="mt-3 grid min-w-0 gap-x-4 gap-y-3.5 sm:grid-cols-2">
+        <div
+          className="
+            mt-4
+            grid
+            gap-4
+            sm:grid-cols-2
+          "
+        >
           <Input
             label="Guardian name"
-            placeholder="Parent / guardian full name"
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15"
-            error={errors.gurdianName?.message}
+            placeholder="Enter guardian name"
+            icon={UserRound}
+            className={inputClassName}
             {...register("gurdianName", {
               required: "Guardian name is required.",
-              minLength: {
-                value: 2,
-                message: "Guardian name must contain at least 2 characters.",
-              },
-              maxLength: {
-                value: 80,
-                message: "Guardian name cannot exceed 80 characters.",
-              },
-              validate: (value) =>
-                /^[A-Za-z\s.'-]+$/.test(value.trim()) ||
-                "Please enter a valid name.",
             })}
+            error={errors.gurdianName?.message}
           />
 
           <Input
             label="Guardian mobile"
             type="tel"
-            inputMode="numeric"
-            autoComplete="tel"
             placeholder="98765 43210"
-            startIcon={
-              <span
-                className="flex items-center gap-2 whitespace-nowrap"
-                aria-hidden="true"
-              >
-                <Phone size={15} />
-                <span className="h-4 w-px bg-border" />
-                <span className="text-xs font-semibold text-ink-muted">
-                  +91
-                </span>
-              </span>
-            }
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15 pl-[5.75rem]"
-            error={errors.gurdianMobile?.message}
+            icon={Phone}
+            className={inputClassName}
             {...register("gurdianMobile", {
               required: "Guardian mobile number is required.",
-              setValueAs: (value) =>
-                value.replace(/\D/g, "").slice(0, 10),
-              validate: (value) =>
-                /^[6-9]\d{9}$/.test(value) ||
-                "Enter a valid 10-digit Indian mobile number.",
-            })}
-          />
-        </div>
-      </div>
+              validate: (value) => {
+                const digits = value.replace(/\D/g, "");
 
-      <div className="border-t border-border pt-5">
-        <p className="eyebrow">Student signature</p>
-
-        <div className="mt-3 min-w-0">
-          <Input
-            label="Signature"
-            name="signature"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            startIcon={<FileSignature size={15} />}
-            description="PNG, JPG, or WebP. Maximum recommended size: 2 MB."
-            className="border-border bg-cream-soft text-ink placeholder:text-ink-muted/60 focus:border-brand-600 focus:ring-brand-600/15"
-            error={errors.signature?.message}
-            onChange={handleSignatureChange}
-          />
-
-          <input
-            type="hidden"
-            {...register("signature", {
-              validate: (file) => {
-                if (!file) {
-                  return "Please upload your signature.";
-                }
-
-                if (!(file instanceof File)) {
-                  return "Please select a valid signature file.";
-                }
-
-                const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
-
-                if (!allowedTypes.includes(file.type)) {
-                  return "Only PNG, JPG, and WebP images are allowed.";
-                }
-
-                if (file.size > 2 * 1024 * 1024) {
-                  return "Signature image must be smaller than 2 MB.";
-                }
-
-                return true;
+                return (
+                  /^[6-9]\d{9}$/.test(digits) ||
+                  "Enter a valid 10-digit mobile number."
+                );
               },
             })}
+            error={errors.gurdianMobile?.message}
           />
-
-          {signature instanceof File && !errors.signature && (
-            <div className="mt-2.5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-brand-700 shadow-sm">
-                  <FileSignature size={14} />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-medium text-brand-900">
-                    {signature.name}
-                  </p>
-
-                  <p className="mt-0.5 text-[10px] text-brand-700">
-                    {(signature.size / 1024).toFixed(1)} KB
-                  </p>
-                </div>
-
-                <div className="shrink-0 text-brand-700">
-                  <Check size={15} />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+      </section>
 
-      <div className="rounded-xl border border-border bg-cream px-4 py-2.5">
-        <p className="text-[11px] font-medium text-ink">Before you continue</p>
+      {/* SIGNATURE */}
 
-        <p className="mt-0.5 text-[10px] leading-4 text-ink-muted">
-          Make sure your academic information matches your JGEC records. You
-          will be able to submit your registration after completing this step.
-        </p>
-      </div>
+      <section
+        className="
+          border-t
+          border-border
+          pt-5
+        "
+      >
+        <p className="eyebrow">Signature</p>
+
+        <label
+          htmlFor="signature"
+          className="
+            mt-4
+            flex
+            cursor-pointer
+            flex-col
+            items-center
+            justify-center
+            rounded-xl
+            border
+            border-dashed
+            border-border
+            bg-cream
+            px-5
+            py-8
+            text-center
+            transition-colors
+            hover:border-brand-400
+            hover:bg-brand-50/40
+          "
+        >
+          <div
+            className="
+              flex
+              size-11
+              items-center
+              justify-center
+              rounded-xl
+              bg-brand-50
+              text-brand-700
+            "
+          >
+            <FileSignature size={21} />
+          </div>
+
+          <p
+            className="
+              mt-3
+              text-sm
+              font-semibold
+              text-ink
+            "
+          >
+            {signature instanceof File
+              ? signature.name
+              : "Upload your signature"}
+          </p>
+
+          <p
+            className="
+              mt-1
+              text-xs
+              text-ink-muted
+            "
+          >
+            JPG, JPEG, PNG or WEBP · 30KB–100KB
+          </p>
+
+          <input
+            id="signature"
+            type="file"
+            accept="
+              image/jpeg,
+              image/png,
+              image/webp
+            "
+            className="hidden"
+            onChange={handleSignatureChange}
+          />
+        </label>
+
+        {errors.signature && (
+          <p
+            className="
+              mt-1.5
+              text-xs
+              text-red-600
+            "
+          >
+            {errors.signature.message}
+          </p>
+        )}
+      </section>
     </div>
   );
 };
+
+export { StepOneFields, StepTwoFields };
