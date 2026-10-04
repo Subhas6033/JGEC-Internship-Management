@@ -1,7 +1,20 @@
 import { LockKeyhole } from "lucide-react";
+import { useSelector } from "react-redux";
 import { Card, Select } from "../../../../Components/index";
+import { selectUser } from "../../../../Store/Slice/authSlice";
+
+const departmentMap = {
+  CE: "Civil Engineering",
+  EE: "Electrical Engineering",
+  ME: "Mechanical Engineering",
+  CSE: "Computer Science and Engineering",
+  ECE: "Electronics and Communication Engineering",
+  IT: "Information Technology",
+};
 
 const StudentDetailsStep = ({ register, errors }) => {
+  const student = useSelector(selectUser);
+
   const semesterOptions = [
     {
       label: "Semester 1",
@@ -61,19 +74,20 @@ const StudentDetailsStep = ({ register, errors }) => {
       <Card.Content className="px-5 py-5 sm:px-6">
         <div className="grid gap-5 sm:grid-cols-2 m-2">
           <div className="sm:col-span-2">
-            <ReadOnlyField label="Full name" value="Indrani Mukherjee" />
+            <ReadOnlyField label="Full name" value={student?.fullName} />
           </div>
 
-          <ReadOnlyField label="Roll Number" value="23101106035" />
+          <ReadOnlyField label="Roll Number" value={student?.rollNumber} />
 
-          <ReadOnlyField label="Department" value="Information Technology" />
+          <ReadOnlyField
+            label="Department"
+            value={departmentMap[student?.department] || student?.department}
+          />
 
-          <ReadOnlyField label="Year" value="3rd Year" />
-
-          <ReadOnlyField label="Phone" value="+91 98765 43210" />
+          <ReadOnlyField label="Phone" value={student?.mobileNumber} />
 
           <div className="sm:col-span-2">
-            <ReadOnlyField label="Email" value="im2735@it.jgec.ac.in" />
+            <ReadOnlyField label="Email" value={student?.email} />
           </div>
 
           <div className="sm:col-span-2">
@@ -115,7 +129,7 @@ const ReadOnlyField = ({ label, value }) => {
           text-sm text-ink
         "
       >
-        {value}
+        {value || "Not available"}
       </div>
     </div>
   );

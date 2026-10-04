@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import DashboardStats from "./DashboardStats";
 import ApplicationProgress from "./ApplicationProgress";
@@ -8,12 +8,22 @@ import RecentApplications from "./RecentApplications";
 import RequiredDocuments from "./RequiredDocuments";
 import RecentNotifications from "./RecentNotifications";
 import UpcomingDeadlines from "./UpcomingDeadlines";
+import { useStudentDashboard } from "../../../../Services/Queries/studentDashboard.quires.js";
 import {
   cardAnimation,
   staggerContainer,
 } from "../../../../Animations/animations";
 
 const StudentDashboard = () => {
+  const {
+    data: dashboardResponse,
+    isLoading,
+    isError,
+    refetch,
+  } = useStudentDashboard();
+
+  const dashboard = dashboardResponse?.data;
+
   return (
     <>
       <title>Student Dashboard | JGEC Internship Portal</title>
@@ -45,17 +55,11 @@ const StudentDashboard = () => {
 
             <div className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
-                <h1
-                  className="
-                    font-display
-                    text-3xl
-                    leading-tight
-                    tracking-tight
-                    text-ink
-                    sm:text-4xl
-                  "
-                >
-                  Welcome back, Indrani.
+                <h1 className="font-display text-3xl leading-tight tracking-tight text-ink sm:text-4xl">
+                  Welcome back
+                  {dashboard?.student?.fullName
+                    ? `, ${dashboard.student.fullName}.`
+                    : "."}
                 </h1>
 
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
@@ -65,26 +69,8 @@ const StudentDashboard = () => {
               </div>
 
               <Link
-                to="/student/applications/new"
-                className="
-                  focus-ring
-                  inline-flex
-                  shrink-0
-                  items-center
-                  justify-center
-                  gap-2
-                  rounded-lg
-                  bg-brand-700
-                  px-4
-                  py-2.5
-                  text-sm
-                  font-semibold
-                  text-white
-                  shadow-sm
-                  transition-all
-                  duration-150
-                  hover:bg-brand-800
-                "
+                to="/students/applications/new"
+                className="focus-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-brand-800"
               >
                 New Application
                 <ArrowRight size={16} strokeWidth={1.9} />
@@ -92,32 +78,98 @@ const StudentDashboard = () => {
             </div>
           </motion.div>
 
-          {/* Stats */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            <DashboardStats />
-          </motion.div>
+          {/* Loading state */}
+          {isLoading && (
+            <motion.div
+              variants={cardAnimation}
+              initial="hidden"
+              animate="visible"
+              className="rounded-xl border border-border bg-white p-6 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-700 border-t-transparent" />
 
-          {/* Current status */}
-          <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-            <ApplicationProgress />
-            <ProfileCompletion />
-          </div>
+                <p className="text-sm font-medium text-ink-muted">
+                  Loading your dashboard...
+                </p>
+              </div>
+            </motion.div>
+          )}
 
-          {/* Applications + Documents */}
-          <div className="grid gap-4 lg:grid-cols-2">
-            <RecentApplications />
-            <RequiredDocuments />
-          </div>
+          {/* Error state */}
+          {isError && !isLoading && (
+            <motion.div
+              variants={cardAnimation}
+              initial="hidden"
+              animate="visible"
+              className="rounded-xl border border-red-200 bg-red-50 p-6"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-red-800">
+                    Unable to load dashboard
+                  </p>
 
-          {/* Notifications + Deadlines */}
-          <div className="grid gap-4 lg:grid-cols-2">
-            <RecentNotifications />
-            <UpcomingDeadlines />
-          </div>
+                  <p className="mt-1 text-sm leading-6 text-red-700">
+                    Something went wrong while fetching your dashboard
+                    information.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="focus-ring inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+                >
+                  <RefreshCw size={16} strokeWidth={1.9} />
+                  Try again
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Dashboard content */}
+          {!isLoading && !isError && dashboard && (
+            <>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                <DashboardStats stats={dashboard.stats} />
+              </motion.div>
+
+              <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+                <ApplicationProgress
+                  application={dashboard.currentApplication}
+                />
+
+                <ProfileCompletion
+                  profileCompletion={dashboard.profileCompletion}
+                />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <RecentApplications
+                  applications={dashboard.recentApplications || []}
+                />
+
+                <RequiredDocuments
+                  documents={dashboard.requiredDocuments || []}
+                />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <RecentNotifications
+                  notifications={dashboard.recentNotifications || []}
+                />
+
+                <UpcomingDeadlines
+                  deadlines={dashboard.upcomingDeadlines || []}
+                />
+              </div>
+            </>
+          )}
         </div>
       </section>
     </>

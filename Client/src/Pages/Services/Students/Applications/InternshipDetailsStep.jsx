@@ -2,8 +2,22 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { Card, Input, Select } from "../../../../Components/index";
 
 const InternshipDetailsStep = ({ register, errors, watch }) => {
-  const startDate = watch("startDate");
-  const endDate = watch("endDate");
+  const startDate = watch("tentativeStartDate");
+
+  const modeOptions = [
+    {
+      label: "On-site",
+      value: "onsite",
+    },
+    {
+      label: "Hybrid",
+      value: "hybrid",
+    },
+    {
+      label: "Remote",
+      value: "remote",
+    },
+  ];
 
   const internshipTypeOptions = [
     {
@@ -20,26 +34,11 @@ const InternshipDetailsStep = ({ register, errors, watch }) => {
     },
     {
       label: "Full-time Internship",
-      value: "full-time",
+      value: "fulltime",
     },
     {
-      label: "Other",
-      value: "other",
-    },
-  ];
-
-  const modeOptions = [
-    {
-      label: "On-site",
-      value: "onsite",
-    },
-    {
-      label: "Hybrid",
-      value: "hybrid",
-    },
-    {
-      label: "Remote",
-      value: "remote",
+      label: "Others",
+      value: "others",
     },
   ];
 
@@ -57,6 +56,51 @@ const InternshipDetailsStep = ({ register, errors, watch }) => {
 
       <Card.Content className="px-5 py-5 sm:px-6">
         <div className="grid gap-5 sm:grid-cols-2 m-2">
+          <Input
+            label="Tentative Internship Location"
+            placeholder="e.g. Bengaluru, Karnataka"
+            required
+            startIcon={<MapPin size={16} strokeWidth={1.8} />}
+            error={errors.tentativeWorkLocations?.message}
+            {...register("tentativeWorkLocations", {
+              required: "Work location is required.",
+              validate: (value) =>
+                value?.trim() ? true : "Work location is required.",
+            })}
+          />
+
+          <Input
+            label="Tentative Start date"
+            type="date"
+            required
+            startIcon={<CalendarDays size={16} strokeWidth={1.8} />}
+            error={errors.tentativeStartDate?.message}
+            {...register("tentativeStartDate", {
+              required: "Start date is required.",
+            })}
+          />
+
+          <Input
+            label="Tentative End date"
+            type="date"
+            required
+            startIcon={<CalendarDays size={16} strokeWidth={1.8} />}
+            error={errors.tentativeEndDate?.message}
+            {...register("tentativeEndDate", {
+              required: "End date is required.",
+              validate: (value) => {
+                if (!startDate || !value) {
+                  return true;
+                }
+
+                return (
+                  value >= startDate || "End date must be after the start date."
+                );
+              },
+            })}
+          />
+
+          {/* Internship Type */}
           <Select
             label="Internship type"
             required
@@ -67,68 +111,20 @@ const InternshipDetailsStep = ({ register, errors, watch }) => {
             })}
           />
 
-          <Input
-            label="Tentative Internship Location"
-            placeholder="e.g. Bengaluru, Karnataka"
-            // required
-            startIcon={<MapPin size={16} strokeWidth={1.8} />}
-            error={errors.workLocation?.message}
-            {...register("workLocation", {
-              required: "Work location is required.",
-            })}
-          />
-
-          <Input
-            label="Tentative Start date"
-            type="date"
-            // required
-            startIcon={<CalendarDays size={16} strokeWidth={1.8} />}
-            error={errors.startDate?.message}
-            {...register("startDate", {
-              required: "Start date is required.",
-            })}
-          />
-
-          <Input
-            label="Tentative End date"
-            type="date"
-            // required
-            startIcon={<CalendarDays size={16} strokeWidth={1.8} />}
-            error={errors.endDate?.message}
-            {...register("endDate", {
-              required: "End date is required.",
-              validate: (value) => {
-                if (!startDate || !value) return true;
-
-                return (
-                  value >= startDate || "End date must be after the start date."
-                );
-              },
-            })}
-          />
-
+          {/* Internship Mode */}
           <div className="sm:col-span-2">
             <Select
               label="Mode of internship"
               required
               options={modeOptions}
-              error={errors.mode?.message}
-              {...register("mode", {
+              error={errors.modeOfInternship?.message}
+              {...register("modeOfInternship", {
                 required: "Please select the internship mode.",
               })}
             />
           </div>
 
-          <div className="sm:col-span-2">
-            <Input
-              label="Work location / office address"
-              placeholder="Where will you physically work?"
-              startIcon={<MapPin size={16} strokeWidth={1.8} />}
-              error={errors.officeAddress?.message}
-              {...register("officeAddress")}
-            />
-          </div>
-
+          {/* Additional Information */}
           <div className="sm:col-span-2">
             <label className="mb-2 block text-sm font-medium text-ink">
               Additional information
@@ -151,8 +147,14 @@ const InternshipDetailsStep = ({ register, errors, watch }) => {
                 focus:ring-2
                 focus:ring-brand-600/15
               "
-              {...register("additionalInformation")}
+              {...register("description")}
             />
+
+            {errors.description?.message && (
+              <p className="mt-1.5 text-xs text-red-600">
+                {errors.description.message}
+              </p>
+            )}
           </div>
         </div>
 

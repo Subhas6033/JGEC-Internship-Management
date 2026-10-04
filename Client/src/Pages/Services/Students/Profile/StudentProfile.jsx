@@ -9,35 +9,32 @@ import {
   UsersRound,
 } from "lucide-react";
 import { motion } from "framer-motion";
-
+import { useSelector } from "react-redux";
 import ProfileHeader from "./ProfileHeader";
 import ProfileSection from "./ProfileSection";
 import ProfileField from "./ProfileField";
-
-import { studentProfile } from "./profile.data";
+import { departmentMap } from "./profile.data";
+import { selectUser } from "../../../../Store/Slice/authSlice";
 
 const StudentProfile = () => {
+  const student = useSelector(selectUser);
+
   return (
     <>
       <title>My Profile | JGEC Internship Portal</title>
-
       <meta
         name="description"
         content="View your registered academic, contact, and guardian information through the JGEC Internship Portal."
       />
-
       <meta name="robots" content="noindex, nofollow" />
-
       <meta name="theme-color" content="#ffffff" />
-
       <meta property="og:title" content="My Profile | JGEC Internship Portal" />
-
       <meta
         property="og:description"
         content="View your registered student information and academic details through the JGEC Internship Portal."
       />
-
       <meta property="og:type" content="website" />
+
       <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl space-y-6">
           {/* Page heading */}
@@ -47,7 +44,6 @@ const StudentProfile = () => {
           >
             <div className="flex items-center gap-2 text-sm text-primary">
               <UserRound size={17} />
-
               <span>Student Profile</span>
             </div>
 
@@ -63,7 +59,7 @@ const StudentProfile = () => {
           </motion.div>
 
           {/* Profile header */}
-          <ProfileHeader profile={studentProfile} />
+          <ProfileHeader profile={student} />
 
           {/* Academic information */}
           <ProfileSection
@@ -71,26 +67,26 @@ const StudentProfile = () => {
             description="Your academic details registered with the institution."
           >
             <ProfileField
-              label="Full name"
-              value={studentProfile.fullName}
-              icon={UserRound}
+              label="Department"
+              value={departmentMap[student?.department] || student?.department}
+              icon={GraduationCap}
             />
 
             <ProfileField
               label="Department"
-              value={studentProfile.department}
+              value={student?.department}
               icon={GraduationCap}
             />
 
             <ProfileField
               label="Roll number"
-              value={studentProfile.rollNo}
+              value={student?.rollNumber}
               icon={Hash}
             />
 
             <ProfileField
               label="Current semester"
-              value={studentProfile.currentSemester}
+              value={student?.currentSemester}
               icon={BookOpen}
             />
           </ProfileSection>
@@ -102,13 +98,13 @@ const StudentProfile = () => {
           >
             <ProfileField
               label="Email address"
-              value={studentProfile.email}
+              value={student?.email}
               icon={Mail}
             />
 
             <ProfileField
               label="Mobile number"
-              value={studentProfile.mobileNumber}
+              value={student?.mobileNumber}
               icon={Phone}
             />
           </ProfileSection>
@@ -120,13 +116,13 @@ const StudentProfile = () => {
           >
             <ProfileField
               label="Guardian name"
-              value={studentProfile.guardianName}
+              value={student?.gurdianName}
               icon={UsersRound}
             />
 
             <ProfileField
               label="Guardian mobile"
-              value={studentProfile.guardianMobile}
+              value={student?.gurdianMobile}
               icon={Phone}
             />
           </ProfileSection>

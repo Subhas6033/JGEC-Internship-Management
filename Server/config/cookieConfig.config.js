@@ -1,16 +1,17 @@
-const NODE_ENV = process.env.NODE_ENV;
+const isProd = process.env.NODE_ENV === "production";
 
-if (!NODE_ENV) {
-  throw new Error("Please provide the NODE_ENV Value");
-}
+export const REFRESH_COOKIE_NAME = "student_refresh_token";
 
-const isProduction = NODE_ENV === "production";
+export const clearCookieConfig = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? "none" : "lax",
+  // The cookie is only sent to auth routes. clearCookie must use the same path.
+  path: "/api/v1/auth/students",
+};
 
 export const cookieConfig = {
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? "none" : "lax",
-
-  // 7 days in milliseconds
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+  ...clearCookieConfig,
+  maxAge:
+    (Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS) || 7) * 24 * 60 * 60 * 1000,
 };

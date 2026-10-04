@@ -1,14 +1,20 @@
 import { StrictMode, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+import { Provider } from "react-redux";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { Loading } from "./Components/index.js";
+import { store } from "./Store/index.js";
+import { Loading } from "./Components";
 import StudentLayout from "./Layout/StudentLayout.jsx";
 import DeptTPOLayout from "./Layout/DeptTPOLayout.jsx";
 import SPOCLayout from "./Layout/SPOCLayout.jsx";
 import AdminLayout from "./Layout/AdminLayout.jsx";
 import ErrorBoundary from "./Error/ErrorBoundary.jsx";
+import ProtectedRoute from "./Components/ProtectedRoute.jsx";
+import AuthBootstrap from "./Components/AuthBootstrap.jsx";
+import AuthRoute from "./Components/AuthRoute.jsx";
 
 const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
 const Landing = lazy(() => import("./Pages/Landing/Landing.jsx"));
@@ -110,6 +116,61 @@ const AdminStudents = lazy(
   () => import("./Pages/Services/Admin/Students/AdminStudents.jsx"),
 );
 
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Protected routes wrapper
+const ProtectedRoutes = () => {
+  return (
+    <ProtectedRoute>
+      <App />
+    </ProtectedRoute>
+  );
+};
+
+// Student protected routes
+const StudentProtectedRoutes = () => {
+  return (
+    <ProtectedRoute allowedRoles={["student"]} requireRole={true}>
+      <StudentLayout />
+    </ProtectedRoute>
+  );
+};
+
+// Dept TPO protected routes
+const DeptTPOProtectedRoutes = () => {
+  return (
+    <ProtectedRoute allowedRoles={["tpo"]} requireRole={true}>
+      <DeptTPOLayout />
+    </ProtectedRoute>
+  );
+};
+
+// SPOC protected routes
+const SPOCProtectedRoutes = () => {
+  return (
+    <ProtectedRoute allowedRoles={["spoc"]} requireRole={true}>
+      <SPOCLayout />
+    </ProtectedRoute>
+  );
+};
+
+// Admin protected routes
+const AdminProtectedRoutes = () => {
+  return (
+    <ProtectedRoute allowedRoles={["admin"]} requireRole={true}>
+      <AdminLayout />
+    </ProtectedRoute>
+  );
+};
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -122,24 +183,44 @@ const router = createBrowserRouter([
 
       {
         path: "/auth/login",
-        element: <Login />,
+        element: (
+          <AuthRoute>
+            <Login />
+          </AuthRoute>
+        ),
       },
 
       {
         path: "/auth/signup",
-        element: <Signup />,
+        element: (
+          <AuthRoute>
+            <Signup />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/depttpo/signup",
-        element: <DeptTPOSignUp />,
+        element: (
+          <AuthRoute>
+            <DeptTPOSignUp />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/depttpo/login",
-        element: <DeptTPOLogin />,
+        element: (
+          <AuthRoute>
+            <DeptTPOLogin />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/spoc/signup",
-        element: <SPOCSignup />,
+        element: (
+          <AuthRoute>
+            <SPOCSignup />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/spoc/login",
@@ -147,11 +228,19 @@ const router = createBrowserRouter([
       },
       {
         path: "/auth/admin/signup",
-        element: <AdminSignup />,
+        element: (
+          <AuthRoute>
+            <AdminSignup />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/admin/login",
-        element: <AdminLogin />,
+        element: (
+          <AuthRoute>
+            <AdminLogin />
+          </AuthRoute>
+        ),
       },
       {
         path: "/auth/forgot-password",
@@ -162,10 +251,10 @@ const router = createBrowserRouter([
         element: <Contact />,
       },
 
-      // Students Routes
+      // Students Routes (Protected)
       {
         path: "/students",
-        element: <StudentLayout />,
+        element: <StudentProtectedRoutes />,
         children: [
           {
             path: "/students/dashboard",
@@ -198,10 +287,10 @@ const router = createBrowserRouter([
         ],
       },
 
-      // Dept TPO Routes
+      // Dept TPO Routes (Protected)
       {
         path: "depttpo",
-        element: <DeptTPOLayout />,
+        element: <DeptTPOProtectedRoutes />,
         children: [
           {
             path: "dashboard",
@@ -215,27 +304,22 @@ const router = createBrowserRouter([
                 index: true,
                 element: <AllCompanyApplications />,
               },
-
               {
                 path: "pending",
                 element: <PendingApplications />,
               },
-
               {
                 path: "accepted",
                 element: <AcceptedApplications />,
               },
-
               {
                 path: "rejected",
                 element: <RejectedApplications />,
               },
-
               {
                 path: "sent",
                 element: <SentToTPOApplications />,
               },
-
               {
                 path: ":companyId",
                 element: <CompanyApplicationDetails />,
@@ -261,10 +345,10 @@ const router = createBrowserRouter([
         ],
       },
 
-      // SPOC Routes
+      // SPOC Routes (Protected)
       {
         path: "/spoc",
-        element: <SPOCLayout />,
+        element: <SPOCProtectedRoutes />,
         children: [
           {
             path: "/spoc/dashboard",
@@ -285,10 +369,10 @@ const router = createBrowserRouter([
         ],
       },
 
-      // Admin Routes
+      // Admin Routes (Protected)
       {
         path: "/admin",
-        element: <AdminLayout />,
+        element: <AdminProtectedRoutes />,
         children: [
           {
             path: "/admin/dashboard",
@@ -312,10 +396,16 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ErrorBoundary>
-      <Suspense fallback={<Loading message="Loading..." />}>
-        <RouterProvider router={router} />
-      </Suspense>
-    </ErrorBoundary>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+          <AuthBootstrap>
+            <Suspense fallback={<Loading message="Loading..." />}>
+              <RouterProvider router={router} />
+            </Suspense>
+          </AuthBootstrap>
+        </ErrorBoundary>
+      </QueryClientProvider>
+    </Provider>
   </StrictMode>,
 );

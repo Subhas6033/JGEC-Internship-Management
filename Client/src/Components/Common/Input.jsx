@@ -1,6 +1,7 @@
 import React, { forwardRef, useId } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { formItemAnimation, transitions } from "../../Animations/animations";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const Input = forwardRef(
@@ -10,8 +11,8 @@ const Input = forwardRef(
       label,
       description,
       error,
-      className,
-      containerClassName,
+      className = "",
+      containerClassName = "",
       startIcon,
       startAddon,
       endIcon,
@@ -24,6 +25,7 @@ const Input = forwardRef(
   ) => {
     const generatedId = useId();
     const inputId = id || generatedId;
+
     const shouldReduceMotion = useReducedMotion();
 
     const descriptionId = description ? `${inputId}-description` : undefined;
@@ -53,7 +55,13 @@ const Input = forwardRef(
         {label && (
           <label
             htmlFor={inputId}
-            className="p-2 mb-2 block text-sm font-medium text-gray-900"
+            className="
+              mb-2
+              block
+              text-sm
+              font-medium
+              text-ink
+            "
           >
             {label}
 
@@ -65,22 +73,30 @@ const Input = forwardRef(
           </label>
         )}
 
-        <div className="relative min-w-0">
+        <div className="relative h-12 min-w-0">
           {hasStartAddon && (
             <div
               className="
                 pointer-events-none
-                absolute inset-y-0 left-0 z-10
-                flex items-center
+                absolute
+                inset-y-0
+                left-0
+                z-10
+                flex
+                items-center
               "
               aria-hidden="true"
             >
               <div
                 className="
-                  flex h-full items-center
-                  border-r border-border
+                  flex
+                  h-full
+                  items-center
+                  border-r
+                  border-border
                   px-3
-                  text-xs font-semibold
+                  text-xs
+                  font-semibold
                   text-ink-muted
                 "
               >
@@ -94,11 +110,14 @@ const Input = forwardRef(
               className={cn(
                 `
                   pointer-events-none
-                  absolute inset-y-0 z-10
-                  flex items-center
+                  absolute
+                  inset-y-0
+                  z-10
+                  flex
+                  items-center
                   text-gray-400
                 `,
-                hasStartAddon ? "left-17" : "left-0 pl-3",
+                hasStartAddon ? "left-[4.4rem]" : "left-0 pl-3",
               )}
               aria-hidden="true"
             >
@@ -115,12 +134,17 @@ const Input = forwardRef(
             aria-describedby={describedBy}
             className={cn(
               `
-                block w-full min-w-0
-                rounded-md border
-                bg-white
-                px-3 py-2
-                text-sm text-gray-900
-                placeholder:text-gray-400
+                block
+                h-12
+                w-full
+                min-w-0
+                rounded-lg
+                border
+                bg-cream-soft
+                px-3
+                text-sm
+                text-ink
+                placeholder:text-ink-muted/60
                 outline-none
                 transition-[border-color,box-shadow,background-color]
                 duration-150
@@ -131,8 +155,16 @@ const Input = forwardRef(
                 disabled:text-gray-500
               `,
               error
-                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500/20",
+                ? `
+                  border-red-500
+                  focus:border-red-500
+                  focus:ring-red-500/20
+                `
+                : `
+                  border-border
+                  focus:border-brand-600
+                  focus:ring-brand-600/15
+                `,
               hasStartAddon
                 ? hasStartIcon
                   ? "pl-27"
@@ -140,7 +172,7 @@ const Input = forwardRef(
                 : hasStartIcon
                   ? "pl-10"
                   : "",
-              endIcon && "pr-10",
+              endIcon ? "pr-12" : "",
               className,
             )}
             {...props}
@@ -149,8 +181,16 @@ const Input = forwardRef(
           {endIcon && (
             <div
               className="
-                absolute inset-y-0 right-0
-                flex items-center pr-3
+                pointer-events-auto
+                absolute
+                inset-y-0
+                right-0
+                z-20
+                flex
+                h-12
+                items-center
+                justify-center
+                pr-3
               "
             >
               {endIcon}
@@ -160,7 +200,14 @@ const Input = forwardRef(
 
         <motion.div layout transition={transitions.fast}>
           {description && !error && (
-            <p id={descriptionId} className="mt-1.5 text-sm text-gray-500">
+            <p
+              id={descriptionId}
+              className="
+                mt-1.5
+                text-sm
+                text-ink-muted
+              "
+            >
               {description}
             </p>
           )}
@@ -169,11 +216,32 @@ const Input = forwardRef(
             <motion.p
               id={errorId}
               role="alert"
-              initial={shouldReduceMotion ? false : { opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? undefined : { opacity: 0, y: -2 }}
+              initial={
+                shouldReduceMotion
+                  ? false
+                  : {
+                      opacity: 0,
+                      y: -4,
+                    }
+              }
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={
+                shouldReduceMotion
+                  ? undefined
+                  : {
+                      opacity: 0,
+                      y: -2,
+                    }
+              }
               transition={transitions.fast}
-              className="mt-1.5 text-sm text-red-600"
+              className="
+                mt-1.5
+                text-sm
+                text-red-600
+              "
             >
               {error}
             </motion.p>

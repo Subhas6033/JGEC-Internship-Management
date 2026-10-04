@@ -1,7 +1,6 @@
 import { ClipboardCheck, Clock3, FileCheck2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "../../../../Components/index";
-import { dashboardStats } from "./dashboard.data";
 
 const iconMap = {
   file: FileText,
@@ -10,7 +9,34 @@ const iconMap = {
   documents: FileCheck2,
 };
 
-const DashboardStats = () => {
+const DashboardStats = ({ stats }) => {
+  const dashboardStats = [
+    {
+      id: "total-applications",
+      label: "Total Applications",
+      value: stats?.totalApplications ?? 0,
+      icon: "file",
+    },
+    {
+      id: "pending-applications",
+      label: "Pending Applications",
+      value: stats?.pendingApplications ?? 0,
+      icon: "clock",
+    },
+    {
+      id: "approved-applications",
+      label: "Approved Applications",
+      value: stats?.approvedApplications ?? 0,
+      icon: "approved",
+    },
+    {
+      id: "documents",
+      label: "Documents",
+      value: stats?.withdrawnApplications ?? 0,
+      icon: "documents",
+    },
+  ];
+
   return (
     <motion.div
       className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"

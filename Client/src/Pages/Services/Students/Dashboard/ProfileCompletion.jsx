@@ -1,47 +1,71 @@
-import { ArrowRight, UserRound } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Card } from "../../../../Components/index";
+import { CheckCircle2, CircleAlert } from "lucide-react";
+import { motion } from "framer-motion";
+import { cardAnimation } from "../../../../Animations/animations";
 
-const ProfileCompletion = () => {
-  const completion = 90;
+const ProfileCompletion = ({ profileCompletion }) => {
+  const percentage = profileCompletion?.percentage ?? 0;
+  const completed = profileCompletion?.completed ?? 0;
+  const total = profileCompletion?.total ?? 0;
+
+  const isComplete = percentage >= 100;
 
   return (
-    <Card className="border-border bg-cream-soft p-5 shadow-card">
-      <div className="flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-          <UserRound size={18} strokeWidth={1.8} />
-        </div>
-
+    <motion.div
+      variants={cardAnimation}
+      initial="hidden"
+      animate="visible"
+      className="rounded-xl border border-border bg-white p-5 shadow-sm"
+    >
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-ink-muted">
-            Profile completion
-          </p>
+          <p className="eyebrow">Profile</p>
 
-          <p className="mt-1 text-lg font-semibold text-ink">{completion}%</p>
+          <h2 className="mt-1 font-display text-xl font-semibold text-ink">
+            Profile completion
+          </h2>
         </div>
+
+        {isComplete ? (
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+            <CheckCircle2 size={19} strokeWidth={2} />
+          </div>
+        ) : (
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+            <CircleAlert size={19} strokeWidth={2} />
+          </div>
+        )}
       </div>
 
-      <div className="mt-5">
-        <div className="h-2 overflow-hidden rounded-full bg-cream-dark">
-          <div
-            className="h-full rounded-full bg-brand-700 transition-all"
-            style={{ width: `${completion}%` }}
+      <div className="mt-6">
+        <div className="flex items-end justify-between gap-4">
+          <p className="font-display text-4xl font-semibold tracking-tight text-ink">
+            {percentage}%
+          </p>
+
+          <p className="pb-1 text-xs text-ink-muted">
+            {completed} of {total} details completed
+          </p>
+        </div>
+
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-muted">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage}%` }}
+            transition={{
+              duration: 0.8,
+              ease: "easeOut",
+            }}
+            className="h-full rounded-full bg-brand-700"
           />
         </div>
 
-        <p className="mt-2 text-xs text-ink-muted">
-          7 of 8 profile details completed
+        <p className="mt-4 text-sm leading-6 text-ink-muted">
+          {isComplete
+            ? "Your profile is complete."
+            : "Complete your remaining profile details to keep your information up to date."}
         </p>
       </div>
-
-      <Link
-        to="/students/profile"
-        className="focus-ring mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-800"
-      >
-        Complete profile
-        <ArrowRight size={15} />
-      </Link>
-    </Card>
+    </motion.div>
   );
 };
 
