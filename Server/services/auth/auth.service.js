@@ -192,7 +192,7 @@ const loginStudents = asyncHandler(async (req, res) => {
 
   const student = await Student.findOne({
     email: normalizedEmail,
-  }).select("-__v -password");
+  }).select("-__v -password -refreshToken");
 
   await revokeStudentSession(
     req.cookies?.[REFRESH_COOKIE_NAME],

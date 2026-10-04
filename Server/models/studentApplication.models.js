@@ -18,7 +18,7 @@ const studentApplicationSchema = new mongoose.Schema(
       max: 8,
     },
 
-    // Existing organisation selected from the backend.
+    // Existing organisation selected from the backend
     organisation: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organisation",
@@ -34,7 +34,7 @@ const studentApplicationSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // Internship designation selected for this application
+    // Internship designation
     designation: {
       type: String,
       required: true,
@@ -73,11 +73,32 @@ const studentApplicationSchema = new mongoose.Schema(
       enum: ["summer", "winter", "semester", "fulltime", "others"],
       required: true,
     },
+
     description: {
       type: String,
       trim: true,
       maxlength: 2000,
       default: "",
+    },
+
+    /**
+     * Update required information
+     *
+     * These fields are populated ONLY when a TPO or SPOC
+     * sends the application back to the student.
+     */
+
+    updateRequiredReason: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+      default: "",
+    },
+
+    updateRequiredBy: {
+      type: String,
+      enum: ["tpo", "spoc"],
+      default: null,
     },
 
     status: {

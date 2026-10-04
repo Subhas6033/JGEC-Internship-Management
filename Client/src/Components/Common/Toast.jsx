@@ -1,29 +1,21 @@
-import React, { useEffect } from "react";
-
+import { useEffect } from "react";
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const variants = {
   success: {
-    container:
-      "border-green-200 bg-green-50 text-green-900",
+    container: "border-green-200 bg-green-50 text-green-900",
     icon: "text-green-600",
   },
-
   error: {
-    container:
-      "border-red-200 bg-red-50 text-red-900",
+    container: "border-red-200 bg-red-50 text-red-900",
     icon: "text-red-600",
   },
-
   warning: {
-    container:
-      "border-yellow-200 bg-yellow-50 text-yellow-900",
+    container: "border-yellow-200 bg-yellow-50 text-yellow-900",
     icon: "text-yellow-600",
   },
-
   info: {
-    container:
-      "border-blue-200 bg-blue-50 text-blue-900",
+    container: "border-blue-200 bg-blue-50 text-blue-900",
     icon: "text-blue-600",
   },
 };
@@ -98,11 +90,9 @@ const Toast = ({
 
   useEffect(() => {
     if (!duration || !onClose) return;
-
     const timer = setTimeout(() => {
       onClose();
     }, duration);
-
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
@@ -115,48 +105,26 @@ const Toast = ({
         "p-4 shadow-lg",
         "transition-all duration-200",
         currentVariant.container,
-        className
+        className,
       )}
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
-        <div
-          className={cn(
-            "mt-0.5 h-5 w-5 shrink-0",
-            currentVariant.icon
-          )}
-        >
+        <div className={cn("mt-0.5 h-5 w-5 shrink-0", currentVariant.icon)}>
           {icons[variant]}
         </div>
 
         {/* Content */}
         <div className="min-w-0 flex-1">
-          {title && (
-            <h3 className="text-sm font-semibold">
-              {title}
-            </h3>
-          )}
-
+          {title && <h3 className="text-sm font-semibold">{title}</h3>}
           {message && (
-            <p
-              className={cn(
-                "text-sm",
-                title && "mt-1",
-                "opacity-90"
-              )}
-            >
+            <p className={cn("text-sm", title && "mt-1", "opacity-90")}>
               {message}
             </p>
           )}
-
           {/* Action */}
-          {action && (
-            <div className="mt-3">
-              {action}
-            </div>
-          )}
+          {action && <div className="mt-3">{action}</div>}
         </div>
-
         {/* Close */}
         {onClose && (
           <button
@@ -168,7 +136,7 @@ const Toast = ({
               "cursor-pointer opacity-70",
               "transition-opacity hover:opacity-100",
               "focus-visible:outline-none",
-              "focus-visible:ring-2 focus-visible:ring-current"
+              "focus-visible:ring-2 focus-visible:ring-current",
             )}
           >
             <svg

@@ -6,7 +6,6 @@ const organisationSchema = new mongoose.Schema(
       type: String,
       required: [true, "Organisation Name is required"],
       trim: true,
-      unique: true,
     },
 
     organisationSite: {

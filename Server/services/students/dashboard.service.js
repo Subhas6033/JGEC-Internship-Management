@@ -60,9 +60,7 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
   ).length;
 
   /*
-   * -------------------------------------------------------
    * CURRENT APPLICATION
-   * -------------------------------------------------------
    *
    * Prefer an application which is currently in the workflow.
    * If there is none, use the latest application.

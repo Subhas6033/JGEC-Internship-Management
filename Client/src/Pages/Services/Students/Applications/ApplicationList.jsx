@@ -1,11 +1,9 @@
 import { FileSearch } from "lucide-react";
 import { motion } from "motion/react";
-
 import {
   cardAnimation,
   staggerContainer,
 } from "../../../../Animations/animations";
-
 import ApplicationListItem from "./ApplicationListItem";
 
 const ApplicationList = ({ applications, selectedApplication, onSelect }) => {
@@ -14,38 +12,29 @@ const ApplicationList = ({ applications, selectedApplication, onSelect }) => {
       <div
         className="
           flex
-          min-h-80
+          min-h-85
           flex-col
           items-center
           justify-center
-          rounded-xl
+          rounded-2xl
           border
           border-dashed
           border-border
-          bg-cream-soft
+          bg-card
           px-6
           text-center
+          shadow-sm
         "
       >
-        <div
-          className="
-            flex
-            size-12
-            items-center
-            justify-center
-            rounded-full
-            bg-cream-dark
-            text-ink-muted
-          "
-        >
+        <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
           <FileSearch size={21} strokeWidth={1.7} />
         </div>
 
-        <h3 className="mt-4 text-sm font-semibold text-ink">
+        <h3 className="mt-4 text-sm font-semibold text-foreground">
           No applications found
         </h3>
 
-        <p className="mt-1 max-w-sm text-xs leading-5 text-ink-muted">
+        <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
           Try changing your search or filters to find another application.
         </p>
       </div>
@@ -60,7 +49,11 @@ const ApplicationList = ({ applications, selectedApplication, onSelect }) => {
       className="space-y-3"
     >
       {applications.map((application) => (
-        <motion.div key={application.id} variants={cardAnimation}>
+        <motion.div
+          key={application.id}
+          variants={cardAnimation}
+          className="min-w-0"
+        >
           <ApplicationListItem
             application={application}
             selected={selectedApplication?.id === application.id}
