@@ -58,11 +58,8 @@ const callRefreshEndpoint = async () => {
   for (let attempt = 1; ; attempt++) {
     try {
       const response = await authClient.post(REFRESH_ENDPOINT);
-
       const data = response?.data?.data;
-
       const accessToken = data?.accessToken;
-
       const user = data?.user;
 
       if (!accessToken) {
@@ -90,10 +87,8 @@ const callRefreshEndpoint = async () => {
 
       if (apiError.status === 409 && attempt < MAX_REFRESH_ATTEMPTS) {
         await sleep(150 * attempt + Math.random() * 100);
-
         continue;
       }
-
       throw apiError;
     }
   }
@@ -110,14 +105,12 @@ const withCrossTabLock = (task) => {
 const requestRefreshToken = () =>
   withCrossTabLock(async () => {
     const result = await callRefreshEndpoint();
-
     store.dispatch(
       setAuth({
         user: result.user,
         accessToken: result.accessToken,
       }),
     );
-
     return result;
   });
 
@@ -135,11 +128,9 @@ const refreshAccessToken = () => {
 
 api.interceptors.request.use((config) => {
   const accessToken = store.getState().auth.accessToken;
-
   if (accessToken && !config.headers?.Authorization) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
-
   return config;
 });
 
@@ -148,9 +139,7 @@ api.interceptors.response.use(
 
   async (error) => {
     const original = error.config;
-
     const status = error.response?.status;
-
     const shouldTryRefresh =
       status === 401 &&
       original &&
@@ -162,33 +151,25 @@ api.interceptors.response.use(
     }
 
     original._retry = true;
-
     const currentToken = store.getState().auth.accessToken;
-
     const sentAuthHeader = original.headers?.Authorization;
-
     let accessToken;
-
     if (currentToken && sentAuthHeader !== `Bearer ${currentToken}`) {
       accessToken = currentToken;
     } else {
       try {
         const refreshResult = await refreshAccessToken();
-
         accessToken = refreshResult.accessToken;
       } catch (refreshError) {
         if (refreshError.status === 401 || refreshError.status === 403) {
           store.dispatch(logout());
         }
-
         throw refreshError;
       }
     }
 
     original.headers = original.headers || {};
-
     original.headers.Authorization = `Bearer ${accessToken}`;
-
     return api(original);
   },
 );

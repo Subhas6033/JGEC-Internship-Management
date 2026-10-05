@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
@@ -14,6 +14,7 @@ import {
   logout,
 } from "../../Store/Slice/authSlice";
 import { logoutUser } from "../../Services/Auth/authApi";
+import { Button } from "../index";
 
 const getRoleConfig = (role) => {
   switch (role) {
@@ -62,17 +63,13 @@ const getRoleConfig = (role) => {
 const Nav = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
-
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
   const normalizedRole = useMemo(() => {
     return user?.role?.trim().toLowerCase() || "";
   }, [user?.role]);
-
   const roleConfig = useMemo(
     () => getRoleConfig(normalizedRole),
     [normalizedRole],
@@ -85,20 +82,15 @@ const Nav = () => {
     roleConfig.label;
 
   const email = user?.email || "";
-
   const initials = useMemo(() => {
     const name = displayName.trim();
-
     if (!name) {
       return "U";
     }
-
     const parts = name.split(/\s+/).filter(Boolean);
-
     if (parts.length === 1) {
       return parts[0].slice(0, 2).toUpperCase();
     }
-
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }, [displayName]);
 
@@ -115,11 +107,9 @@ const Nav = () => {
     } catch {
     } finally {
       dispatch(logout());
-
       navigate("/auth/login", {
         replace: true,
       });
-
       setIsLoggingOut(false);
     }
   };
@@ -146,6 +136,7 @@ const Nav = () => {
           px-4 sm:px-6 lg:px-8
         "
       >
+        {/* Brand */}
         <Link
           to="/"
           aria-label="Internship NOC - JGEC"
@@ -213,6 +204,7 @@ const Nav = () => {
           </span>
         </Link>
 
+        {/* Unauthenticated Navigation */}
         {!isAuthenticated ? (
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
             <NavLink
@@ -254,11 +246,14 @@ const Nav = () => {
               "
             >
               <span>Apply for NOC</span>
+
               <MoveUpRight aria-hidden="true" size={14} strokeWidth={2} />
             </Link>
           </div>
         ) : (
+          /* Authenticated Navigation */
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
+            {/* Dashboard */}
             <div className="hidden items-center md:flex">
               <NavLink to={roleConfig.dashboard} className={navLinkClass}>
                 <LayoutDashboard
@@ -271,6 +266,7 @@ const Nav = () => {
               </NavLink>
             </div>
 
+            {/* Student Apply Button */}
             {normalizedRole === "student" && (
               <Link
                 to="/students/applications/new"
@@ -304,26 +300,34 @@ const Nav = () => {
               </Link>
             )}
 
+            {/* Profile */}
             <div className="relative">
-              <button
+              <Button
                 type="button"
                 aria-expanded={isProfileOpen}
                 aria-haspopup="menu"
                 onClick={() => setIsProfileOpen((current) => !current)}
+                variant="ghost"
+                size="sm"
                 className="
                   focus-ring
+                  h-auto
                   flex items-center gap-2
                   rounded-xl
                   border border-border
                   bg-cream-soft
                   px-2 py-1.5
+                  text-ink
                   transition-all duration-200
                   hover:border-brand-500
+                  hover:bg-cream-soft
+                  hover:text-ink
                   hover:shadow-sm
                   sm:gap-2.5
                   sm:px-2.5
                 "
               >
+                {/* Avatar / Initials */}
                 <span
                   aria-hidden="true"
                   className="
@@ -341,6 +345,7 @@ const Nav = () => {
                   {initials}
                 </span>
 
+                {/* User Information */}
                 <span className="hidden min-w-0 text-left sm:block">
                   <span
                     className="
@@ -364,6 +369,7 @@ const Nav = () => {
                   </span>
                 </span>
 
+                {/* Dropdown Icon */}
                 <ChevronDown
                   aria-hidden="true"
                   size={15}
@@ -373,10 +379,12 @@ const Nav = () => {
                     isProfileOpen ? "rotate-180" : "",
                   ].join(" ")}
                 />
-              </button>
+              </Button>
 
+              {/* Profile Dropdown */}
               {isProfileOpen && (
                 <>
+                  {/* Backdrop */}
                   <button
                     type="button"
                     aria-label="Close user menu"
@@ -384,6 +392,7 @@ const Nav = () => {
                     onClick={() => setIsProfileOpen(false)}
                   />
 
+                  {/* Menu */}
                   <div
                     role="menu"
                     className="
@@ -396,6 +405,7 @@ const Nav = () => {
                       shadow-lg
                     "
                   >
+                    {/* User Information */}
                     <div className="border-b border-border px-4 py-3">
                       <p
                         className="
@@ -435,7 +445,9 @@ const Nav = () => {
                       </span>
                     </div>
 
+                    {/* Menu Items */}
                     <div className="p-1.5">
+                      {/* Dashboard */}
                       <NavLink
                         to={roleConfig.dashboard}
                         role="menuitem"
@@ -460,6 +472,7 @@ const Nav = () => {
                         Dashboard
                       </NavLink>
 
+                      {/* Profile */}
                       <NavLink
                         to={roleConfig.profile}
                         role="menuitem"
@@ -486,34 +499,33 @@ const Nav = () => {
 
                       <div className="my-1 border-t border-border" />
 
-                      <button
+                      {/* Logout */}
+                      <Button
                         type="button"
                         role="menuitem"
                         disabled={isLoggingOut}
                         onClick={handleLogout}
+                        variant="danger"
+                        size="md"
                         className="
                           focus-ring
-                          flex w-full items-center gap-2.5
+                          flex w-full
+                          items-center justify-start
+                          gap-2.5
                           rounded-lg
                           px-3 py-2.5
                           text-left
                           text-sm font-medium
                           text-ink-muted
-                          transition-colors duration-200
                           hover:bg-cream-soft
-                          hover:text-ink
                           disabled:cursor-not-allowed
                           disabled:opacity-60
                         "
                       >
-                        <LogOut
-                          aria-hidden="true"
-                          size={16}
-                          strokeWidth={1.8}
-                        />
+                        <LogOut aria-hidden="true" size={16} strokeWidth={2} />
 
                         {isLoggingOut ? "Signing out..." : "Sign out"}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </>
