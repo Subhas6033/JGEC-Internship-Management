@@ -25,19 +25,13 @@ const Input = forwardRef(
   ) => {
     const generatedId = useId();
     const inputId = id || generatedId;
-
     const shouldReduceMotion = useReducedMotion();
-
     const descriptionId = description ? `${inputId}-description` : undefined;
-
     const errorId = error ? `${inputId}-error` : undefined;
-
     const describedBy =
       [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
-
     const hasStartAddon = Boolean(startAddon);
     const hasStartIcon = Boolean(startIcon);
-
     const animationProps =
       animate && !shouldReduceMotion
         ? {

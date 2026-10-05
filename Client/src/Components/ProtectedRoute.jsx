@@ -7,23 +7,37 @@ import {
 } from "../Store/Slice/authSlice";
 import Loading from "./Loader/Loading";
 
+const getRoleDashboard = (role) => {
+  switch (role?.toLowerCase()) {
+    case "student":
+      return "/students/dashboard";
+
+    case "tpo":
+      return "/depttpo/dashboard";
+
+    case "spoc":
+      return "/spoc/dashboard";
+
+    case "admin":
+      return "/admin/dashboard";
+
+    default:
+      return "/auth/login";
+  }
+};
+
 const ProtectedRoute = ({
   children,
   allowedRoles = [],
   requireRole = false,
 }) => {
   const location = useLocation();
-
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const status = useSelector(selectStatus);
-
-  // Authentication is still being restored
   if (status === "loading") {
     return <Loading message="Verifying authentication..." />;
   }
-
-  // User is not authenticated
   if (!isAuthenticated || !user) {
     return (
       <Navigate
@@ -36,40 +50,22 @@ const ProtectedRoute = ({
     );
   }
 
-  // Role-based authorization
   if (requireRole) {
-    const userRole = user?.role;
-
-    // Authenticated user does not have a role
+    const userRole = user?.role?.toLowerCase();
     if (!userRole) {
       return <Navigate to="/auth/login" replace />;
     }
+    const normalizedAllowedRoles = Array.isArray(allowedRoles)
+      ? allowedRoles.map((role) => role.toLowerCase())
+      : [];
 
-    // User has a role but it is not allowed for this route
     if (
-      !Array.isArray(allowedRoles) ||
-      allowedRoles.length === 0 ||
-      !allowedRoles.includes(userRole)
+      normalizedAllowedRoles.length === 0 ||
+      !normalizedAllowedRoles.includes(userRole)
     ) {
-      switch (userRole) {
-        case "student":
-          return <Navigate to="/students/dashboard" replace />;
-
-        case "tpo":
-          return <Navigate to="/depttpo/dashboard" replace />;
-
-        case "admin":
-          return <Navigate to="/admin/dashboard" replace />;
-
-        case "spoc":
-          return <Navigate to="/spoc/dashboard" replace />;
-
-        default:
-          return <Navigate to="/auth/login" replace />;
-      }
+      return <Navigate to={getRoleDashboard(userRole)} replace />;
     }
   }
-
   return children;
 };
 

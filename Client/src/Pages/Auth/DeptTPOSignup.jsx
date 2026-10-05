@@ -7,44 +7,46 @@ import {
   Mail,
   Phone,
   UserRound,
+  IdCardLanyard,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Input, Select } from "../../Components/index";
+import { useRegisterTPO } from "../../Hooks/Auth/useTPOAuth";
 
 const departments = [
   {
-    value: "computer-science-engineering",
-    label: "Computer Science & Engineering",
+    value: "CE",
+    label: "Civil Engineering",
   },
   {
-    value: "information-technology",
-    label: "Information Technology",
-  },
-  {
-    value: "electronics-communication-engineering",
-    label: "Electronics & Communication Engineering",
-  },
-  {
-    value: "electrical-engineering",
+    value: "EE",
     label: "Electrical Engineering",
   },
   {
-    value: "mechanical-engineering",
+    value: "ME",
     label: "Mechanical Engineering",
   },
   {
-    value: "civil-engineering",
-    label: "Civil Engineering",
+    value: "CSE",
+    label: "Computer Science & Engineering",
+  },
+  {
+    value: "ECE",
+    label: "Electronics & Communication Engineering",
+  },
+  {
+    value: "IT",
+    label: "Information Technology",
   },
 ];
 
 const initialForm = {
-  name: "",
+  fullName: "",
   email: "",
   mobile: "",
   department: "",
+  tpoId: "",
   password: "",
-  confirmPassword: "",
 };
 
 const DeptTPOSignup = () => {
@@ -52,9 +54,11 @@ const DeptTPOSignup = () => {
 
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
+  const [showTpoId, setShowTpoId] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const registerMutation = useRegisterTPO();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -75,10 +79,10 @@ const DeptTPOSignup = () => {
   const validate = () => {
     const nextErrors = {};
 
-    if (!form.name.trim()) {
-      nextErrors.name = "Name is required.";
-    } else if (form.name.trim().length < 3) {
-      nextErrors.name = "Enter a valid name.";
+    if (!form.fullName.trim()) {
+      nextErrors.fullName = "Name is required.";
+    } else if (form.fullName.trim().length < 3) {
+      nextErrors.fullName = "Enter a valid name.";
     }
 
     if (!form.email.trim()) {
@@ -97,16 +101,14 @@ const DeptTPOSignup = () => {
       nextErrors.department = "Select your department.";
     }
 
+    if (!form.tpoId.trim()) {
+      nextErrors.tpoId = "TPO ID is required.";
+    }
+
     if (!form.password) {
       nextErrors.password = "Password is required.";
     } else if (form.password.length < 8) {
       nextErrors.password = "Password must contain at least 8 characters.";
-    }
-
-    if (!form.confirmPassword) {
-      nextErrors.confirmPassword = "Please confirm your password.";
-    } else if (form.password !== form.confirmPassword) {
-      nextErrors.confirmPassword = "Passwords do not match.";
     }
 
     return nextErrors;
@@ -126,10 +128,30 @@ const DeptTPOSignup = () => {
     setIsSubmitting(true);
 
     try {
-      // Connect your signup API here.
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await registerMutation.mutateAsync({
+        fullName: form.fullName.trim(),
+        email: form.email.trim().toLowerCase(),
+        mobile: form.mobile.trim(),
+        department: form.department,
+        tpoId: form.tpoId.trim().toUpperCase(),
+        password: form.password,
+      });
 
-      navigate("/auth/depttpo/login");
+      navigate("/auth/depttpo/login", {
+        replace: true,
+        state: {
+          message: "Account created successfully. Please sign in.",
+        },
+      });
+    } catch (error) {
+      const message =
+        error?.data?.message ||
+        error?.message ||
+        "Unable to create your account.";
+
+      setErrors({
+        submit: message,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -139,11 +161,10 @@ const DeptTPOSignup = () => {
     <main className="min-h-screen bg-cream px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-2xl border border-border bg-white shadow-card lg:grid-cols-[0.9fr_1.1fr]">
-          {/* Left panel */}
           <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
             <div>
               <div className="flex size-11 items-center justify-center rounded-full bg-white">
-                <img src="/jgecLogo.png" alt="" />
+                <img src="/jgecLogo.png" alt="college logo" />
               </div>
 
               <p className="mt-8 text-xs font-medium uppercase tracking-[0.16em] text-white/70">
@@ -168,7 +189,6 @@ const DeptTPOSignup = () => {
             </div>
           </section>
 
-          {/* Form */}
           <section className="p-5 sm:p-8 xl:p-10">
             <div className="mx-auto w-full max-w-xl">
               <div>
@@ -183,50 +203,46 @@ const DeptTPOSignup = () => {
                 </p>
               </div>
 
+              {errors.submit && (
+                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {errors.submit}
+                </div>
+              )}
+
               <form
                 onSubmit={handleSubmit}
                 className="mt-7 space-y-5"
                 noValidate
               >
-                {/* Name */}
                 <div>
-                  <label
-                    htmlFor="name"
-                    className="mb-1.5 block text-sm font-medium text-ink"
-                  >
-                    Full name
-                  </label>
-
                   <Input
-                    id="name"
-                    name="name"
+                    label="Full Name"
+                    id="fullName"
+                    name="fullName"
                     type="text"
-                    value={form.name}
+                    required
+                    value={form.fullName}
                     onChange={handleChange}
                     placeholder="Enter your full name"
                     autoComplete="name"
                     startIcon={<UserRound size={17} strokeWidth={1.8} />}
                   />
 
-                  {errors.name && (
-                    <p className="mt-1.5 text-xs text-red-600">{errors.name}</p>
+                  {errors.fullName && (
+                    <p className="mt-1.5 text-xs text-red-600">
+                      {errors.fullName}
+                    </p>
                   )}
                 </div>
 
-                {/* Email + Mobile */}
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="email"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      College email
-                    </label>
-
                     <Input
+                      label="College email"
                       id="email"
                       name="email"
                       type="email"
+                      required
                       value={form.email}
                       onChange={handleChange}
                       placeholder="name@college.edu"
@@ -242,17 +258,12 @@ const DeptTPOSignup = () => {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="mobile"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      Mobile number
-                    </label>
-
                     <Input
+                      label="Mobile number"
                       id="mobile"
                       name="mobile"
                       type="tel"
+                      required
                       inputMode="numeric"
                       maxLength={10}
                       value={form.mobile}
@@ -270,18 +281,12 @@ const DeptTPOSignup = () => {
                   </div>
                 </div>
 
-                {/* Department */}
                 <div>
-                  <label
-                    htmlFor="department"
-                    className="mb-1.5 block text-sm font-medium text-ink"
-                  >
-                    Department
-                  </label>
-
                   <Select
+                    label="Department"
                     id="department"
                     name="department"
+                    required
                     value={form.department}
                     onChange={handleChange}
                     options={departments}
@@ -295,19 +300,48 @@ const DeptTPOSignup = () => {
                   )}
                 </div>
 
-                {/* Password */}
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="password"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      Password
-                    </label>
-
                     <Input
+                      label="TPO ID"
+                      id="tpoId"
+                      name="tpoId"
+                      required
+                      type={showTpoId ? "text" : "password"}
+                      value={form.tpoId}
+                      onChange={handleChange}
+                      placeholder="Enter your TPO ID"
+                      autoComplete="username"
+                      startIcon={<IdCardLanyard size={17} strokeWidth={1.8} />}
+                      endIcon={
+                        <button
+                          type="button"
+                          onClick={() => setShowTpoId((value) => !value)}
+                          className="text-ink-muted transition hover:text-ink focus:outline-none"
+                          aria-label={showTpoId ? "Hide TPO ID" : "Show TPO ID"}
+                        >
+                          {showTpoId ? (
+                            <EyeOff size={17} strokeWidth={1.8} />
+                          ) : (
+                            <Eye size={17} strokeWidth={1.8} />
+                          )}
+                        </button>
+                      }
+                    />
+
+                    {errors.tpoId && (
+                      <p className="mt-1.5 text-xs text-red-600">
+                        {errors.tpoId}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Input
+                      label="Password"
                       id="password"
                       name="password"
+                      required
                       type={showPassword ? "text" : "password"}
                       value={form.password}
                       onChange={handleChange}
@@ -338,60 +372,13 @@ const DeptTPOSignup = () => {
                       </p>
                     )}
                   </div>
-
-                  {/* Confirm Password */}
-                  <div>
-                    <label
-                      htmlFor="confirmPassword"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      Confirm password
-                    </label>
-
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={form.confirmPassword}
-                      onChange={handleChange}
-                      placeholder="Re-enter password"
-                      autoComplete="new-password"
-                      startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
-                      endIcon={
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setShowConfirmPassword((value) => !value)
-                          }
-                          className="text-ink-muted transition hover:text-ink focus:outline-none"
-                          aria-label={
-                            showConfirmPassword
-                              ? "Hide confirm password"
-                              : "Show confirm password"
-                          }
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff size={17} strokeWidth={1.8} />
-                          ) : (
-                            <Eye size={17} strokeWidth={1.8} />
-                          )}
-                        </button>
-                      }
-                    />
-
-                    {errors.confirmPassword && (
-                      <p className="mt-1.5 text-xs text-red-600">
-                        {errors.confirmPassword}
-                      </p>
-                    )}
-                  </div>
                 </div>
 
                 <Button
                   type="submit"
                   variant="primary"
                   size="md"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || registerMutation.isPending}
                   className="w-full justify-center"
                 >
                   {isSubmitting ? "Creating account..." : "Create account"}

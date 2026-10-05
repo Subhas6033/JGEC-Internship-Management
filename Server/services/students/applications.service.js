@@ -15,7 +15,9 @@ const buildApplicationTimeline = (application) => {
   const updatedDate = application.updatedAt || application.createdAt || null;
 
   const formatDate = (date) => {
-    if (!date) return null;
+    if (!date) {
+      return null;
+    }
 
     return new Date(date).toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -38,40 +40,29 @@ const buildApplicationTimeline = (application) => {
   return [
     {
       title: "Application submitted",
-
       description:
         "Your internship application has been submitted successfully.",
-
       completed: true,
-
       current: status === "submitted",
-
       date: formatDate(submittedDate),
     },
-
     {
       title: "Application under review",
-
       description:
         status === "update_required"
           ? "Your application requires changes before it can continue."
           : "Your application is being reviewed by the concerned department.",
-
       completed: reviewStarted,
-
       current: [
         "under_tpo_review",
         "approved_by_tpo",
         "under_spoc_review",
         "update_required",
       ].includes(status),
-
       date: reviewStarted ? formatDate(updatedDate) : null,
     },
-
     {
       title: "Final decision",
-
       description:
         status === "approved_by_spoc"
           ? "Your internship application has been approved."
@@ -80,20 +71,17 @@ const buildApplicationTimeline = (application) => {
             : status === "update_required"
               ? "Please update your application and submit it again."
               : "A final decision will appear here once the review is complete.",
-
       completed: decisionCompleted,
-
       current: decisionCompleted,
-
       date: decisionCompleted ? formatDate(updatedDate) : null,
     },
   ];
 };
 
 const submitStudentApplication = asyncHandler(async (req, res) => {
-  const studentId = req.student?._id;
+  const studentId = req.user?._id;
 
-  if (!studentId) {
+  if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
     throw new APIERR(
       HTTP_STATUS.UNAUTHORIZED,
       "Student authentication is required",
@@ -202,7 +190,6 @@ const submitStudentApplication = asyncHandler(async (req, res) => {
   }
 
   const startDate = new Date(tentativeStartDate);
-
   const endDate = new Date(tentativeEndDate);
 
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
@@ -329,9 +316,9 @@ const submitStudentApplication = asyncHandler(async (req, res) => {
 });
 
 const getMyStudentApplications = asyncHandler(async (req, res) => {
-  const studentId = req.student?._id;
+  const studentId = req.user?._id;
 
-  if (!studentId) {
+  if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
     throw new APIERR(
       HTTP_STATUS.UNAUTHORIZED,
       "Student authentication is required",
@@ -367,23 +354,17 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
     {
       $match: baseMatch,
     },
-
     {
       $lookup: {
         from: "organisations",
-
         localField: "organisation",
-
         foreignField: "_id",
-
         as: "organisation",
       },
     },
-
     {
       $unwind: {
         path: "$organisation",
-
         preserveNullAndEmptyArrays: true,
       },
     },
@@ -396,19 +377,15 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
           {
             designation: searchRegex,
           },
-
           {
             organisationsEmployye: searchRegex,
           },
-
           {
             "organisation.organisationName": searchRegex,
           },
-
           {
             "organisation.organisationMail": searchRegex,
           },
-
           {
             "organisation.organisationLocation": searchRegex,
           },
@@ -556,7 +533,6 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
         student: new mongoose.Types.ObjectId(studentId),
       },
     },
-
     {
       $group: {
         _id: null,
@@ -579,9 +555,7 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
                   ],
                 ],
               },
-
               1,
-
               0,
             ],
           },
@@ -593,9 +567,7 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
               {
                 $eq: ["$status", "approved_by_spoc"],
               },
-
               1,
-
               0,
             ],
           },

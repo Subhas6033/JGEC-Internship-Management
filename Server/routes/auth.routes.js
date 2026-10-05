@@ -3,15 +3,22 @@ import multer from "multer";
 import {
   registerStudents,
   loginStudents,
-  refreshAccessToken,
-  logoutStudent,
-  getCurrentStudent,
 } from "../services/auth/auth.service.js";
-import { verifyStudentJWT } from "../middlewares/auth.middleware.js";
-import { get } from "mongoose";
+import {
+  tpoLogin,
+  tpoRegistrations,
+} from "../services/auth/tpo.auth.service.js";
+import { authenticateUser } from "../middlewares/auth.middleware.js";
+import { requireRole } from "../middlewares/role.middleware.js";
+import { refreshAccessToken } from "../services/auth/tokenRotation.service.js";
+import {
+  getCurrentUser,
+  logoutUser,
+} from "../services/auth/current-user.service.js";
 
 const authRoutes = Router();
 const storage = multer.memoryStorage();
+
 const upload = multer({
   storage,
   limits: {
@@ -32,15 +39,26 @@ const upload = multer({
         false,
       );
     }
+
     cb(null, true);
   },
 });
 
 authRoutes
+  // STUDENTS ROUTES
   .post("/students/register", upload.single("signature"), registerStudents)
   .post("/students/login", loginStudents)
-  .post("/students/refresh-token", refreshAccessToken)
-  .post("/students/logout", verifyStudentJWT, logoutStudent)
-  .get("/students/me", verifyStudentJWT, getCurrentStudent);
+  // TPO ROUTES
+  .post("/tpo/register", tpoRegistrations)
+  .post("/tpo/login", tpoLogin)
+
+  // Centralize Token Rotations
+  .post("/refresh-token", refreshAccessToken)
+
+  // Centralize get users
+  .get("/me", authenticateUser, getCurrentUser)
+
+  // Centralize logout users
+  .post("/logout", logoutUser);
 
 export { authRoutes };

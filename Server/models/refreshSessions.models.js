@@ -2,10 +2,15 @@ import mongoose from "mongoose";
 
 const refreshSessionSchema = new mongoose.Schema(
   {
-    student: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
       required: true,
+      index: true,
+    },
+    userModel: {
+      type: String,
+      required: true,
+      enum: ["Student", "TPO", "SPOC", "Admin"],
       index: true,
     },
     tokenHash: {
@@ -20,6 +25,15 @@ const refreshSessionSchema = new mongoose.Schema(
     },
     previousTokenValidUntil: {
       type: Date,
+      default: null,
+    },
+    familyId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    replacedBy: {
+      type: String,
       default: null,
     },
     expiresAt: {
@@ -60,13 +74,8 @@ const refreshSessionSchema = new mongoose.Schema(
   },
 );
 
-/*
- * MongoDB automatically removes expired sessions.
- */
 refreshSessionSchema.index(
-  {
-    expiresAt: 1,
-  },
+  { expiresAt: 1 },
   {
     expireAfterSeconds: 0,
   },
