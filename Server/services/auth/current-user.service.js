@@ -2,11 +2,8 @@ import {
   getRefreshCookieName,
   clearCookieConfig,
 } from "../../config/cookieConfig.config.js";
-
 import { asyncHandler, APIERR, APIRES } from "../../utils/helper.utils.js";
-
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-
 import { revokeUserSession } from "./session.service.js";
 
 const getCurrentUser = asyncHandler(async (req, res) => {
