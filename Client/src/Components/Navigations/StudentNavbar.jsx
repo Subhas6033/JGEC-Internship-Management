@@ -16,7 +16,7 @@ import {
   selectAccessToken,
   selectUser,
 } from "../../Store/Slice/authSlice";
-import { logoutStudent } from "../../Services/Auth/studentAuth.api";
+import { logoutUser } from "../../Services/Auth/authApi";
 
 const getInitials = (name = "") => {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -55,7 +55,7 @@ const StudentNavbar = ({ onMenuClick, onLogout }) => {
     setProfileOpen(false);
 
     try {
-      await logoutStudent(accessToken);
+      await logoutUser(accessToken);
     } catch (error) {
       console.error("Student logout failed:", error);
     } finally {

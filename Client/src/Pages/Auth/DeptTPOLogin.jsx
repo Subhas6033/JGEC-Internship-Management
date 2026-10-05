@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Input } from "../../Components/index";
+import { useLoginTPO } from "../../Hooks/Auth/useTPOAuth";
 
 const DeptTPOLogin = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const DeptTPOLogin = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loginMutation = useLoginTPO();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -49,22 +52,29 @@ const DeptTPOLogin = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     const nextErrors = validate();
-
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
-
     setErrors({});
     setIsSubmitting(true);
-
     try {
-      // Connect your login API here.
-      await new Promise((resolve) => setTimeout(resolve, 700));
-
-      navigate("/depttpo/dashboard");
+      await loginMutation.mutateAsync({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
+      navigate("/depttpo/dashboard", {
+        replace: true,
+      });
+    } catch (error) {
+      const message =
+        error?.data?.message ||
+        error?.message ||
+        "Unable to sign in. Please try again.";
+      setErrors({
+        submit: message,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -74,7 +84,6 @@ const DeptTPOLogin = () => {
     <main className="min-h-screen bg-cream px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-2xl border border-border bg-white shadow-card lg:grid-cols-[1fr_1.05fr]">
-          {/* Branding */}
           <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
             <div>
               <div className="flex size-11 items-center justify-center rounded-full bg-white">
@@ -102,7 +111,6 @@ const DeptTPOLogin = () => {
             </div>
           </section>
 
-          {/* Login form */}
           <section className="flex items-center p-5 sm:p-8 xl:p-10">
             <div className="mx-auto w-full max-w-md">
               <div>
@@ -117,12 +125,17 @@ const DeptTPOLogin = () => {
                 </p>
               </div>
 
+              {errors.submit && (
+                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {errors.submit}
+                </div>
+              )}
+
               <form
                 onSubmit={handleSubmit}
                 className="mt-8 space-y-5"
                 noValidate
               >
-                {/* Email */}
                 <div>
                   <label
                     htmlFor="email"
@@ -149,7 +162,6 @@ const DeptTPOLogin = () => {
                   )}
                 </div>
 
-                {/* Password */}
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
                     <label
@@ -167,49 +179,32 @@ const DeptTPOLogin = () => {
                     </Link>
                   </div>
 
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      value={form.password}
-                      onChange={handleChange}
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                      startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
-                      endIcon={
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((value) => !value)}
-                          className="pointer-events-auto text-gray-400 transition hover:text-gray-900 focus:outline-none"
-                          aria-label={
-                            showPassword ? "Hide password" : "Show password"
-                          }
-                        >
-                          {showPassword ? (
-                            <EyeOff size={17} strokeWidth={1.8} />
-                          ) : (
-                            <Eye size={17} strokeWidth={1.8} />
-                          )}
-                        </button>
-                      }
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((value) => !value)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted transition hover:text-ink focus:outline-none"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff size={17} strokeWidth={1.8} />
-                      ) : (
-                        <Eye size={17} strokeWidth={1.8} />
-                      )}
-                    </button>
-                  </div>
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
+                    endIcon={
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((value) => !value)}
+                        className="text-ink-muted transition hover:text-ink focus:outline-none"
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff size={17} strokeWidth={1.8} />
+                        ) : (
+                          <Eye size={17} strokeWidth={1.8} />
+                        )}
+                      </button>
+                    }
+                  />
 
                   {errors.password && (
                     <p className="mt-1.5 text-xs text-red-600">
@@ -222,7 +217,7 @@ const DeptTPOLogin = () => {
                   type="submit"
                   variant="primary"
                   size="md"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || loginMutation.isPending}
                   className="w-full justify-center"
                 >
                   {isSubmitting ? "Signing in..." : "Sign in"}

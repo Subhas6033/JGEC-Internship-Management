@@ -1,5 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { loginStudent, registerStudent } from "../Auth/studentAuth.api";
+import {
+  loginStudent,
+  registerStudent,
+} from "../../Services/Auth/studentAuth.api";
 
 const useRegisterStudent = () => {
   return useMutation({

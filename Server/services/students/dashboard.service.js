@@ -5,7 +5,7 @@ import { Student } from "../../models/students.models.js";
 import { StudentApplication } from "../../models/studentApplication.models.js";
 
 const getStudentDashboard = asyncHandler(async (req, res) => {
-  const studentId = req.student?._id;
+  const studentId = req.user?._id;
 
   if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
     throw new APIERR(

@@ -9,27 +9,25 @@ const initialState = {
 
 const authSlice = createSlice({
   name: "auth",
-
   initialState,
-
   reducers: {
     setAuth: (state, action) => {
       const { user, accessToken } = action.payload;
 
-      state.user = user;
+      state.user = user || null;
       state.accessToken = accessToken || null;
-      state.isAuthenticated = true;
-      state.status = "authenticated";
+      state.isAuthenticated = Boolean(user);
+      state.status = user ? "authenticated" : "idle";
     },
 
     setUser: (state, action) => {
-      state.user = action.payload;
-      state.isAuthenticated = true;
-      state.status = "authenticated";
+      state.user = action.payload || null;
+      state.isAuthenticated = Boolean(action.payload);
+      state.status = action.payload ? "authenticated" : "idle";
     },
 
     setAccessToken: (state, action) => {
-      state.accessToken = action.payload;
+      state.accessToken = action.payload || null;
     },
 
     setAuthLoading: (state) => {
@@ -67,7 +65,6 @@ export const {
   logout,
 } = authSlice.actions;
 
-// Selectors
 export const selectUser = (state) => state.auth.user;
 export const selectAccessToken = (state) => state.auth.accessToken;
 export const selectStatus = (state) => state.auth.status;

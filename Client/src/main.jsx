@@ -147,7 +147,7 @@ const StudentProtectedRoutes = () => {
 // Dept TPO protected routes
 const DeptTPOProtectedRoutes = () => {
   return (
-    <ProtectedRoute allowedRoles={["tpo"]} requireRole={true}>
+    <ProtectedRoute allowedRoles={["TPO"]} requireRole={true}>
       <DeptTPOLayout />
     </ProtectedRoute>
   );

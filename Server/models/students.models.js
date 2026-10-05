@@ -10,13 +10,10 @@ const ALLOWED_EMAIL_DOMAINS = process.env.COLLEGE_MAILS
 
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   if (!emailRegex.test(email)) {
     return false;
   }
-
   const domain = email.split("@")[1].toLowerCase();
-
   return ALLOWED_EMAIL_DOMAINS.includes(domain);
 };
 
@@ -28,7 +25,6 @@ const studentSchema = new mongoose.Schema(
       trim: true,
       maxlength: [50, "Full name can't be more than 50 characters"],
     },
-
     email: {
       type: String,
       required: [true, "Please provide the college email"],
@@ -41,7 +37,6 @@ const studentSchema = new mongoose.Schema(
         message: "Please use your official college email address",
       },
     },
-
     mobileNumber: {
       type: String,
       required: [true, "Please provide the mobile number"],
@@ -51,7 +46,6 @@ const studentSchema = new mongoose.Schema(
         "Please provide a valid Indian mobile number",
       ],
     },
-
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -77,19 +71,16 @@ const studentSchema = new mongoose.Schema(
       required: [true, "Department Name is required"],
       default: "CE",
     },
-
     signature: {
       type: String,
       required: [true, "Signature is required"],
       trim: true,
     },
-
     gurdianName: {
       type: String,
       required: [true, "Guardian Name is required"],
       trim: true,
     },
-
     gurdianMobile: {
       type: String,
       required: [true, "Please provide the guardian mobile number"],
@@ -99,7 +90,6 @@ const studentSchema = new mongoose.Schema(
         "Please provide a valid Indian mobile number",
       ],
     },
-
     role: {
       type: String,
       enum: ["student"],
