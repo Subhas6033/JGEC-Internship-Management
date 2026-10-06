@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { asyncHandler, APIERR, APIRES } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
 import { StudentDocument } from "../../models/studentDocument.models.js";
+import { Student } from "../../models/students.models.js";
 import { StudentNOC } from "../../models/studentNoc.models.js";
 import { StudentApplication } from "../../models/studentApplication.models.js";
 import { generateNOCForApplication } from "../noc/noc.service.js";
@@ -118,11 +119,15 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
 
 export const updateStudentSignature = asyncHandler(async (req, res) => {
   const studentId = getStudentId(req);
+
   validateStudent(studentId);
+
   if (!req.file) {
     throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Signature file is required");
   }
+
   const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+
   if (!allowedTypes.includes(req.file.mimetype)) {
     throw new APIERR(
       HTTP_STATUS.BAD_REQUEST,
@@ -130,53 +135,61 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
     );
   }
 
-  /*
-   * Keep the existing Cloudinary deletion logic.
-   * This only removes the old signature.
-   */
   const existing = await StudentDocument.findOne({
     student: studentId,
   });
 
   if (existing?.signature?.publicId) {
-    await cloudinary.v2.uploader.destroy(existing.signature.publicId, {
+    await cloudinary.uploader.destroy(existing.signature.publicId, {
       resource_type: "image",
     });
   }
 
-  /*
-   * Upload using the project's existing
-   * uploadToCloudinary helper.
-   */
   const upload = await uploadToCloudinary(
     req.file.buffer,
     "image",
     `${
       process.env.CLOUDINARY_FOLDER || "jgec-internship"
     }/students/${studentId}/signature`,
+    undefined,
+    {
+      removeSignatureBackground: true,
+    },
   );
 
   const signature = {
     url: upload.secure_url,
     publicId: upload.public_id,
     fileName: req.file.originalname,
-    fileType: req.file.mimetype,
+    mimeType: "image/png",
     uploadedAt: new Date(),
   };
 
-  const document = await StudentDocument.findOneAndUpdate(
+  const updatedStudentDocument = await StudentDocument.findOneAndUpdate(
     {
       student: studentId,
     },
     {
       $set: {
-        student: studentId,
         signature,
       },
     },
     {
       new: true,
       upsert: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+
+  await Student.findByIdAndUpdate(
+    studentId,
+    {
+      $set: {
+        signature: signature.url,
+      },
+    },
+    {
+      new: true,
     },
   );
 
@@ -184,7 +197,7 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
     new APIRES(
       HTTP_STATUS.OK,
       {
-        signature: document.signature,
+        signature: updatedStudentDocument.signature,
       },
       "Signature updated successfully",
     ),

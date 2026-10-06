@@ -12,20 +12,27 @@ const getStudentApplications = ({
   apiClient.get("/application/students/getapplications", {
     params: {
       search: search.trim() || undefined,
-
       status: status !== "all" ? status : undefined,
-
       type: type !== "all" ? type : undefined,
-
       sort,
     },
   });
 
-const getStudentApplicationById = (applicationId) =>
-  apiClient.get(`/application/students/${applicationId}`);
+const getStudentApplicationById = (applicationId) => {
+  if (!applicationId) {
+    throw new Error("Application ID is required");
+  }
 
-const withdrawStudentApplication = (applicationId) =>
-  apiClient.patch(`/application/students/${applicationId}/withdraw`);
+  return apiClient.get(`/application/students/${applicationId}`);
+};
+
+const withdrawStudentApplication = (applicationId) => {
+  if (!applicationId) {
+    throw new Error("Application ID is required");
+  }
+
+  return apiClient.patch(`/application/students/${applicationId}/withdraw`);
+};
 
 export {
   submitStudentApplication,

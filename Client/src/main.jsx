@@ -80,8 +80,8 @@ const CompanyApplicationDetails = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Applications/CompanyApplicationDetails.jsx"),
 );
-const InternshipDeadlines = lazy(
-  () => import("./Pages/Services/DeptTPO/Deadlines/InternshipDeadlines.jsx"),
+const DeptTPOStats = lazy(
+  () => import("./Pages/Services/DeptTPO/Stats/DeptTPOStatsOverview.jsx"),
 );
 const DeptTPONotifications = lazy(
   () =>
@@ -104,7 +104,9 @@ const SPOCApplications = lazy(
   () => import("./Pages/Services/SPOC/SPOCApplications.jsx"),
 );
 const SPOCNOC = lazy(() => import("./Pages/Services/SPOC/SPOCNOC.jsx"));
-const SPOCProfile = lazy(() => import("./Pages/Services/SPOC/SPOCProfile.jsx"));
+const SPOCProfile = lazy(
+  () => import("./Pages/Services/SPOC/Profile/SPOCProfile.jsx"),
+);
 
 // Admin Routes
 const AdminSignup = lazy(() => import("./Pages/Auth/AdminSignup.jsx"));
@@ -321,14 +323,14 @@ const router = createBrowserRouter([
                 element: <SentToTPOApplications />,
               },
               {
-                path: ":companyId",
+                path: ":applicationId",
                 element: <CompanyApplicationDetails />,
               },
             ],
           },
           {
-            path: "deadlines",
-            element: <InternshipDeadlines />,
+            path: "stats",
+            element: <DeptTPOStats />,
           },
           {
             path: "notifications",

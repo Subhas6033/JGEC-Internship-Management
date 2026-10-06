@@ -19,7 +19,7 @@ import {
   XCircle,
   Building2,
   Send,
-  CalendarClock,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { Button, Card } from "../index";
 import { logout } from "../../Store/Slice/authSlice";
@@ -71,9 +71,9 @@ const navigationItems = [
   },
 
   {
-    label: "Deadlines",
-    to: "/depttpo/deadlines",
-    icon: CalendarClock,
+    label: "Stats",
+    to: "/depttpo/stats",
+    icon: ChartNoAxesCombined,
   },
 
   {

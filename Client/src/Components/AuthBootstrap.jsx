@@ -24,7 +24,11 @@ const AuthBootstrap = ({ children }) => {
 
         const response = await apiClient.get("/auth/me");
 
+        console.log("AUTH ME RESPONSE:", response);
+
         const user = response?.data?.user;
+
+        console.log("AUTH ME USER:", user);
 
         if (!user?._id) {
           throw new Error("Authenticated user was not returned");

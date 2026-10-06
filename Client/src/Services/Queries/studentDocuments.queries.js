@@ -4,7 +4,7 @@ import {
   updateStudentSignature,
   updateStudentResume,
   regenerateStudentNOC,
-} from "../StudentDocuments/studentDocuments.api";
+} from "../Documents/studentDocuments.api";
 
 export const studentDocumentsQueryKey = ["student-documents"];
 

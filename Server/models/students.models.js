@@ -57,31 +57,30 @@ const studentSchema = new mongoose.Schema(
       ],
       select: false,
     },
-
     rollNumber: {
       type: String,
       required: [true, "Please provide the roll number"],
       trim: true,
       unique: true,
     },
-
     department: {
       type: String,
       enum: ["CE", "EE", "ME", "CSE", "ECE", "IT"],
       required: [true, "Department Name is required"],
       default: "CE",
     },
+    // Stores the URL of the processed transparent PNG signature.
     signature: {
       type: String,
       required: [true, "Signature is required"],
       trim: true,
     },
-    gurdianName: {
+    guardianName: {
       type: String,
       required: [true, "Guardian Name is required"],
       trim: true,
     },
-    gurdianMobile: {
+    guardianMobile: {
       type: String,
       required: [true, "Please provide the guardian mobile number"],
       trim: true,
@@ -101,7 +100,7 @@ const studentSchema = new mongoose.Schema(
   },
 );
 
-// Hash the password before saving in DB
+// Hash the password before saving in DB.
 studentSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;
@@ -110,12 +109,12 @@ studentSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-// Compare password
+// Compare password.
 studentSchema.methods.isPasswordValid = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Generate Access Token
+// Generate Access Token.
 studentSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {

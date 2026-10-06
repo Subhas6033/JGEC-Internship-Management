@@ -1,11 +1,10 @@
 import { Search, SlidersHorizontal } from "lucide-react";
-
 import { Input } from "../../../../Components";
 
 const ApplicationFilters = ({
-  search,
+  search = "",
   onSearchChange,
-  status,
+  status = "all",
   onStatusChange,
 }) => {
   return (
@@ -21,7 +20,7 @@ const ApplicationFilters = ({
           <Input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search company, role or location..."
+            placeholder="Search student, company, role or location..."
             className="pl-9"
           />
         </div>
@@ -32,22 +31,17 @@ const ApplicationFilters = ({
           <select
             value={status}
             onChange={(event) => onStatusChange(event.target.value)}
-            className="
-              focus-ring
-              h-10
-              rounded-lg
-              border
-              border-border
-              bg-cream
-              px-3
-              text-sm
-              text-ink
-              outline-none
-            "
+            className="focus-ring h-10 rounded-lg border border-border bg-cream px-3 text-sm text-ink outline-none"
           >
-            <option value="all">All Companies</option>
-            <option value="open">Applications Open</option>
-            <option value="closed">Deadline Passed</option>
+            <option value="all">All Statuses</option>
+            <option value="submitted">Submitted</option>
+            <option value="under_tpo_review">Under TPO Review</option>
+            <option value="update_required">Update Required</option>
+            <option value="approved_by_tpo">Approved by TPO</option>
+            <option value="under_spoc_review">Under SPOC Review</option>
+            <option value="approved_by_spoc">Approved by SPOC</option>
+            <option value="rejected">Rejected</option>
+            <option value="withdrawn">Withdrawn</option>
           </select>
         </div>
       </div>

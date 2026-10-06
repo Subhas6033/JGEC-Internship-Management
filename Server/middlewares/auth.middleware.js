@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { Student } from "../models/students.models.js";
 import { TPO } from "../models/tpo.models.js";
-// import { SPOC } from "../models/spoc.models.js";
+import { SPOC } from "../models/spoc.models.js";
 // import { Admin } from "../models/admin.models.js";
 import { APIERR, asyncHandler } from "../utils/helper.utils.js";
 import { HTTP_STATUS } from "../config/httpConfig.config.js";
@@ -10,7 +10,7 @@ import { normalizeRole } from "../config/auth.config.js";
 const USER_MODEL_MAP = {
   student: Student,
   TPO,
-  // spoc: SPOC,
+  spoc: SPOC,
   // admin: Admin,
 };
 
