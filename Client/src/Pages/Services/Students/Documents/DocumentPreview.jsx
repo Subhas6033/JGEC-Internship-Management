@@ -1,11 +1,10 @@
 import { Download, X } from "lucide-react";
-
 import { Button } from "../../../../Components";
 
 const DocumentPreview = ({ document, onClose }) => {
   if (!document) return null;
 
-  const isImage = document.fileType === "PNG";
+  const isImage = document.fileType?.startsWith("image/");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -47,7 +46,9 @@ const DocumentPreview = ({ document, onClose }) => {
         <div className="flex justify-end border-t border-border px-4 py-3">
           <Button
             type="button"
-            onClick={() => window.open(document.url, "_blank")}
+            onClick={() =>
+              window.open(document.url, "_blank", "noopener,noreferrer")
+            }
           >
             <Download size={16} />
             Download

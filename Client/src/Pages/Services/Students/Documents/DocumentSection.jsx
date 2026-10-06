@@ -5,10 +5,11 @@ const DocumentSection = ({
   description,
   children,
   readOnly = false,
+  actions,
 }) => {
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <FileCheck2 size={19} className="text-primary" />
@@ -19,12 +20,16 @@ const DocumentSection = ({
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
 
-        {readOnly && (
-          <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <LockKeyhole size={13} />
-            Read only
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {actions}
+
+          {readOnly && (
+            <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              <LockKeyhole size={13} />
+              Read only
+            </div>
+          )}
+        </div>
       </div>
 
       {children}

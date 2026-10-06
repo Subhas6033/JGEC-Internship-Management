@@ -31,7 +31,7 @@ const getRoleConfig = (role) => {
         label: "TPO",
         dashboard: "/depttpo/dashboard",
         dashboardLabel: "Dashboard",
-        profile: "/tpo/profile",
+        profile: "/depttpo/profile",
       };
 
     case "spoc":

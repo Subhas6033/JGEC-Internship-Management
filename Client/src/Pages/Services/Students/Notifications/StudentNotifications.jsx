@@ -1,82 +1,47 @@
 import { useMemo, useState } from "react";
 import { Bell, CheckCheck, Inbox, MailOpen } from "lucide-react";
 import { motion } from "framer-motion";
-
 import { Button, Card } from "../../../../Components";
-
 import NotificationFilters from "./NotificationFilters";
 import NotificationList from "./NotificationList";
-
-import { notificationsData } from "./notifications.data";
+import {
+  useStudentNotifications,
+  useMarkStudentNotificationRead,
+  useMarkAllStudentNotificationsRead,
+  useDeleteStudentNotification,
+} from "../../../../Services/Queries/studentNotifications.queries";
 
 const StudentNotifications = () => {
-  const [notifications, setNotifications] = useState(notificationsData);
-
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
 
-  const unreadCount = useMemo(
-    () =>
-      notifications.filter((notification) => notification.status === "unread")
-        .length,
-    [notifications],
-  );
+  const { data, isLoading, isError, error } = useStudentNotifications({
+    category,
+    status,
+    search,
+  });
 
+  const markReadMutation = useMarkStudentNotificationRead();
+  const markAllReadMutation = useMarkAllStudentNotificationsRead();
+  const deleteMutation = useDeleteStudentNotification();
+  const notificationsData = data?.data ?? data ?? {};
+  const notifications = notificationsData?.notifications ?? [];
+  const unreadCount = notifications.filter(
+    (notification) => notification.status === "unread",
+  ).length;
   const readCount = notifications.length - unreadCount;
 
-  const filteredNotifications = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-
-    return notifications
-      .filter((notification) => {
-        if (
-          normalizedSearch &&
-          !notification.title.toLowerCase().includes(normalizedSearch) &&
-          !notification.message.toLowerCase().includes(normalizedSearch)
-        ) {
-          return false;
-        }
-
-        if (category !== "all" && notification.category !== category) {
-          return false;
-        }
-
-        if (status !== "all" && notification.status !== status) {
-          return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [notifications, search, category, status]);
-
   const handleMarkRead = (id) => {
-    setNotifications((current) =>
-      current.map((notification) =>
-        notification.id === id
-          ? {
-              ...notification,
-              status: "read",
-            }
-          : notification,
-      ),
-    );
+    markReadMutation.mutate(id);
   };
 
   const handleMarkAllRead = () => {
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        status: "read",
-      })),
-    );
+    markAllReadMutation.mutate();
   };
 
   const handleDelete = (id) => {
-    setNotifications((current) =>
-      current.filter((notification) => notification.id !== id),
-    );
+    deleteMutation.mutate(id);
   };
 
   const handleReset = () => {
@@ -85,36 +50,56 @@ const StudentNotifications = () => {
     setStatus("all");
   };
 
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-75 max-w-7xl items-center justify-center">
+          <p className="text-sm text-muted-foreground">
+            Loading notifications...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (isError) {
+    return (
+      <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <Card className="border-destructive/20 p-6">
+            <h2 className="font-semibold text-foreground">
+              Unable to load notifications
+            </h2>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              {error?.message ||
+                "Something went wrong while loading your notifications."}
+            </p>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <>
       <title>Notifications | JGEC Internship Portal</title>
-
       <meta
         name="description"
         content="View important internship application, verification, document, and portal notifications through the JGEC Internship Portal."
       />
-
       <meta name="robots" content="noindex, nofollow" />
-
-      <meta name="theme-color" content="#ffffff" />
-
-      <meta
-        property="og:title"
-        content="Notifications | JGEC Internship Portal"
-      />
-
-      <meta
-        property="og:description"
-        content="Stay updated with your internship applications, verification progress, documents, and other important activities."
-      />
-
-      <meta property="og:type" content="website" />
       <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          {/* Header */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{
+              opacity: 0,
+              y: 12,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
             className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
           >
             <div>
@@ -138,15 +123,20 @@ const StudentNotifications = () => {
                 type="button"
                 variant="outline"
                 onClick={handleMarkAllRead}
+                disabled={markAllReadMutation.isPending}
                 className="inline-flex w-fit items-center gap-2 whitespace-nowrap"
               >
                 <CheckCheck size={16} />
-                <span>Mark all as read</span>
+
+                <span>
+                  {markAllReadMutation.isPending
+                    ? "Marking..."
+                    : "Mark all as read"}
+                </span>
               </Button>
             )}
           </motion.div>
 
-          {/* Stats */}
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="p-4">
               <div className="flex items-center gap-3">
@@ -199,7 +189,6 @@ const StudentNotifications = () => {
             </Card>
           </div>
 
-          {/* Filters */}
           <Card className="p-4">
             <div className="mb-4">
               <h2 className="font-semibold text-foreground">
@@ -222,7 +211,6 @@ const StudentNotifications = () => {
             />
           </Card>
 
-          {/* Notification list */}
           <section>
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -231,14 +219,13 @@ const StudentNotifications = () => {
                 </h2>
 
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Showing {filteredNotifications.length} of{" "}
-                  {notifications.length} notifications
+                  Showing {notifications.length} notifications
                 </p>
               </div>
             </div>
 
             <NotificationList
-              notifications={filteredNotifications}
+              notifications={notifications}
               onMarkRead={handleMarkRead}
               onDelete={handleDelete}
             />

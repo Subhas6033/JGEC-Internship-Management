@@ -1,5 +1,4 @@
 import { FileText } from "lucide-react";
-
 import DocumentListItem from "./DocumentListItem";
 
 const DocumentList = ({ documents, onPreview }) => {
@@ -23,7 +22,7 @@ const DocumentList = ({ documents, onPreview }) => {
     <div className="space-y-3">
       {documents.map((document) => (
         <DocumentListItem
-          key={document.id}
+          key={document._id}
           document={document}
           onPreview={onPreview}
         />

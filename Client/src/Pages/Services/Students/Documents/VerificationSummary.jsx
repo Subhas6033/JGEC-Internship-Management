@@ -1,7 +1,28 @@
 import { CheckCircle2, Circle, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
-const VerificationSummary = ({ steps }) => {
+const VerificationSummary = ({ applicationAccepted, nocGenerated }) => {
+  const steps = [
+    {
+      _id: "spoc-approval",
+      title: "SPOC approval",
+      description: applicationAccepted
+        ? "Your internship application has been accepted by the SPOC."
+        : "Your internship application is waiting for SPOC acceptance.",
+      status: applicationAccepted ? "completed" : "pending",
+    },
+    {
+      _id: "noc-generation",
+      title: "NOC generation",
+      description: nocGenerated
+        ? "Your No Objection Certificate has been generated."
+        : applicationAccepted
+          ? "Your NOC is being generated."
+          : "NOC generation starts after SPOC acceptance.",
+      status: nocGenerated ? "completed" : "pending",
+    },
+  ];
+
   const completedCount = steps.filter(
     (step) => step.status === "completed",
   ).length;
@@ -15,14 +36,11 @@ const VerificationSummary = ({ steps }) => {
           <div className="flex items-center gap-2">
             <ShieldCheck size={20} className="text-success" />
 
-            <h2 className="font-semibold text-foreground">
-              Verification status
-            </h2>
+            <h2 className="font-semibold text-foreground">Internship status</h2>
           </div>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Your documents and internship information go through the required
-            verification process.
+            Track your SPOC approval and NOC generation status.
           </p>
         </div>
 
@@ -43,10 +61,18 @@ const VerificationSummary = ({ steps }) => {
 
           return (
             <motion.div
-              key={step.id}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
+              key={step._id}
+              initial={{
+                opacity: 0,
+                x: -8,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
+              transition={{
+                delay: index * 0.05,
+              }}
               className="relative flex gap-3"
             >
               {index !== steps.length - 1 && (
