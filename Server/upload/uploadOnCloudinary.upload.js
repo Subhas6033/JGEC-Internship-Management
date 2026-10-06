@@ -12,18 +12,9 @@ if (
   !process.env.CLOUDINARY_API_KEY ||
   !process.env.CLOUDINARY_API_SECRET
 ) {
-  throw new Error(`Please Provide the Cloudinary Credentials...`);
+  throw new Error("Please Provide the Cloudinary Credentials...");
 }
 
-/**
- * Upload a file to Cloudinary.
- *
- * @param {Buffer} fileBuffer - File data
- * @param {"image"|"pdf"|"raw"|"video"} fileType - Type of file
- * @param {string} folder - Cloudinary folder
- * @param {string} [publicId] - Optional Cloudinary public ID
- * @returns {Promise<Object>}
- */
 export const uploadToCloudinary = (fileBuffer, fileType, folder, publicId) => {
   return new Promise((resolve, reject) => {
     const resourceType =
@@ -52,3 +43,5 @@ export const uploadToCloudinary = (fileBuffer, fileType, folder, publicId) => {
     Readable.from(fileBuffer).pipe(uploadStream);
   });
 };
+
+export { cloudinary };

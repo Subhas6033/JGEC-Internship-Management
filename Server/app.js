@@ -21,11 +21,15 @@ import { authRoutes } from "./routes/auth.routes.js";
 import { studentApplicationRoutes } from "./routes/studentApplication.routes.js";
 import { organisationRoutes } from "./routes/organisation.routes.js";
 import { studentDashboardRoutes } from "./routes/studentDashboard.routes.js";
+import { studentDocumentRoutes } from "./routes/studentDocuments.routes.js";
+import { studentNotificationRoutes } from "./routes/studentNotifications.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/application", studentApplicationRoutes);
 app.use("/api/v1/organisation", organisationRoutes);
 app.use("/api/v1/dashboard", studentDashboardRoutes);
+app.use("/api/v1/student/documents", studentDocumentRoutes);
+app.use("/api/v1/student/notifications", studentNotificationRoutes);
 
 //Centralize err handlers
 app.use(errorMiddleware);
