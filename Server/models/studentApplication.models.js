@@ -9,7 +9,6 @@ const studentApplicationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
     // Semester selected by the student
     semester: {
       type: Number,
@@ -17,7 +16,6 @@ const studentApplicationSchema = new mongoose.Schema(
       min: 1,
       max: 8,
     },
-
     // Existing organisation selected from the backend
     organisation: {
       type: mongoose.Schema.Types.ObjectId,
@@ -26,32 +24,27 @@ const studentApplicationSchema = new mongoose.Schema(
       index: true,
       required: true,
     },
-
     // Person/employee whom the student is applying to
     organisationsEmployye: {
       type: String,
       required: true,
       trim: true,
     },
-
     // Internship designation
     designation: {
       type: String,
       required: true,
       trim: true,
     },
-
     // Internship details
     tentativeStartDate: {
       type: Date,
       required: true,
     },
-
     tentativeEndDate: {
       type: Date,
       required: true,
     },
-
     tentativeWorkLocations: {
       type: [String],
       required: true,
@@ -61,46 +54,39 @@ const studentApplicationSchema = new mongoose.Schema(
         message: "At least one tentative work location is required",
       },
     },
-
     modeOfInternship: {
       type: String,
       enum: ["onsite", "remote", "hybrid"],
       required: true,
     },
-
     internshipType: {
       type: String,
       enum: ["summer", "winter", "semester", "fulltime", "others"],
       required: true,
     },
-
     description: {
       type: String,
       trim: true,
       maxlength: 2000,
       default: "",
     },
-
     /**
      * Update required information
      *
      * These fields are populated ONLY when a TPO or SPOC
      * sends the application back to the student.
      */
-
     updateRequiredReason: {
       type: String,
       trim: true,
       maxlength: 2000,
       default: "",
     },
-
     updateRequiredBy: {
       type: String,
       enum: ["tpo", "spoc"],
       default: null,
     },
-
     status: {
       type: String,
       enum: [

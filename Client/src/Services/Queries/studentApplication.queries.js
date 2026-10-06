@@ -6,23 +6,12 @@ import {
   withdrawStudentApplication,
 } from "../Application/studentApplication.api.js";
 
-/*
- * Submit application
- */
 const useSubmitStudentApplication = () => {
   return useMutation({
     mutationFn: submitStudentApplication,
   });
 };
 
-/*
- * Get student's applications
- *
- * The filters become part of the React Query key.
- * Whenever search/status/type/sort changes,
- * React Query automatically fetches the corresponding
- * backend data.
- */
 const useStudentApplications = ({
   search = "",
   status = "all",
@@ -39,7 +28,6 @@ const useStudentApplications = ({
         sort,
       },
     ],
-
     queryFn: () =>
       getStudentApplications({
         search,
@@ -47,27 +35,20 @@ const useStudentApplications = ({
         type,
         sort,
       }),
-
     staleTime: 30 * 1000,
-
     placeholderData: (previousData) => previousData,
   });
 };
 
-/*
- * Get single application
- */
 const useStudentApplication = (applicationId) => {
   return useQuery({
     queryKey: ["studentApplication", applicationId],
     queryFn: () => getStudentApplicationById(applicationId),
     enabled: Boolean(applicationId),
+    staleTime: 30 * 1000,
   });
 };
 
-/*
- * Withdraw application
- */
 const useWithdrawStudentApplication = () => {
   return useMutation({
     mutationFn: withdrawStudentApplication,

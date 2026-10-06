@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-
 import { Button, Card, Input } from "../../Components";
 import {
   pageAnimation,
   staggerContainer,
   fadeUp,
 } from "../../Animations/animations";
+import { useSpocLogin } from "../../Services/Queries/spocAuth.queries";
 
 const SPOCLogin = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-
   const {
     register,
     handleSubmit,
@@ -26,13 +26,23 @@ const SPOCLogin = () => {
       rememberMe: false,
     },
   });
-
+  const { mutateAsync: loginSpoc } = useSpocLogin();
   const onSubmit = async (data) => {
-    console.log("SPOC login:", data);
+    try {
+      await loginSpoc({
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+      });
 
-    // API integration can be added here.
-    // Example:
-    // await axios.post("/api/spoc/login", data);
+      navigate("/spoc/dashboard", {
+        replace: true,
+      });
+    } catch (error) {
+      console.error(
+        "SPOC login failed:",
+        error?.response?.data?.message || error?.message,
+      );
+    }
   };
 
   const inputClass =
@@ -62,6 +72,7 @@ const SPOCLogin = () => {
 
                 <div>
                   <p className="font-display text-xl font-semibold">JGEC</p>
+
                   <p className="text-xs text-brand-200">
                     Internship Management Portal
                   </p>
@@ -84,7 +95,9 @@ const SPOCLogin = () => {
               </div>
             </div>
 
-            <p className="text-xs textbrand-300">Training & Placement Office</p>
+            <p className="text-xs text-brand-300">
+              Training &amp; Placement Office
+            </p>
           </div>
 
           {/* Login */}
@@ -105,6 +118,7 @@ const SPOCLogin = () => {
 
                   <div>
                     <p className="font-display text-lg font-semibold">JGEC</p>
+
                     <p className="text-[10px] text-ink-muted">
                       Internship Management Portal
                     </p>
@@ -123,15 +137,16 @@ const SPOCLogin = () => {
               </motion.div>
 
               <Card className="border-border bg-(--color-surface) shadow-none">
-                <Card.Content className="p-5 sm:p-6">
+                <Card.Content className="mt-5 p-5 sm:p-6">
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                    {/* Email */}
                     <Input
                       label="Official email"
                       type="email"
                       placeholder="name@jgec.ac.in"
                       startIcon={<Mail className="h-4 w-4 text-ink-muted" />}
                       required
-                      error={errors.email?.message}
+                      error={errors?.email?.message}
                       {...register("email", {
                         required: "Official email is required",
                         pattern: {
@@ -142,6 +157,7 @@ const SPOCLogin = () => {
                       className={inputClass}
                     />
 
+                    {/* Password */}
                     <Input
                       label="Password"
                       type={showPassword ? "text" : "password"}
@@ -166,13 +182,14 @@ const SPOCLogin = () => {
                         </button>
                       }
                       required
-                      error={errors.password?.message}
+                      error={errors?.password?.message}
                       {...register("password", {
                         required: "Password is required",
                       })}
                       className={inputClass}
                     />
 
+                    {/* Remember / Forgot */}
                     <div className="flex items-center justify-between gap-3">
                       <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-muted">
                         <input
@@ -191,6 +208,7 @@ const SPOCLogin = () => {
                       </Link>
                     </div>
 
+                    {/* Submit */}
                     <Button
                       type="submit"
                       size="lg"
@@ -198,12 +216,14 @@ const SPOCLogin = () => {
                       className="h-11 w-full bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-600"
                     >
                       {isSubmitting ? "Signing in..." : "Sign in"}
+
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </form>
                 </Card.Content>
               </Card>
 
+              {/* Signup */}
               <p className="mt-5 text-center text-sm text-ink-muted">
                 Don't have a SPOC account?{" "}
                 <Link
@@ -214,6 +234,7 @@ const SPOCLogin = () => {
                 </Link>
               </p>
 
+              {/* Other portals */}
               <div className="mt-5 flex justify-center gap-4 text-xs text-ink-muted">
                 <Link
                   to="/auth/login"

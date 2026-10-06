@@ -8,8 +8,11 @@ import {
   tpoLogin,
   tpoRegistrations,
 } from "../services/auth/tpo.auth.service.js";
+import {
+  spocRegistration,
+  spocLogin,
+} from "../services/auth/spoc.auth.controller.js";
 import { authenticateUser } from "../middlewares/auth.middleware.js";
-import { requireRole } from "../middlewares/role.middleware.js";
 import { refreshAccessToken } from "../services/auth/tokenRotation.service.js";
 import {
   getCurrentUser,
@@ -51,6 +54,10 @@ authRoutes
   // TPO ROUTES
   .post("/tpo/register", tpoRegistrations)
   .post("/tpo/login", tpoLogin)
+
+  // SPOC ROUTES
+  .post("/spoc/register", spocRegistration)
+  .post("/spoc/login", spocLogin)
 
   // Centralize Token Rotations
   .post("/refresh-token", refreshAccessToken)

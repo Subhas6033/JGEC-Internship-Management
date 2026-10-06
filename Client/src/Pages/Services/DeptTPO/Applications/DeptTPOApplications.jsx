@@ -1,51 +1,82 @@
-import { useMemo, useState } from "react";
-import { Building2, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Building2 } from "lucide-react";
 import { Outlet } from "react-router-dom";
-
-import { Button } from "../../../../Components";
-
+import { useTpoApplications } from "../../../../Services/Queries/tpoApplication.quires";
 import ApplicationStats from "./ApplicationStats";
 import ApplicationFilters from "./ApplicationFilters";
-import { applicationGroups } from "./application.data.js";
 
 const DeptTPOApplications = () => {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("all");
 
-  const filteredGroups = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 400);
 
-    return applicationGroups.filter((group) => {
-      const matchesStatus = status === "all" || group.status === status;
+    return () => clearTimeout(timer);
+  }, [search]);
 
-      if (!query) {
-        return matchesStatus;
-      }
+  const {
+    data: response,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useTpoApplications({
+    search: debouncedSearch,
+    status,
+  });
 
-      const searchableContent = [
-        group.company.name,
-        group.company.role,
-        group.company.location,
-        group.company.mode,
-      ]
-        .join(" ")
-        .toLowerCase();
+  const applications = Array.isArray(response?.data)
+    ? response.data
+    : Array.isArray(response)
+      ? response
+      : [];
 
-      return matchesStatus && searchableContent.includes(query);
-    });
-  }, [search, status]);
+  if (isLoading) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-cream px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1600px]">
+          <div className="rounded-xl border border-border bg-cream-soft p-8 text-center">
+            <p className="text-sm text-ink-muted">
+              Loading internship applications...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-cream px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1600px]">
+          <div className="rounded-xl border border-border bg-cream-soft p-8 text-center">
+            <p className="text-sm text-ink">
+              Failed to load internship applications.
+            </p>
+            <p className="mt-1 text-xs text-ink-muted">
+              {error?.response?.data?.message ||
+                error?.message ||
+                "Something went wrong."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-cream px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1600px]">
-        {/* Header */}
         <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <span className="flex size-9 items-center justify-center rounded-lg bg-brand-700 text-white">
                 <Building2 size={18} strokeWidth={1.8} />
               </span>
-
               <p className="eyebrow">Department TPO</p>
             </div>
 
@@ -54,23 +85,16 @@ const DeptTPOApplications = () => {
             </h1>
 
             <p className="mt-1.5 max-w-2xl text-sm leading-6 text-ink-muted">
-              Review applications grouped by company, manage deadlines, and
-              forward accepted students to the central TPO.
+              Review student internship applications, manage application status,
+              and process eligible applications for the next stage.
             </p>
           </div>
-
-          <Button type="button" variant="primary" size="md">
-            <Plus size={16} strokeWidth={1.8} />
-            Set Deadline
-          </Button>
         </section>
 
-        {/* Statistics */}
         <section className="mt-6">
-          <ApplicationStats applicationGroups={applicationGroups} />
+          <ApplicationStats applications={applications} />
         </section>
 
-        {/* Filters */}
         <section className="mt-6">
           <ApplicationFilters
             search={search}
@@ -80,14 +104,19 @@ const DeptTPOApplications = () => {
           />
         </section>
 
-        {/* Child route */}
         <section className="mt-6">
+          {isFetching && !isLoading && (
+            <div className="mb-3 text-xs text-ink-muted">
+              Updating applications...
+            </div>
+          )}
+
           <Outlet
             context={{
               search,
               status,
-              applicationGroups,
-              filteredGroups,
+              applications,
+              filteredApplications: applications,
             }}
           />
         </section>

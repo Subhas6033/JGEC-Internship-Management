@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Bell,
@@ -18,9 +19,11 @@ import {
   XCircle,
   Building2,
   Send,
-  CalendarClock,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { Button, Card } from "../index";
+import { logout } from "../../Store/Slice/authSlice";
+import { logoutUser } from "../../Services/Auth/authApi";
 
 const navigationItems = [
   {
@@ -68,9 +71,9 @@ const navigationItems = [
   },
 
   {
-    label: "Deadlines",
-    to: "/depttpo/deadlines",
-    icon: CalendarClock,
+    label: "Stats",
+    to: "/depttpo/stats",
+    icon: ChartNoAxesCombined,
   },
 
   {
@@ -86,6 +89,7 @@ const accountItems = [
     to: "/depttpo/profile",
     icon: UserRound,
   },
+
   {
     label: "Settings",
     to: "/depttpo/settings",
@@ -100,6 +104,20 @@ const baseNavClasses = `
   text-sm font-medium
   transition-colors duration-150
 `;
+
+const getInitials = (fullName = "") => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+
+  if (!parts.length) {
+    return "TP";
+  }
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
 
 const NavItem = ({ item, onClick }) => {
   const Icon = item.icon;
@@ -234,19 +252,30 @@ const NavItem = ({ item, onClick }) => {
   );
 };
 
-const DeptTPONavbar = ({
-  onMenuClick,
-  open = false,
-  onClose,
-  coordinator = {
-    name: "TPO Coordinator",
-    department: "",
-    initials: "TP",
-  },
-  onLogout,
-}) => {
+const DeptTPONavbar = ({ onMenuClick, open = false, onClose }) => {
   const [profileOpen, setProfileOpen] = useState(false);
+
   const [applicationsOpen, setApplicationsOpen] = useState(false);
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  /*
+   * Authenticated user comes directly
+   * from the centralized Redux auth state.
+   */
+  const user = useSelector((state) => state.auth?.user);
+
+  /*
+   * Build navbar information from the
+   * actual authenticated backend user.
+   */
+  const coordinator = {
+    name: user?.fullName || "TPO",
+    email: user?.email || "",
+    role: user?.role || "TPO",
+    initials: getInitials(user?.fullName),
+  };
 
   const closeProfile = () => {
     setProfileOpen(false);
@@ -255,6 +284,28 @@ const DeptTPONavbar = ({
   const closeMobileNavigation = () => {
     setApplicationsOpen(false);
     onClose?.();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      /*
+       * Clear centralized Redux authentication state
+       * even if the backend logout request fails.
+       */
+      dispatch(logout());
+
+      setProfileOpen(false);
+
+      onClose?.();
+
+      navigate("/auth/login", {
+        replace: true,
+      });
+    }
   };
 
   return (
@@ -441,13 +492,13 @@ const DeptTPONavbar = ({
 
                   <span
                     className="
-                      block max-w-40 truncate
+                      block max-w-48 truncate
                       text-[10px]
                       leading-tight
                       text-ink-muted
                     "
                   >
-                    {coordinator.department}
+                    {coordinator.email}
                   </span>
                 </span>
 
@@ -547,7 +598,20 @@ const DeptTPONavbar = ({
                                 text-ink-muted
                               "
                             >
-                              {coordinator.department}
+                              {coordinator.email}
+                            </p>
+
+                            <p
+                              className="
+                                mt-0.5
+                                truncate
+                                text-[10px]
+                                uppercase
+                                tracking-wide
+                                text-ink-muted
+                              "
+                            >
+                              {coordinator.role}
                             </p>
                           </div>
                         </div>
@@ -564,18 +628,18 @@ const DeptTPONavbar = ({
                               to={item.to}
                               onClick={closeProfile}
                               className="
-                                focus-ring
-                                flex
-                                items-center
-                                gap-2.5
-                                rounded-md
-                                px-3 py-2
-                                text-sm
-                                text-ink-muted
-                                transition-colors
-                                hover:bg-cream
-                                hover:text-ink
-                              "
+                                  focus-ring
+                                  flex
+                                  items-center
+                                  gap-2.5
+                                  rounded-md
+                                  px-3 py-2
+                                  text-sm
+                                  text-ink-muted
+                                  transition-colors
+                                  hover:bg-cream
+                                  hover:text-ink
+                                "
                             >
                               <Icon size={15} strokeWidth={1.8} />
 
@@ -588,7 +652,7 @@ const DeptTPONavbar = ({
                           type="button"
                           variant="danger"
                           size="sm"
-                          onClick={onLogout}
+                          onClick={handleLogout}
                           className="
                             mt-1
                             w-full
@@ -616,9 +680,15 @@ const DeptTPONavbar = ({
             <motion.button
               type="button"
               aria-label="Close navigation overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{
+                opacity: 0,
+              }}
+              animate={{
+                opacity: 1,
+              }}
+              exit={{
+                opacity: 0,
+              }}
               onClick={closeMobileNavigation}
               className="
                 fixed inset-0
@@ -631,9 +701,15 @@ const DeptTPONavbar = ({
 
             {/* Drawer */}
             <motion.aside
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
+              initial={{
+                x: "-100%",
+              }}
+              animate={{
+                x: 0,
+              }}
+              exit={{
+                x: "-100%",
+              }}
               transition={{
                 duration: 0.25,
                 ease: [0.4, 0, 0.2, 1],
@@ -688,7 +764,10 @@ const DeptTPONavbar = ({
                     <img
                       src="/jgecLogo.png"
                       alt="JGEC"
-                      className="size-full object-contain"
+                      className="
+                        size-full
+                        object-contain
+                      "
                     />
                   </span>
 
@@ -776,17 +855,17 @@ const DeptTPONavbar = ({
                           }
                           aria-expanded={applicationsOpen}
                           className="
-                            focus-ring
-                            flex w-full
-                            items-center gap-2
-                            rounded-lg
-                            px-3 py-2
-                            text-sm font-medium
-                            text-ink-muted
-                            transition-colors
-                            hover:bg-cream-dark
-                            hover:text-ink
-                          "
+                              focus-ring
+                              flex w-full
+                              items-center gap-2
+                              rounded-lg
+                              px-3 py-2
+                              text-sm font-medium
+                              text-ink-muted
+                              transition-colors
+                              hover:bg-cream-dark
+                              hover:text-ink
+                            "
                         >
                           <Icon size={16} strokeWidth={1.8} />
 
@@ -796,11 +875,11 @@ const DeptTPONavbar = ({
                             size={14}
                             strokeWidth={1.8}
                             className={`
-                              ml-auto
-                              transition-transform
-                              duration-150
-                              ${applicationsOpen ? "rotate-180" : ""}
-                            `}
+                                ml-auto
+                                transition-transform
+                                duration-150
+                                ${applicationsOpen ? "rotate-180" : ""}
+                              `}
                           />
                         </button>
 
@@ -827,13 +906,13 @@ const DeptTPONavbar = ({
                             >
                               <div
                                 className="
-                                  ml-4
-                                  mt-1
-                                  space-y-1
-                                  border-l
-                                  border-border
-                                  pl-2
-                                "
+                                    ml-4
+                                    mt-1
+                                    space-y-1
+                                    border-l
+                                    border-border
+                                    pl-2
+                                  "
                               >
                                 {item.children.map((child) => {
                                   const ChildIcon = child.icon;
@@ -926,12 +1005,25 @@ const DeptTPONavbar = ({
                     </span>
 
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-ink">
+                      <p
+                        className="
+                          truncate
+                          text-sm
+                          font-semibold
+                          text-ink
+                        "
+                      >
                         {coordinator.name}
                       </p>
 
-                      <p className="truncate text-xs text-ink-muted">
-                        {coordinator.department}
+                      <p
+                        className="
+                          truncate
+                          text-xs
+                          text-ink-muted
+                        "
+                      >
+                        {coordinator.email}
                       </p>
                     </div>
                   </div>
