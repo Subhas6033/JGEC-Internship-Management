@@ -25,8 +25,8 @@ const registerStudents = asyncHandler(async (req, res) => {
     password,
     rollNumber,
     department,
-    gurdianName,
-    gurdianMobile,
+    guardianName,
+    guardianMobile,
   } = req.body;
 
   if (
@@ -37,15 +37,13 @@ const registerStudents = asyncHandler(async (req, res) => {
       password,
       rollNumber,
       department,
-      gurdianName,
-      gurdianMobile,
-    ].some(
-      (value) => !value || (typeof value === "string" && value.trim() === ""),
-    )
+      guardianName,
+      guardianMobile,
+    ].some((field) => !field?.trim())
   ) {
     throw new APIERR(
       HTTP_STATUS.BAD_REQUEST,
-      "Please provide all the required fields",
+      "All required fields must be provided",
     );
   }
 
@@ -135,8 +133,8 @@ const registerStudents = asyncHandler(async (req, res) => {
     rollNumber: normalizedRollNumber,
     department,
     signature: uploadedSignature.secure_url,
-    gurdianName: gurdianName.trim(),
-    gurdianMobile: gurdianMobile.trim(),
+    guardianName: guardianName.trim(),
+    guardianMobile: guardianMobile.trim(),
   });
   // Replace existing browsers sessions
   await revokeUserSession(

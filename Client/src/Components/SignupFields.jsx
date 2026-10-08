@@ -63,7 +63,7 @@ const StepOneFields = ({
 
   return (
     <div className="space-y-6">
-      {/* PERSONAL DETAILS */}
+      {/* Personal Details */}
       <section>
         <p className="eyebrow">Personal details</p>
 
@@ -192,7 +192,7 @@ const StepOneFields = ({
         </div>
       </section>
 
-      {/* ACADEMIC DETAILS */}
+      {/* Academic Details */}
       <section
         className="
           border-t
@@ -244,18 +244,11 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
 
   return (
     <div className="space-y-6">
-      {/* GUARDIAN DETAILS */}
+      {/* Gurdian Details */}
       <section>
         <p className="eyebrow">Guardian details</p>
 
-        <div
-          className="
-            mt-4
-            grid
-            gap-4
-            sm:grid-cols-2
-          "
-        >
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {/* Guardian Name */}
           <Input
             label="Guardian name"
@@ -263,10 +256,10 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
             required
             icon={UserRound}
             className={inputClassName}
-            {...register("gurdianName", {
+            {...register("guardianName", {
               required: "Guardian name is required.",
             })}
-            error={errors?.gurdianName?.message}
+            error={errors?.guardianName?.message}
           />
 
           {/* Guardian Mobile */}
@@ -277,7 +270,7 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
             placeholder="9876543210"
             icon={Phone}
             className={inputClassName}
-            {...register("gurdianMobile", {
+            {...register("guardianMobile", {
               required: "Guardian mobile number is required.",
               validate: (value) => {
                 const digits = value.replace(/\D/g, "");
@@ -288,19 +281,13 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
                 );
               },
             })}
-            error={errors?.gurdianMobile?.message}
+            error={errors?.guardianMobile?.message}
           />
         </div>
       </section>
 
-      {/* SIGNATURE */}
-      <section
-        className="
-          border-t
-          border-border
-          pt-5
-        "
-      >
+      {/* Signature */}
+      <section className="border-t border-border pt-5">
         <p className="eyebrow">
           Signature
           <span className="ml-1 text-red-500" aria-hidden="true">
@@ -370,11 +357,7 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
           <input
             id="signature"
             type="file"
-            accept="
-              image/jpeg,
-              image/png,
-              image/webp
-            "
+            accept="image/jpeg,image/jpg,image/png,image/webp"
             className="hidden"
             onChange={handleSignatureChange}
           />
@@ -395,5 +378,7 @@ const StepTwoFields = ({ register, errors, watch, handleSignatureChange }) => {
     </div>
   );
 };
+
+export default StepTwoFields;
 
 export { StepOneFields, StepTwoFields };

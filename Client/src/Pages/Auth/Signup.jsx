@@ -10,14 +10,11 @@ import { setAuth } from "../../Store/Slice/authSlice";
 const Signup = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState("");
-
   const { signup, isLoading, error } = useSignup();
-
   const {
     register,
     handleSubmit,
@@ -34,15 +31,14 @@ const Signup = () => {
       password: "",
       rollNumber: "",
       department: "",
-      gurdianName: "",
-      gurdianMobile: "",
+      guardianName: "",
+      guardianMobile: "",
       signature: null,
     },
   });
 
   const goToStepTwo = async () => {
     setApiError("");
-
     const fields = [
       "fullName",
       "email",
@@ -51,16 +47,12 @@ const Signup = () => {
       "rollNumber",
       "department",
     ];
-
     const isValid = await trigger(fields);
-
     if (!isValid) {
       return;
     }
-
     setDirection(1);
     setStep(2);
-
     window.scrollTo({
       top: 0,
       behavior: "smooth",
@@ -84,7 +76,6 @@ const Signup = () => {
 
   const handleSignatureChange = (event) => {
     const file = event.target.files?.[0] || null;
-
     setValue("signature", file, {
       shouldDirty: true,
       shouldTouch: true,
@@ -94,7 +85,6 @@ const Signup = () => {
 
   const submitRegistration = async (data) => {
     setApiError("");
-
     const studentData = {
       fullName: data.fullName.trim(),
       email: data.email.trim().toLowerCase(),
@@ -102,24 +92,21 @@ const Signup = () => {
       password: data.password,
       rollNumber: data.rollNumber.trim(),
       department: data.department,
-      gurdianName: data.gurdianName.trim(),
-      gurdianMobile: data.gurdianMobile,
+      guardianName: data.guardianName.trim(),
+      guardianMobile: data.guardianMobile,
       signature: data.signature instanceof File ? data.signature : null,
     };
 
     try {
       const response = await signup(studentData);
-
       const student = response?.data?.student;
       const accessToken = response?.data?.accessToken;
-
       dispatch(
         setAuth({
           user: student,
           accessToken,
         }),
       );
-
       navigate("/students/dashboard", {
         replace: true,
       });
@@ -132,34 +119,26 @@ const Signup = () => {
 
   const submitStepTwo = async () => {
     setApiError("");
-
     const signature = watch("signature");
-
     if (!(signature instanceof File)) {
       setApiError("Signature is required.");
       return;
     }
-
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-
     if (!allowedTypes.includes(signature.type)) {
       setApiError("Only JPG, JPEG, PNG or WEBP images are allowed.");
       return;
     }
-
     const minSize = 30 * 1024;
     const maxSize = 100 * 1024;
-
     if (signature.size < minSize) {
       setApiError("Signature must be at least 30KB.");
       return;
     }
-
     if (signature.size > maxSize) {
       setApiError("Signature must not exceed 100KB.");
       return;
     }
-
     await handleSubmit(
       async (data) => {
         await submitRegistration(data);
@@ -203,7 +182,6 @@ const Signup = () => {
         "
       >
         <SignupIntro apiError={displayedError} />
-
         <SignupCard
           step={step}
           direction={direction}

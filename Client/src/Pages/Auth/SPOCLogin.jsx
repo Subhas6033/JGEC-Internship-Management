@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,7 @@ const SPOCLogin = () => {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     mode: "onBlur",
@@ -26,7 +27,22 @@ const SPOCLogin = () => {
       rememberMe: false,
     },
   });
+
   const { mutateAsync: loginSpoc } = useSpocLogin();
+
+  useEffect(() => {
+    document.title = "SPOC Login | JGEC Internship Management Portal";
+    const description =
+      "Sign in to the JGEC Internship Management Portal as a SPOC.";
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+      metaDescription.name = "description";
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.content = description;
+  }, []);
+
   const onSubmit = async (data) => {
     try {
       await loginSpoc({
@@ -38,10 +54,18 @@ const SPOCLogin = () => {
         replace: true,
       });
     } catch (error) {
-      console.error(
-        "SPOC login failed:",
-        error?.response?.data?.message || error?.message,
-      );
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Unable to sign in. Please check your credentials and try again.";
+
+      setError("root", {
+        type: "server",
+        message,
+      });
+
+      console.error("SPOC login failed:", message);
     }
   };
 
@@ -60,7 +84,6 @@ const SPOCLogin = () => {
           animate="visible"
           className="grid w-full overflow-hidden rounded-2xl border border-border bg-(--color-surface) shadow-(--shadow-card) lg:grid-cols-2"
         >
-          {/* Brand panel */}
           <div className="hidden bg-brand-900 p-10 text-(--color-cream-soft) lg:flex lg:flex-col lg:justify-between">
             <div>
               <div className="flex items-center gap-3">
@@ -100,7 +123,6 @@ const SPOCLogin = () => {
             </p>
           </div>
 
-          {/* Login */}
           <div className="flex items-center p-5 sm:p-8 lg:p-12">
             <motion.div
               variants={staggerContainer}
@@ -139,7 +161,6 @@ const SPOCLogin = () => {
               <Card className="border-border bg-(--color-surface) shadow-none">
                 <Card.Content className="mt-5 p-5 sm:p-6">
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                    {/* Email */}
                     <Input
                       label="Official email"
                       type="email"
@@ -157,7 +178,6 @@ const SPOCLogin = () => {
                       className={inputClass}
                     />
 
-                    {/* Password */}
                     <Input
                       label="Password"
                       type={showPassword ? "text" : "password"}
@@ -189,7 +209,6 @@ const SPOCLogin = () => {
                       className={inputClass}
                     />
 
-                    {/* Remember / Forgot */}
                     <div className="flex items-center justify-between gap-3">
                       <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-muted">
                         <input
@@ -208,7 +227,15 @@ const SPOCLogin = () => {
                       </Link>
                     </div>
 
-                    {/* Submit */}
+                    {errors.root?.message && (
+                      <div
+                        role="alert"
+                        className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                      >
+                        {errors.root.message}
+                      </div>
+                    )}
+
                     <Button
                       type="submit"
                       size="lg"
@@ -223,7 +250,6 @@ const SPOCLogin = () => {
                 </Card.Content>
               </Card>
 
-              {/* Signup */}
               <p className="mt-5 text-center text-sm text-ink-muted">
                 Don't have a SPOC account?{" "}
                 <Link
@@ -234,7 +260,6 @@ const SPOCLogin = () => {
                 </Link>
               </p>
 
-              {/* Other portals */}
               <div className="mt-5 flex justify-center gap-4 text-xs text-ink-muted">
                 <Link
                   to="/auth/login"

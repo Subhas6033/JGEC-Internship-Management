@@ -25,6 +25,7 @@ import { studentDocumentRoutes } from "./routes/studentDocuments.routes.js";
 import { studentNotificationRoutes } from "./routes/studentNotifications.routes.js";
 import { tpoDashboardRoutes } from "./routes/depttpoDashboard.routes.js";
 import { tpoApplicationRoutes } from "./routes/tpoApplication.routes.js";
+import { spocApplicationRoutes } from "./routes/spocApplication.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/application", studentApplicationRoutes);
@@ -34,6 +35,7 @@ app.use("/api/v1/student/documents", studentDocumentRoutes);
 app.use("/api/v1/student/notifications", studentNotificationRoutes);
 app.use("/api/v1/tpo/dashboard", tpoDashboardRoutes);
 app.use("/api/v1/applications", tpoApplicationRoutes);
+app.use("/api/v1/applications", spocApplicationRoutes);
 
 //Centralize err handlers
 app.use(errorMiddleware);

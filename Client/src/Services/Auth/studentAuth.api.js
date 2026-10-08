@@ -10,8 +10,8 @@ const registerStudent = async (studentData) => {
     "password",
     "rollNumber",
     "department",
-    "gurdianName",
-    "gurdianMobile",
+    "guardianName",
+    "guardianMobile",
   ].forEach((key) => {
     formData.append(key, studentData[key] ?? "");
   });

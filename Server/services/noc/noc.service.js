@@ -1,364 +1,405 @@
 import PDFDocument from "pdfkit";
-import crypto from "crypto";
-import { uploadToCloudinary } from "../../upload/uploadOnCloudinary.upload.js";
-import { StudentApplication } from "../../models/studentApplication.models.js";
-import { StudentNOC } from "../../models/studentNoc.models.js";
-import { StudentDocument } from "../../models/studentDocument.models.js";
 
-const ACCEPTED_STATUSES = ["approved_by_spoc", "accepted"];
+/* -------------------------------------------------------------------------- */
+/* HELPERS                                                                    */
+/* -------------------------------------------------------------------------- */
 
-const getStudentName = (student) =>
-  student?.fullName || student?.name || student?.studentName || "Student";
-
-const getStudentRollNumber = (student) =>
-  student?.rollNumber ||
-  student?.registrationNumber ||
-  student?.studentId ||
-  "N/A";
-
-const formatDate = (date) => {
-  if (!date) {
-    return "N/A";
+const safeValue = (value, fallback = "—") => {
+  if (value === undefined || value === null || String(value).trim() === "") {
+    return fallback;
   }
 
-  return new Date(date).toLocaleDateString("en-IN", {
+  return String(value).trim();
+};
+
+const formatDate = (date) => {
+  if (!date) return "—";
+
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "—";
+  }
+
+  return parsed.toLocaleDateString("en-IN", {
     day: "2-digit",
-    month: "long",
+    month: "2-digit",
     year: "numeric",
   });
 };
 
-/**
- * Create PDF buffer for NOC.
- */
-const createPdfBuffer = ({
-  student,
-  application,
-  organisation,
-  signatureUrl,
-}) =>
-  new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: "A4",
-      margin: 55,
-    });
+const getOrganisationName = (organisation) => {
+  return (
+    organisation?.name ||
+    organisation?.organisationName ||
+    organisation?.companyName ||
+    "Organisation"
+  );
+};
 
-    const chunks = [];
+const getOrganisationEmail = (organisation) => {
+  return organisation?.email || organisation?.contactEmail || "";
+};
 
-    doc.on("data", (chunk) => {
-      chunks.push(chunk);
-    });
+const getOrganisationPhone = (organisation) => {
+  return (
+    organisation?.phone ||
+    organisation?.contactNumber ||
+    organisation?.mobileNumber ||
+    ""
+  );
+};
 
-    doc.on("end", () => {
-      resolve(Buffer.concat(chunks));
-    });
+const getOrganisationAddress = (organisation) => {
+  const parts = [
+    organisation?.address,
+    organisation?.city,
+    organisation?.state,
+    organisation?.pincode,
+  ].filter(Boolean);
 
-    doc.on("error", reject);
+  return parts.join(", ");
+};
 
-    const studentName = getStudentName(student);
-    const rollNumber = getStudentRollNumber(student);
+/* -------------------------------------------------------------------------- */
+/* PDF GENERATOR                                                              */
+/* -------------------------------------------------------------------------- */
 
-    const organisationName =
-      organisation?.organisationName ||
-      organisation?.name ||
-      organisation?.organisation ||
-      "the concerned organisation";
+export const generateNocPdf = ({ noc, application, student, organisation }) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: "A4",
+        margins: {
+          top: 45,
+          bottom: 45,
+          left: 55,
+          right: 55,
+        },
+      });
 
-    const designation = application?.designation || "an intern";
+      const chunks = [];
 
-    const workLocations =
-      application?.tentativeWorkLocations?.length > 0
-        ? application.tentativeWorkLocations.join(", ")
-        : "Not specified";
+      doc.on("data", (chunk) => {
+        chunks.push(chunk);
+      });
 
-    /*
-     * Header
-     */
-    doc
-      .fontSize(18)
-      .font("Helvetica-Bold")
-      .text("JALPAIGURI GOVERNMENT ENGINEERING COLLEGE", {
+      doc.on("end", () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      doc.on("error", reject);
+
+      /* -------------------------------------------------------------------- */
+      /* HEADER                                                               */
+      /* -------------------------------------------------------------------- */
+
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(15)
+        .text("JALPAIGURI GOVERNMENT ENGINEERING COLLEGE", {
+          align: "center",
+        });
+
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text("GOVERNMENT OF WEST BENGAL", {
+          align: "center",
+        });
+
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text("TRAINING AND PLACEMENT CELL", {
+          align: "center",
+        });
+
+      doc.font("Helvetica").fontSize(9).text("JALPAIGURI-735102", {
         align: "center",
       });
 
-    doc.moveDown(0.5);
+      doc.moveDown(1.5);
 
-    doc.fontSize(10).font("Helvetica").text("Internship Management Portal", {
-      align: "center",
-    });
+      /* -------------------------------------------------------------------- */
+      /* REFERENCE + DATE                                                     */
+      /* -------------------------------------------------------------------- */
 
-    doc.moveDown(1.5);
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(`Ref No: ${safeValue(noc.referenceNumber)}`, {
+          continued: true,
+        });
 
-    /*
-     * NOC heading
-     */
-    doc.fontSize(14).font("Helvetica-Bold").text("NO OBJECTION CERTIFICATE", {
-      align: "center",
-      underline: true,
-    });
+      doc.font("Helvetica").text(`    Date: ${formatDate(noc.generatedAt)}`, {
+        align: "left",
+      });
 
-    doc.moveDown(1.5);
+      doc.moveDown(1.2);
 
-    /*
-     * Student statement
-     */
-    doc
-      .fontSize(11)
-      .font("Helvetica")
-      .text(
-        `This is to certify that ${studentName}, Roll/Registration No. ${rollNumber}, is a student of Jalpaiguri Government Engineering College.`,
+      /* -------------------------------------------------------------------- */
+      /* RECIPIENT                                                             */
+      /* -------------------------------------------------------------------- */
+
+      const organisationName = getOrganisationName(organisation);
+      const organisationAddress = getOrganisationAddress(organisation);
+
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(
+          safeValue(
+            organisation?.contactPersonDesignation ||
+              organisation?.contactPersonRole,
+            "Head Technical Service Department",
+          ),
+        );
+
+      doc.font("Helvetica").fontSize(10).text(organisationName);
+
+      if (organisationAddress) {
+        doc.text(organisationAddress);
+      }
+
+      if (getOrganisationEmail(organisation)) {
+        doc.text(getOrganisationEmail(organisation));
+      }
+
+      if (getOrganisationPhone(organisation)) {
+        doc.text(getOrganisationPhone(organisation));
+      }
+
+      doc.moveDown(1);
+
+      /* -------------------------------------------------------------------- */
+      /* SUBJECT                                                               */
+      /* -------------------------------------------------------------------- */
+
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(
+          "Subject: Request for granting permission to undertake Training/Internship program",
+        );
+
+      doc.moveDown(1);
+
+      /* -------------------------------------------------------------------- */
+      /* SALUTATION                                                            */
+      /* -------------------------------------------------------------------- */
+
+      doc.font("Helvetica").fontSize(10).text("Dear Sir/Madam,");
+
+      doc.moveDown(0.8);
+
+      /* -------------------------------------------------------------------- */
+      /* INTRODUCTION                                                          */
+      /* -------------------------------------------------------------------- */
+
+      doc.text("Greetings from Jalpaiguri Government Engineering College!", {
+        lineGap: 2,
+      });
+
+      doc.moveDown(0.5);
+
+      /* -------------------------------------------------------------------- */
+      /* INTERNSHIP BODY                                                       */
+      /* -------------------------------------------------------------------- */
+
+      const studentName = safeValue(student?.fullName);
+      const department = safeValue(
+        student?.department?.name ||
+          student?.department ||
+          application?.department,
+      );
+
+      const semester = safeValue(student?.semester || application?.semester);
+
+      const batch = safeValue(student?.batch || application?.batch, "");
+
+      const startDate = formatDate(application?.startDate);
+      const endDate = formatDate(application?.endDate);
+
+      const academicYearText = batch ? ` (${batch} Batch)` : "";
+
+      const bodyText =
+        `We would like to inform you that, the following student from ` +
+        `Jalpaiguri Government Engineering College, currently studying ` +
+        `${semester !== "—" ? `${semester} Semester, ` : ""}` +
+        `Department of ${department}${academicYearText}, wishes to undertake ` +
+        `their Internship/Training programme at your esteemed organization ` +
+        `from ${startDate} to ${endDate}. This Internship/Training Program ` +
+        `is an integral part of their B. Tech Program curriculum and aims to ` +
+        `impart industry & research-oriented learning. We are confident that, ` +
+        `your esteemed organization will offer them valuable practical exposure.`;
+
+      doc.text(bodyText, {
+        align: "justify",
+        lineGap: 3,
+      });
+
+      doc.moveDown(0.8);
+
+      doc.text(
+        "Hence, we kindly request you to grant them permission to undertake " +
+          "the aforesaid Internship / Training programme at your prestigious " +
+          "organization and we shall be grateful for your co-operation.",
         {
           align: "justify",
-          lineGap: 6,
+          lineGap: 3,
         },
       );
 
-    doc.moveDown(1);
+      doc.moveDown(1);
 
-    /*
-     * Organisation statement
-     */
-    doc.text(
-      `The college has no objection to the student undertaking an internship with ${organisationName} as ${designation}.`,
-      {
-        align: "justify",
-        lineGap: 6,
-      },
-    );
+      /* -------------------------------------------------------------------- */
+      /* STUDENT DETAILS                                                      */
+      /* -------------------------------------------------------------------- */
 
-    doc.moveDown(1);
-
-    /*
-     * Internship period
-     */
-    doc.text(
-      `The proposed internship period is from ${formatDate(
-        application?.tentativeStartDate,
-      )} to ${formatDate(application?.tentativeEndDate)}.`,
-      {
-        lineGap: 6,
-      },
-    );
-
-    doc.moveDown(1);
-
-    /*
-     * Work location
-     */
-    doc.text(`Work location: ${workLocations}.`, {
-      lineGap: 6,
-    });
-
-    doc.moveDown(1);
-
-    /*
-     * Internship mode/type
-     */
-    doc.text(
-      `Internship type: ${application?.internshipType || "Not specified"}.`,
-      {
-        lineGap: 6,
-      },
-    );
-
-    doc.text(
-      `Mode of internship: ${
-        application?.modeOfInternship || "Not specified"
-      }.`,
-      {
-        lineGap: 6,
-      },
-    );
-
-    doc.moveDown(2);
-
-    /*
-     * Final statement
-     */
-    doc.text(
-      "This certificate is issued after completion of the required internship application verification and approval process.",
-      {
-        align: "justify",
-        lineGap: 6,
-      },
-    );
-
-    doc.moveDown(3);
-
-    /*
-     * Signature
-     */
-    if (signatureUrl) {
-      try {
-        doc.fontSize(10).font("Helvetica").text("Student Signature:");
-
-        doc.moveDown(0.5);
-
-        doc.image(signatureUrl, {
-          fit: [120, 60],
-          align: "left",
-        });
-      } catch {
-        /*
-         * Signature is optional.
-         * PDF generation should continue even
-         * if the signature cannot be embedded.
-         */
-      }
-    } else {
       doc
+        .font("Helvetica-Bold")
         .fontSize(10)
-        .font("Helvetica")
-        .text("Student Signature: ____________________");
-    }
+        .text("The details of the student are as follows:");
 
-    doc.moveDown(2);
+      doc.moveDown(0.7);
 
-    /*
-     * Generated information
-     */
-    doc.font("Helvetica-Bold").fontSize(10).text("Generated on:");
+      const tableX = 55;
+      const tableWidth = 485;
 
-    doc.font("Helvetica").fontSize(10).text(formatDate(new Date()));
-
-    doc.moveDown(3);
-
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(10)
-      .text("Jalpaiguri Government Engineering College");
-
-    doc
-      .font("Helvetica")
-      .fontSize(8)
-      .fillColor("gray")
-      .text(
-        "Digitally generated through the JGEC Internship Management Portal.",
+      const columns = [
         {
-          align: "center",
+          title: "Name of the Student",
+          value: studentName,
+          width: 95,
         },
-      );
+        {
+          title: "Email-Id",
+          value: safeValue(student?.email),
+          width: 90,
+        },
+        {
+          title: "Sem",
+          value: semester,
+          width: 45,
+        },
+        {
+          title: "Roll No.",
+          value: safeValue(student?.rollNumber),
+          width: 65,
+        },
+        {
+          title: "Contact No.\n(Student)",
+          value: safeValue(student?.mobileNumber),
+          width: 65,
+        },
+        {
+          title: "Guardian's Name",
+          value: safeValue(student?.guardianName),
+          width: 75,
+        },
+        {
+          title: "Contact\n(Guardian)",
+          value: safeValue(student?.guardianMobile),
+          width: 50,
+        },
+      ];
 
-    doc.end();
-  });
+      const headerHeight = 45;
+      const rowHeight = 60;
 
-/**
- * Generate or regenerate NOC for an accepted application.
- */
-export const generateNOCForApplication = async (applicationId) => {
-  const application = await StudentApplication.findById(applicationId)
-    .populate("student")
-    .populate("organisation");
+      let currentX = tableX;
 
-  if (!application) {
-    throw new Error("Application not found");
-  }
+      /* Header */
+      doc.rect(tableX, doc.y, tableWidth, headerHeight).stroke();
 
-  /*
-   * NOC can only be generated after final approval.
-   */
-  if (!ACCEPTED_STATUSES.includes(application.status)) {
-    throw new Error("NOC can only be generated for an accepted application");
-  }
+      columns.forEach((column) => {
+        doc.rect(currentX, doc.y, column.width, headerHeight).stroke();
 
-  /*
-   * Student document containing signature.
-   */
-  const studentDocument = await StudentDocument.findOne({
-    student: application.student._id,
-  }).lean();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .text(column.title, currentX + 3, doc.y + 5, {
+            width: column.width - 6,
+            height: headerHeight - 8,
+            align: "center",
+          });
 
-  /*
-   * Check whether an NOC already exists.
-   */
-  const existingNoc = await StudentNOC.findOne({
-    application: application._id,
-  });
+        currentX += column.width;
+      });
 
-  /*
-   * Every regeneration creates a new version.
-   */
-  const version = existingNoc ? existingNoc.version + 1 : 1;
+      const rowTop = doc.y + headerHeight;
 
-  /*
-   * Keep the same NOC ID when regenerating.
-   */
-  const nocId =
-    existingNoc?.nocId ||
-    `NOC-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
+      currentX = tableX;
 
-  const fileName = `${nocId}.pdf`;
+      columns.forEach((column) => {
+        doc.rect(currentX, rowTop, column.width, rowHeight).stroke();
 
-  /*
-   * Generate PDF.
-   */
-  const pdfBuffer = await createPdfBuffer({
-    student: application.student,
-    application,
-    organisation: application.organisation,
-    signatureUrl: studentDocument?.signature?.url || null,
-  });
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .text(column.value, currentX + 3, rowTop + 8, {
+            width: column.width - 6,
+            height: rowHeight - 12,
+            align: "center",
+            lineGap: 1,
+          });
 
-  /*
-   * Cloudinary public ID.
-   *
-   * Version is included so a regenerated NOC
-   * does not overwrite the previous Cloudinary file.
-   */
-  const publicId = `${application.student._id}/${nocId}-v${version}`;
+        currentX += column.width;
+      });
 
-  /*
-   * IMPORTANT:
-   *
-   * Reuse the project's existing Cloudinary uploader.
-   *
-   * "pdf" is automatically converted to
-   * resource_type: "raw" by uploadToCloudinary().
-   */
-  const uploaded = await uploadToCloudinary(
-    pdfBuffer,
-    "pdf",
-    process.env.CLOUDINARY_FOLDER
-      ? `${process.env.CLOUDINARY_FOLDER}/noc`
-      : "jgec-internship/noc",
-    publicId,
-  );
+      doc.y = rowTop + rowHeight + 25;
 
-  /*
-   * Update existing NOC.
-   */
-  if (existingNoc) {
-    existingNoc.fileName = fileName;
-    existingNoc.url = uploaded.secure_url;
-    existingNoc.publicId = uploaded.public_id;
-    existingNoc.version = version;
-    existingNoc.generatedAt = new Date();
-    existingNoc.generatedForStatus = application.status;
+      /* -------------------------------------------------------------------- */
+      /* CLOSING                                                              */
+      /* -------------------------------------------------------------------- */
 
-    await existingNoc.save();
+      doc.font("Helvetica").fontSize(10).text("Best regards.");
 
-    return existingNoc;
-  }
+      doc.moveDown(2);
 
-  /*
-   * Create first NOC.
-   */
-  return StudentNOC.create({
-    application: application._id,
-    student: application.student._id,
+      doc
+        .font("Helvetica")
+        .text("---------------------------------------------");
 
-    nocId,
+      doc
+        .font("Helvetica-Bold")
+        .text("Departmental Training and Placement Coordinator");
 
-    fileName,
+      doc
+        .font("Helvetica")
+        .text("---------------------------------------------");
 
-    url: uploaded.secure_url,
+      doc.moveDown(0.5);
 
-    publicId: uploaded.public_id,
+      doc.font("Helvetica-Bold").text("Sandipan Ganguly");
 
-    generatedAt: new Date(),
+      doc.font("Helvetica").text("Training & Placement Coordinator,");
 
-    version,
+      doc.text("Jalpaiguri Government Engineering College");
 
-    generatedForStatus: application.status,
+      doc.text("+91-7319579443 | training@jgec.ac.in");
+
+      doc.text("SPOC regarding Training and Internship");
+
+      doc.moveDown(1);
+
+      /* -------------------------------------------------------------------- */
+      /* COPY TO                                                              */
+      /* -------------------------------------------------------------------- */
+
+      doc.font("Helvetica-Bold").text("Copy to:");
+
+      doc
+        .font("Helvetica")
+        .text(
+          "Dr. Samir Das; Head, Training & Placement Cell; " +
+            "Jalpaiguri Government Engineering College",
+        );
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
   });
 };
