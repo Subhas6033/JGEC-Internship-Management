@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -24,6 +24,22 @@ const SPOCSignup = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  useEffect(() => {
+    document.title = "SPOC Signup | JGEC Internship Management Portal";
+
+    const description =
+      "Sign up to the JGEC Internship Management Portal as a SPOC.";
+
+    let metaDescription = document.querySelector('meta[name="description"]');
+
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+      metaDescription.name = "description";
+      document.head.appendChild(metaDescription);
+    }
+
+    metaDescription.content = description;
+  }, []);
   const {
     register,
     handleSubmit,

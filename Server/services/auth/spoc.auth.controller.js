@@ -46,8 +46,9 @@ const spocRegistration = asyncHandler(async (req, res) => {
   // validate SPOC ID
   const isSPOCIdValid =
     normalizedSpocId === process.env.SPOC_ID?.trim().toUpperCase();
+  console.log(isSPOCIdValid);
 
-  if (isSPOCIdValid) {
+  if (!isSPOCIdValid) {
     throw new APIERR(
       HTTP_STATUS.CONFLICT,
       "SPOC ID is not valid. Please provide a valid SPOC ID",
@@ -61,7 +62,7 @@ const spocRegistration = asyncHandler(async (req, res) => {
     mobile: normalizedMobile,
     password,
     department: normalizedDepartment,
-    role: "SPOC",
+    role: "spoc",
   });
 
   // Remove sensitive fields

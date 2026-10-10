@@ -1,59 +1,168 @@
 import { useMemo, useState } from "react";
+
 import { Search, SlidersHorizontal } from "lucide-react";
+
 import { motion } from "framer-motion";
-import { Card, Input } from "../../../Components/index";
+
+import { Card, Input, Button } from "../../../Components/index";
+
 import SPOCApplicationStatusFilter from "../../../Components/SPOC/SPOCApplicationStatusFilter";
-import SPOCApplicationListCard from "../../../Components/SPOC/SPOCApplicationListCard";
+
+import { useNavigate } from "react-router-dom";
 import {
   fadeUp,
   staggerContainer,
   viewport,
 } from "../../../Animations/animations";
-import { applications } from "./application.data";
+
+import { useSpocApplications } from "../../../Services/Queries/spocApplication.quires";
 
 const SPOCApplications = () => {
   const [activeStatus, setActiveStatus] = useState("pending");
 
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+
+  const { data, isLoading, isError, error } = useSpocApplications({
+    search,
+    status: "all",
+  });
+
+  const applications = useMemo(() => {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (Array.isArray(data?.applications)) {
+      return data.applications;
+    }
+
+    return [];
+  }, [data]);
+
+  /* ---------------------------------------------------------------------- */
+  /* Counts                                                                  */
+  /* ---------------------------------------------------------------------- */
 
   const counts = useMemo(() => {
     return {
       pending: applications.filter(
-        (application) => application.status === "pending",
+        (application) => application.status === "under_spoc_review",
       ).length,
 
       accepted: applications.filter(
-        (application) => application.status === "accepted",
+        (application) =>
+          application.status === "approved_by_spoc" ||
+          application.status === "noc_generated",
       ).length,
 
       rejected: applications.filter(
         (application) => application.status === "rejected",
       ).length,
     };
-  }, []);
+  }, [applications]);
+
+  /* ---------------------------------------------------------------------- */
+  /* Client-side search + status filter                                      */
+  /* ---------------------------------------------------------------------- */
 
   const filteredApplications = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
     return applications.filter((application) => {
-      const matchesStatus = application.status === activeStatus;
+      /* Status filter */
 
-      if (!normalizedSearch) {
-        return matchesStatus;
+      if (
+        activeStatus === "pending" &&
+        application.status !== "under_spoc_review"
+      ) {
+        return false;
       }
 
-      const matchesSearch =
-        application.company.toLowerCase().includes(normalizedSearch) ||
-        application.location.toLowerCase().includes(normalizedSearch) ||
-        application.id.toLowerCase().includes(normalizedSearch);
+      if (
+        activeStatus === "accepted" &&
+        application.status !== "approved_by_spoc" &&
+        application.status !== "noc_generated"
+      ) {
+        return false;
+      }
 
-      return matchesStatus && matchesSearch;
+      if (activeStatus === "rejected" && application.status !== "rejected") {
+        return false;
+      }
+
+      /* Search */
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const searchableText = [
+        application._id,
+        application.applicationId,
+        application.organisation?.organisationName,
+        application.organisation?.organisationLocation,
+        application.organisation?.organisationMail,
+        application.student?.fullName,
+        application.student?.email,
+        application.student?.rollNumber,
+        application.student?.department,
+        application.companyName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedSearch);
     });
-  }, [activeStatus, search]);
+  }, [applications, activeStatus, search]);
 
   const handleViewApplication = (application) => {
-    console.log("View SPOC application:", application);
+    const applicationId = application?._id;
+
+    if (!applicationId) {
+      console.error("Cannot view application: application ID is missing.");
+      return;
+    }
+
+    navigate(`/spoc/applications/${applicationId}`);
   };
+
+  /* ---------------------------------------------------------------------- */
+  /* Loading                                                                 */
+  /* ---------------------------------------------------------------------- */
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-60 items-center justify-center">
+        <p className="text-sm text-ink-muted">Loading applications...</p>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Error                                                                   */
+  /* ---------------------------------------------------------------------- */
+
+  if (isError) {
+    return (
+      <div className="px-4 py-8">
+        <Card className="border-red-200 bg-red-50">
+          <Card.Content className="p-6">
+            <p className="text-sm font-semibold text-red-700">
+              Failed to load SPOC applications
+            </p>
+
+            <p className="mt-1 text-xs text-red-600">
+              {error?.response?.data?.message ||
+                error?.message ||
+                "Something went wrong"}
+            </p>
+          </Card.Content>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -69,7 +178,10 @@ const SPOCApplications = () => {
         lg:px-8 lg:py-8
       "
     >
-      {/* Header */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Header                                                            */}
+      {/* ---------------------------------------------------------------- */}
+
       <motion.section
         variants={fadeUp}
         viewport={viewport}
@@ -130,7 +242,10 @@ const SPOCApplications = () => {
         </div>
       </motion.section>
 
-      {/* Status filters */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Status filter                                                     */}
+      {/* ---------------------------------------------------------------- */}
+
       <motion.section
         variants={fadeUp}
         viewport={viewport}
@@ -143,7 +258,10 @@ const SPOCApplications = () => {
         />
       </motion.section>
 
-      {/* Search */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Search                                                            */}
+      {/* ---------------------------------------------------------------- */}
+
       <motion.section
         variants={fadeUp}
         viewport={viewport}
@@ -178,7 +296,8 @@ const SPOCApplications = () => {
                   className="
                     mb-1.5 block
                     text-xs font-medium
-                    text-ink-muted p-2
+                    text-ink-muted
+                    p-2
                   "
                 >
                   Search applications
@@ -203,7 +322,6 @@ const SPOCApplications = () => {
                   px-3 py-2
                   text-xs text-ink-muted
                 "
-                title="Current application status filter"
               >
                 <SlidersHorizontal size={15} />
 
@@ -214,7 +332,10 @@ const SPOCApplications = () => {
         </Card>
       </motion.section>
 
-      {/* Applications */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Applications                                                       */}
+      {/* ---------------------------------------------------------------- */}
+
       <motion.section
         variants={fadeUp}
         viewport={viewport}
@@ -263,29 +384,186 @@ const SPOCApplications = () => {
         </div>
 
         {filteredApplications.length > 0 ? (
-          <div
-            className="
-              mt-4
-              grid w-full min-w-0
-              grid-cols-1
-              items-stretch
-              gap-4
-              xl:grid-cols-2
-            "
-          >
-            {filteredApplications.map((application) => (
-              <div
-                key={application.id}
-                className="
-                    flex min-w-0 w-full
-                  "
-              >
-                <SPOCApplicationListCard
-                  application={application}
-                  onView={handleViewApplication}
-                />
-              </div>
-            ))}
+          <div className="mt-4 w-full min-w-0 overflow-hidden rounded-xl border border-border bg-surface shadow-(--shadow-card)">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[1100px] border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-cream-soft">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Application ID
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Student
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Roll No.
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Department
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Organisation
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Internship
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Dates
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Status
+                    </th>
+
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredApplications.map((application) => {
+                    const student = application.student || {};
+
+                    const organisation = application.organisation || {};
+
+                    const startDate = application.tentativeStartDate
+                      ? new Date(
+                          application.tentativeStartDate,
+                        ).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "N/A";
+
+                    const endDate = application.tentativeEndDate
+                      ? new Date(
+                          application.tentativeEndDate,
+                        ).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "N/A";
+
+                    const statusLabel = String(
+                      application.status || "N/A",
+                    ).replaceAll("_", " ");
+
+                    const applicationId =
+                      application.applicationId || application._id || "N/A";
+
+                    const internshipType = application.internshipType || "N/A";
+
+                    const modeOfInternship =
+                      application.modeOfInternship || "N/A";
+
+                    return (
+                      <tr
+                        key={application._id}
+                        className="
+                          border-b border-border
+                          last:border-b-0
+                          transition-colors
+                          hover:bg-cream-soft/60
+                        "
+                      >
+                        <td className="whitespace-nowrap px-4 py-4">
+                          <span className="text-sm font-semibold text-ink">
+                            {applicationId}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <div className="min-w-[170px]">
+                            <p className="text-sm font-semibold text-ink">
+                              {student.fullName || "Unknown Student"}
+                            </p>
+
+                            <p className="mt-0.5 text-xs text-ink-muted">
+                              {student.email || "N/A"}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-4">
+                          <span className="text-sm text-ink">
+                            {student.rollNumber || "N/A"}
+                          </span>
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-4">
+                          <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
+                            {student.department || "N/A"}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <div className="min-w-[190px]">
+                            <p className="text-sm font-medium text-ink">
+                              {organisation.organisationName ||
+                                application.companyName ||
+                                "Unknown Organisation"}
+                            </p>
+
+                            <p className="mt-0.5 text-xs text-ink-muted">
+                              {organisation.organisationLocation || "N/A"}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <div className="min-w-[120px]">
+                            <p className="text-sm font-medium capitalize text-ink">
+                              {internshipType}
+                            </p>
+
+                            <p className="mt-0.5 text-xs capitalize text-ink-muted">
+                              {modeOfInternship}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-4">
+                          <div className="text-xs text-ink">
+                            <p>{startDate}</p>
+
+                            <p className="mt-0.5 text-ink-muted">
+                              to {endDate}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <span className="inline-flex whitespace-nowrap rounded-full bg-cream px-2.5 py-1 text-xs font-medium capitalize text-ink">
+                            {statusLabel}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <div className="flex justify-end">
+                            <Button
+                              variant="primary"
+                              type="button"
+                              onClick={() => handleViewApplication(application)}
+                            >
+                              View
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <Card

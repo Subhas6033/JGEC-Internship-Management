@@ -9,7 +9,6 @@ import {
   UsersRound,
   XCircle,
 } from "lucide-react";
-
 import { Button, Card } from "../index";
 
 const statusConfig = {
@@ -30,252 +29,414 @@ const statusConfig = {
   },
 };
 
-const SPOCApplicationListCard = ({ application, onView }) => {
-  const status = statusConfig[application.status] ?? statusConfig.pending;
+const getStudentName = (student) =>
+  student?.name ||
+  student?.fullName ||
+  student?.studentName ||
+  "Unknown Student";
+const getStudentEmail = (student) =>
+  student?.email || student?.collegeEmail || student?.studentEmail || "—";
+const getStudentRoll = (student) => student?.rollNumber || student?.roll || "—";
+const getStudentDepartment = (student) =>
+  student?.department?.name || student?.department || "—";
+const getApplicationStatus = (application) => {
+  if (
+    application?.status === "approved_by_tpo" ||
+    application?.status === "under_spoc_review"
+  ) {
+    return "pending";
+  }
 
-  const StatusIcon = status.icon;
+  if (
+    application?.status === "approved_by_spoc" ||
+    application?.status === "noc_generated"
+  ) {
+    return "accepted";
+  }
+
+  if (application?.status === "rejected") {
+    return "rejected";
+  }
+
+  return "pending";
+};
+
+const SPOCApplicationListCard = ({
+  application,
+  onView,
+  onAccept,
+  onReject,
+  onSendBack,
+}) => {
+  /*
+   * IMPORTANT:
+   * `application.students` may not exist when the backend
+   * returns a single application.
+   *
+   * Always normalize it to an array.
+   */
+  const students = Array.isArray(application?.students)
+    ? application.students
+    : application?.student
+      ? [application.student]
+      : [];
+
+  const organisation =
+    application?.organisation || application?.organization || {};
+
+  const companyName =
+    application?.company ||
+    application?.companyName ||
+    organisation?.name ||
+    organisation?.organisationName ||
+    "Organisation";
+
+  const location =
+    application?.location ||
+    application?.organisationLocation ||
+    organisation?.location ||
+    organisation?.city ||
+    "—";
+
+  const deadline =
+    application?.deadline || application?.applicationDeadline || "—";
+
+  /*
+   * If the backend already sends grouped applications,
+   * use them.
+   *
+   * Otherwise use the current application as the only row.
+   */
+  const applications = Array.isArray(application?.applications)
+    ? application.applications
+    : students.length > 0
+      ? students.map((student, index) => ({
+          ...application,
+          student,
+          id:
+            student?._id ||
+            student?.id ||
+            `${application?._id || application?.id}-${index}`,
+        }))
+      : [application];
+
+  const pendingCount = applications.filter(
+    (item) => getApplicationStatus(item) === "pending",
+  ).length;
+
+  const acceptedCount = applications.filter(
+    (item) => getApplicationStatus(item) === "accepted",
+  ).length;
+
+  const rejectedCount = applications.filter(
+    (item) => getApplicationStatus(item) === "rejected",
+  ).length;
 
   return (
     <Card
       className="
-        flex h-full min-w-0 w-full max-w-full
-        flex-col
+        w-full
         overflow-hidden
         border-border
         bg-surface
         shadow-(--shadow-card)
-        transition-shadow duration-200
-        hover:shadow-(--shadow-card-hover)
       "
     >
-      <div
-        className="
-          flex min-w-0
-          flex-1 flex-col
-          p-4
-          sm:p-5
-        "
-      >
-        {/* Header */}
-        <div
-          className="
-            flex min-w-0
-            items-start justify-between
-            gap-3
-          "
-        >
-          <div className="flex min-w-0 items-center gap-3">
+      {/* Company Header */}
+      <div className="border-b border-border bg-cream-soft p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
             <span
               className="
-                flex size-11 shrink-0
+                flex size-12 shrink-0
                 items-center justify-center
                 rounded-xl
                 bg-brand-100
                 text-brand-700
               "
             >
-              <Building2 size={20} />
+              <Building2 size={22} />
             </span>
 
             <div className="min-w-0">
-              <h3
-                title={application.company}
-                className="
-                  truncate
-                  text-sm font-bold
-                  text-ink
-                  sm:text-base
-                "
-              >
-                {application.company}
+              <h3 className="truncate text-lg font-bold text-ink">
+                {companyName}
               </h3>
 
-              <p
-                title={application.location}
-                className="
-                  mt-0.5 flex min-w-0
-                  items-center gap-1
-                  truncate
-                  text-xs text-ink-muted
-                  sm:text-sm
-                "
-              >
-                <MapPin size={13} className="shrink-0" />
-                <span className="truncate">{application.location}</span>
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-muted">
+                <MapPin size={14} />
+                <span className="truncate">{location}</span>
               </p>
             </div>
           </div>
 
-          {/* Status */}
-          <span
-            title={status.label}
-            className={[
-              "flex shrink-0 items-center gap-1.5",
-              "rounded-full border px-2.5 py-1",
-              "text-[10px] font-semibold",
-              "sm:text-xs",
-              status.className,
-            ].join(" ")}
-          >
-            <StatusIcon size={13} />
-            <span className="hidden sm:inline">{status.label}</span>
-          </span>
+          {/* Summary */}
+          <div className="flex flex-wrap gap-2">
+            <span
+              className="
+                inline-flex items-center gap-1.5
+                rounded-full
+                border border-brand-200
+                bg-brand-50
+                px-3 py-1.5
+                text-xs font-semibold
+                text-brand-700
+              "
+            >
+              <UsersRound size={14} />
+              {applications.length}{" "}
+              {applications.length === 1 ? "Student" : "Students"}
+            </span>
+
+            {pendingCount > 0 && (
+              <span
+                className="
+                  rounded-full
+                  border border-warning/30
+                  bg-warning/10
+                  px-3 py-1.5
+                  text-xs font-semibold
+                  text-warning
+                "
+              >
+                {pendingCount} Pending
+              </span>
+            )}
+
+            {acceptedCount > 0 && (
+              <span
+                className="
+                  rounded-full
+                  border border-success/30
+                  bg-success/10
+                  px-3 py-1.5
+                  text-xs font-semibold
+                  text-success
+                "
+              >
+                {acceptedCount} Accepted
+              </span>
+            )}
+
+            {rejectedCount > 0 && (
+              <span
+                className="
+                  rounded-full
+                  border border-danger/30
+                  bg-danger/10
+                  px-3 py-1.5
+                  text-xs font-semibold
+                  text-danger
+                "
+              >
+                {rejectedCount} Rejected
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Application information */}
-        <div
-          className="
-            mt-5 grid min-w-0
-            grid-cols-1 gap-3
-            sm:grid-cols-2
-          "
-        >
-          <div
-            className="
-              min-w-0 rounded-xl
-              bg-cream
-              p-3
-            "
-          >
-            <div className="flex items-center gap-2">
-              <UsersRound size={15} className="shrink-0 text-ink-muted" />
-
-              <span className="text-xs text-ink-muted">Selected Students</span>
-            </div>
-
-            <p className="mt-1 text-sm font-semibold text-ink">
-              {application.students.length} Students
-            </p>
-          </div>
-
-          <div
-            className="
-              min-w-0 rounded-xl
-              bg-cream
-              p-3
-            "
-          >
-            <div className="flex items-center gap-2">
-              <CalendarDays size={15} className="shrink-0 text-ink-muted" />
-
-              <span className="text-xs text-ink-muted">
-                Application Deadline
-              </span>
-            </div>
-
-            <p className="mt-1 truncate text-sm font-semibold text-ink">
-              {application.deadline}
-            </p>
-          </div>
+        {/* Deadline */}
+        <div className="mt-4 flex items-center gap-2 text-xs text-ink-muted">
+          <CalendarDays size={14} />
+          <span>Application Deadline:</span>
+          <span className="font-semibold text-ink">{deadline}</span>
         </div>
+      </div>
+      {/* Students Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-225">
+          <thead>
+            <tr className="border-b border-border bg-surface-soft">
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Student
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Roll Number
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Department
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Status
+              </th>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Actions
+              </th>
+            </tr>
+          </thead>
 
-        {/* NOC */}
-        {application.nocReference && (
-          <div
-            className="
-              mt-3 min-w-0
-              rounded-xl
-              border border-brand-200
-              bg-brand-50
-              p-3
-            "
-          >
-            <div className="flex items-center gap-2">
-              <FileCheck2 size={15} className="shrink-0 text-brand-700" />
+          <tbody>
+            {applications.length > 0 ? (
+              applications.map((item, index) => {
+                const student = item?.student || {};
+                const statusKey = getApplicationStatus(item);
+                const status = statusConfig[statusKey] || statusConfig.pending;
+                const StatusIcon = status.icon;
+                const applicationId =
+                  item?.applicationId ||
+                  item?._id ||
+                  item?.id ||
+                  `${application?.organisation?._id || "organisation"}-${index}`;
 
-              <span className="text-xs font-medium text-brand-700">
-                NOC Reference Number
-              </span>
-            </div>
+                return (
+                  <tr
+                    key={applicationId}
+                    className="
+                      border-b border-border
+                      last:border-b-0
+                      transition-colors
+                      hover:bg-cream-soft/60
+                    "
+                  >
+                    {/* Students */}
+                    <td className="px-5 py-4">
+                      <div className="min-w-55">
+                        <p className="text-sm font-semibold text-ink">
+                          {getStudentName(student)}
+                        </p>
 
-            <p
-              title={application.nocReference}
-              className="
-                mt-1
-                truncate
-                text-xs font-semibold
-                text-brand-900
-                sm:text-sm
-              "
-            >
-              {application.nocReference}
-            </p>
-          </div>
-        )}
+                        <p className="mt-0.5 text-xs text-ink-muted">
+                          {getStudentEmail(student)}
+                        </p>
+                      </div>
+                    </td>
 
-        {/* Rejection reason */}
-        {application.rejectionReason && (
-          <div
-            className="
-              mt-3 min-w-0
-              rounded-xl
-              border border-danger/20
-              bg-danger/5
-              p-3
-            "
-          >
-            <p className="text-xs font-semibold text-danger">
-              Rejection Reason
-            </p>
+                    {/* RollNumber */}
+                    <td className="px-5 py-4">
+                      <span className="text-sm font-medium text-ink">
+                        {getStudentRoll(student)}
+                      </span>
+                    </td>
 
-            <p
-              title={application.rejectionReason}
-              className="
-                mt-1
-                wrap-break-word
-                text-xs leading-5
-                text-ink-muted
-              "
-            >
-              {application.rejectionReason}
-            </p>
-          </div>
-        )}
+                    {/* Department */}
+                    <td className="px-5 py-4">
+                      <span className="text-sm text-ink">
+                        {getStudentDepartment(student)}
+                      </span>
+                    </td>
 
-        {/* Footer */}
-        <div
-          className="
-            mt-auto
-            flex min-w-0
-            flex-col gap-3
-            pt-5
-            sm:flex-row
-            sm:items-center
-            sm:justify-between
-          "
-        >
-          <div className="min-w-0">
-            <p className="text-xs text-ink-muted">Application ID</p>
+                    {/* Status */}
+                    <td className="px-5 py-4">
+                      <span
+                        className={[
+                          "inline-flex items-center gap-1.5",
+                          "rounded-full border px-2.5 py-1",
+                          "text-xs font-semibold",
+                          status.className,
+                        ].join(" ")}
+                      >
+                        <StatusIcon size={13} />
+                        {status.label}
+                      </span>
+                    </td>
 
-            <p
-              title={application.id}
-              className="
-                mt-0.5
-                truncate
-                text-xs font-semibold
-                text-ink
-              "
-            >
-              {application.id}
-            </p>
-          </div>
+                    {/* Actions */}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* View Button */}
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => onView(item)}
+                          className="
+                            shrink-0
+                            bg-brand-700
+                            text-cream-soft
+                            hover:bg-brand-800
+                          "
+                        >
+                          View Details
+                          <ArrowRight size={15} />
+                        </Button>
 
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => onView(application)}
-            className="
-              w-full
-              shrink-0
-              bg-brand-700
-              text-cream-soft
-              hover:bg-brand-800
-              sm:w-auto
-            "
-          >
-            View Application
-            <ArrowRight size={16} />
-          </Button>
+                        {/* Accept Button*/}
+                        {statusKey === "pending" && onAccept && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => onAccept(item)}
+                            className="
+                              shrink-0
+                              bg-success
+                              text-white
+                              hover:bg-success/90
+                            "
+                          >
+                            <CheckCircle2 size={15} />
+                            Accept
+                          </Button>
+                        )}
+
+                        {/* Reject Button */}
+                        {statusKey === "pending" && onReject && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => onReject(item)}
+                            className="
+                              shrink-0
+                              bg-danger
+                              text-white
+                              hover:bg-danger/90
+                            "
+                          >
+                            <XCircle size={15} />
+                            Reject
+                          </Button>
+                        )}
+
+                        {/* Send Back Button */}
+                        {statusKey === "pending" && onSendBack && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => onSendBack(item)}
+                            className="
+                              shrink-0
+                              border border-warning/30
+                              bg-warning/10
+                              text-warning
+                              hover:bg-warning/20
+                            "
+                          >
+                            Send Back
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-5 py-10 text-center">
+                  <UsersRound size={28} className="mx-auto text-ink-muted" />
+                  <p className="mt-2 text-sm font-semibold text-ink">
+                    No students found
+                  </p>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    No applications are available for this organisation.
+                  </p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {/* Footer */}
+      <div className="flex flex-col gap-3 border-t border-border bg-surface-soft px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs text-ink-muted">Organisation Applications</p>
+          <p className="mt-0.5 text-sm font-semibold text-ink">
+            {applications.length}{" "}
+            {applications.length === 1
+              ? "student application"
+              : "student applications"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-ink-muted">
+          <FileCheck2 size={14} />
+          Review each student individually
         </div>
       </div>
     </Card>

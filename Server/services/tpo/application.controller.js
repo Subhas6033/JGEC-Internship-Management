@@ -4,8 +4,14 @@ import {
   acceptStudentApplication,
   sendStudentApplicationBack,
 } from "./application.service.js";
+
 import { asyncHandler, APIRES } from "../../utils/helper.utils.js";
+
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
+
+/* -------------------------------------------------------------------------- */
+/* TPO APPLICATIONS                                                           */
+/* -------------------------------------------------------------------------- */
 
 const getTpoApplicationsController = asyncHandler(async (req, res) => {
   const applications = await getTpoApplications({
@@ -25,6 +31,10 @@ const getTpoApplicationsController = asyncHandler(async (req, res) => {
     );
 });
 
+/* -------------------------------------------------------------------------- */
+/* TPO APPLICATION BY ID                                                      */
+/* -------------------------------------------------------------------------- */
+
 const getTpoApplicationByIdController = asyncHandler(async (req, res) => {
   const application = await getTpoApplicationById({
     applicationId: req.params.applicationId,
@@ -41,6 +51,10 @@ const getTpoApplicationByIdController = asyncHandler(async (req, res) => {
       ),
     );
 });
+
+/* -------------------------------------------------------------------------- */
+/* ACCEPT APPLICATION                                                         */
+/* -------------------------------------------------------------------------- */
 
 const acceptApplication = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
@@ -60,6 +74,10 @@ const acceptApplication = asyncHandler(async (req, res) => {
       ),
     );
 });
+
+/* -------------------------------------------------------------------------- */
+/* SEND APPLICATION BACK                                                      */
+/* -------------------------------------------------------------------------- */
 
 const sendApplicationBack = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;

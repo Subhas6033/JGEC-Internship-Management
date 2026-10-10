@@ -1,269 +1,83 @@
-import mongoose from "mongoose";
-import { APIERR } from "../../utils/helper.utils.js";
-import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-import { StudentNotification } from "../../models/studentNotification.models.js";
+import {
+  NOTIFICATION_ROLES as R,
+  NOTIFICATION_TYPES as T,
+} from "../../config/notification.config.js";
+import {
+  createNotification,
+  publishEvent,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+  getUnreadNotificationCount,
+} from "../notification/notification.service.js";
 
-const EVENT_CONFIG = {
-  tpo_accepted: {
-    category: "application",
-    title: "Application accepted by TPO",
-    message:
-      "Your internship application has been accepted by the TPO and has been forwarded for the next stage.",
-  },
+const toActor = (actor, actorRole) =>
+  actor ? { id: actor, role: actorRole } : null;
 
-  tpo_rejected: {
-    category: "application",
-    title: "Application rejected by TPO",
-    message: "Your internship application has been rejected by the TPO.",
-  },
-
-  tpo_update_required: {
-    category: "application",
-    title: "Application update required",
-    message:
-      "The TPO has requested changes to your internship application. Please review your application and update the required information.",
-  },
-
-  spoc_accepted: {
-    category: "verification",
-    title: "Application accepted by SPOC",
-    message: "Your internship application has been accepted by the SPOC.",
-  },
-
-  spoc_rejected: {
-    category: "verification",
-    title: "Application rejected by SPOC",
-    message: "Your internship application has been rejected by the SPOC.",
-  },
-
-  spoc_update_required: {
-    category: "verification",
-    title: "Application update required by SPOC",
-    message:
-      "The SPOC has requested changes to your internship application. Please review the required updates.",
-  },
-
-  noc_generated: {
-    category: "document",
-    title: "NOC generated",
-    message:
-      "Your No Objection Certificate has been generated successfully and is now available in your documents.",
-  },
-};
-
-const validateObjectId = (value, fieldName) => {
-  if (!value || !mongoose.Types.ObjectId.isValid(value)) {
-    throw new APIERR(HTTP_STATUS.BAD_REQUEST, `${fieldName} is invalid`);
-  }
-};
-
-export const createStudentNotification = async ({
+export const createStudentNotification = ({
   student,
   application = null,
   actor = null,
-  actorModel = null,
   actorRole = null,
   type,
   title,
   message,
-}) => {
-  validateObjectId(student, "Student");
-
-  if (application) {
-    validateObjectId(application, "Application");
-  }
-
-  if (!type) {
-    throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Notification type is required");
-  }
-
-  const config = EVENT_CONFIG[type];
-
-  if (!config && (!title || !message)) {
-    throw new APIERR(
-      HTTP_STATUS.BAD_REQUEST,
-      "Notification configuration is missing",
-    );
-  }
-
-  return StudentNotification.create({
-    student,
-
+  metadata = {},
+}) =>
+  createNotification({
+    role: R.STUDENT,
+    recipient: student,
     application,
-
-    actor,
-
-    actorModel,
-
-    actorRole,
-
-    category: config?.category || "application",
-
+    actor: toActor(actor, actorRole),
     type,
-
-    title: title || config.title,
-
-    message: message || config.message,
-
-    status: "unread",
+    title,
+    message,
+    metadata,
   });
-};
 
-export const createApplicationNotification = async ({
-  application,
-  student,
-  actor,
-  actorModel,
-  actorRole,
-  type,
-}) => {
-  return createStudentNotification({
-    student,
-    application,
-    actor,
-    actorModel,
-    actorRole,
-    type,
-  });
-};
-
-export const createNOCNotification = async ({
+export const createApplicationNotification = ({
   application,
   student,
   actor = null,
-  actorModel = null,
   actorRole = null,
-}) => {
-  return createStudentNotification({
-    student,
+  type,
+  context = {},
+}) =>
+  publishEvent({
+    type,
     application,
-    actor,
-    actorModel,
-    actorRole,
-    type: "noc_generated",
-  });
-};
-
-export const getStudentNotifications = async ({
-  student,
-  category,
-  status,
-  search,
-}) => {
-  validateObjectId(student, "Student");
-
-  const query = {
-    student,
-  };
-
-  if (category && category !== "all") {
-    query.category = category;
-  }
-
-  if (status && status !== "all") {
-    query.status = status;
-  }
-
-  if (search?.trim()) {
-    const normalizedSearch = search.trim();
-
-    query.$or = [
-      {
-        title: {
-          $regex: normalizedSearch,
-          $options: "i",
-        },
-      },
-      {
-        message: {
-          $regex: normalizedSearch,
-          $options: "i",
-        },
-      },
-    ];
-  }
-
-  return StudentNotification.find(query)
-    .populate("application", "status designation organisation")
-    .sort({
-      createdAt: -1,
-    })
-    .lean();
-};
-
-export const markStudentNotificationRead = async ({
-  notificationId,
-  student,
-}) => {
-  validateObjectId(notificationId, "Notification");
-
-  validateObjectId(student, "Student");
-
-  const notification = await StudentNotification.findOneAndUpdate(
-    {
-      _id: notificationId,
-      student,
-    },
-    {
-      $set: {
-        status: "read",
-        readAt: new Date(),
-      },
-    },
-    {
-      new: true,
-    },
-  );
-
-  if (!notification) {
-    throw new APIERR(HTTP_STATUS.NOT_FOUND, "Notification not found");
-  }
-
-  return notification;
-};
-
-export const markAllStudentNotificationsRead = async (student) => {
-  validateObjectId(student, "Student");
-
-  await StudentNotification.updateMany(
-    {
-      student,
-      status: "unread",
-    },
-    {
-      $set: {
-        status: "read",
-        readAt: new Date(),
-      },
-    },
-  );
-};
-
-export const deleteStudentNotification = async ({
-  notificationId,
-  student,
-}) => {
-  validateObjectId(notificationId, "Notification");
-
-  validateObjectId(student, "Student");
-
-  const deleted = await StudentNotification.findOneAndDelete({
-    _id: notificationId,
-    student,
+    actor: toActor(actor, actorRole),
+    recipientIds: [student],
+    context,
   });
 
-  if (!deleted) {
-    throw new APIERR(HTTP_STATUS.NOT_FOUND, "Notification not found");
-  }
-
-  return deleted;
-};
-
-export const getUnreadStudentNotificationCount = async (student) => {
-  validateObjectId(student, "Student");
-
-  return StudentNotification.countDocuments({
-    student,
-    status: "unread",
+export const createNOCNotification = ({
+  application,
+  student,
+  actor = null,
+  actorRole = null,
+  context = {},
+}) =>
+  publishEvent({
+    type: T.NOC_GENERATED,
+    application,
+    actor: toActor(actor, actorRole),
+    recipientIds: [student],
+    context,
   });
-};
+
+export const getStudentNotifications = ({ student, ...filters }) =>
+  getNotifications({ recipient: student, role: R.STUDENT, ...filters });
+
+export const markStudentNotificationRead = ({ notificationId, student }) =>
+  markNotificationRead({ notificationId, recipient: student, role: R.STUDENT });
+
+export const markAllStudentNotificationsRead = (student) =>
+  markAllNotificationsRead({ recipient: student, role: R.STUDENT });
+
+export const deleteStudentNotification = ({ notificationId, student }) =>
+  deleteNotification({ notificationId, recipient: student, role: R.STUDENT });
+
+export const getUnreadStudentNotificationCount = (student) =>
+  getUnreadNotificationCount({ recipient: student, role: R.STUDENT });
