@@ -1,70 +1,52 @@
 import mongoose from "mongoose";
 import path from "node:path";
-
 import { StudentApplication } from "../../models/studentApplication.models.js";
 import { ApplicationReview } from "../../models/applicationReview.models.js";
 import { NOC } from "../../models/noc.models.js";
 import { NOCCounter } from "../../models/nocCounter.model.js";
 import { Student } from "../../models/students.models.js";
-
-/*
- * NOTE: adjust these two import paths/file names to match your project.
- * Both models must be exported as named exports `SPOC` and `TPO`.
- */
 import { SPOC } from "../../models/spoc.models.js";
 import { TPO } from "../../models/tpo.models.js";
-
 import { APIERR } from "../../utils/helper.utils.js";
-
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-
 import { generateNocPdf } from "../../utils/noc.utils.js";
-
 import { saveNocPdf, deleteNocPdf } from "../../utils/nocStorage.utils.js";
+import { sendNocMails } from "../../utils/Mail/mail.utils.js";
+import { publishEvent } from "../notification/notification.service.js";
+import {
+  NOTIFICATION_ROLES,
+  NOTIFICATION_TYPES as T,
+} from "../../config/notification.config.js";
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
+// Helper functions
 const getDepartmentCode = (department) => {
   if (!department) {
     return "GEN";
   }
-
   const normalized = String(department).trim().toLowerCase();
-
   const departmentMap = {
     cs: "CSE",
     cse: "CSE",
     "computer science": "CSE",
     "computer science and engineering": "CSE",
-
     it: "IT",
     "information technology": "IT",
-
     ece: "ECE",
     "electronics and communication": "ECE",
     "electronics and communication engineering": "ECE",
-
     ee: "EE",
     eee: "EE",
     "electrical engineering": "EE",
     "electrical and electronics engineering": "EE",
-
     me: "ME",
     "mechanical engineering": "ME",
-
     ce: "CE",
     "civil engineering": "CE",
-
     ai: "AI",
     "artificial intelligence": "AI",
-
     aiml: "AIML",
     "artificial intelligence and machine learning": "AIML",
-
     "computer science and engineering (data science)": "CSEDS",
-
     ds: "DS",
     "data science": "DS",
   };
@@ -94,15 +76,148 @@ const idOf = (value) =>
 const isValidId = (value) =>
   Boolean(value) && mongoose.Types.ObjectId.isValid(String(value));
 
+const firstValue = (...values) =>
+  values.find((value) => value !== undefined && value !== null && value !== "");
+
 const buildNocFileName = (referenceNumber) =>
   `NOC-${String(referenceNumber).replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
 
 const toAbsolutePath = (filePath) =>
   path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
 
-/* =========================================================
-   RESOLVE SPOC + TPO FOR THE NOC
-========================================================= */
+const studentNameOf = (student) => firstValue(student?.fullName, student?.name);
+
+const organisationNameOf = (application) =>
+  firstValue(
+    application?.organisation?.organisationName,
+    application?.organisation?.name,
+  );
+
+// NOTIFICATIONS & NOC MAILS
+const REVIEW_EVENTS = {
+  [NOTIFICATION_ROLES.TPO]: {
+    approve: T.TPO_ACCEPTED,
+    reject: T.TPO_REJECTED,
+    send_back: T.TPO_UPDATE_REQUIRED,
+  },
+  [NOTIFICATION_ROLES.SPOC]: {
+    approve: T.SPOC_ACCEPTED,
+    reject: T.SPOC_REJECTED,
+    send_back: T.SPOC_UPDATE_REQUIRED,
+  },
+};
+
+/**
+ * Notifies the student about a review decision. A TPO approval also
+ * forwards the application to the SPOCs of the student's department.
+ */
+const notifyReviewOutcome = async ({
+  application,
+  reviewerId,
+  role,
+  decision,
+  reason,
+}) => {
+  const studentId = idOf(application.student);
+
+  const student = await Student.findById(studentId)
+    .select("fullName name department")
+    .lean();
+
+  const base = {
+    application: application._id,
+    actor: { id: reviewerId, role },
+    context: { studentName: studentNameOf(student), reason: reason?.trim() },
+  };
+
+  await publishEvent({
+    ...base,
+    type: REVIEW_EVENTS[role][decision],
+    recipientIds: [studentId],
+  });
+
+  if (role === NOTIFICATION_ROLES.TPO && decision === "approve") {
+    await publishEvent({
+      ...base,
+      type: T.APPLICATION_FORWARDED,
+      department: getDepartmentCode(
+        firstValue(student?.department, application.department),
+      ),
+    });
+  }
+};
+
+/**
+ * Collects the notifications and emails produced by a generated NOC.
+ * They are dispatched only after the DB transaction commits, so users are
+ * never told about a NOC that was rolled back.
+ */
+const collectNocDelivery = (
+  postCommit,
+  { items, referenceNumber, generatedBy, pdfBuffer, fileName, summarize },
+) => {
+  const actor = { id: generatedBy, role: NOTIFICATION_ROLES.SPOC };
+
+  items.forEach(({ application, student }) => {
+    const organisationName = organisationNameOf(application);
+    const studentName = studentNameOf(student);
+
+    postCommit.events.push({
+      type: T.NOC_GENERATED,
+      application: application._id,
+      actor,
+      recipientIds: [student._id],
+      context: { studentName, organisationName, referenceNumber },
+    });
+
+    const to = firstValue(student.email, student.emailId);
+
+    if (to) {
+      postCommit.mails.push({
+        to,
+        studentName,
+        organisationName,
+        referenceNumber,
+        fileName,
+        pdfBuffer,
+      });
+    }
+  });
+
+  if (summarize) {
+    postCommit.events.push({
+      type: T.NOC_BATCH_GENERATED,
+      actor,
+      recipientIds: [generatedBy],
+      context: {
+        count: items.length,
+        referenceNumber,
+        organisationName: organisationNameOf(items[0].application),
+      },
+    });
+  }
+};
+
+/**
+ * Notifications are awaited (cheap DB writes). Emails are sent in the
+ * background so large batches do not delay the HTTP response; failures are
+ * logged and never affect the generated NOCs.
+ */
+const dispatchPostCommit = async ({ events, mails }) => {
+  await Promise.all(events.map((event) => publishEvent(event)));
+
+  if (!mails.length) return;
+
+  sendNocMails(mails)
+    .then(({ sent, failed }) => {
+      console.info(`NOC mail: ${sent} sent, ${failed.length} failed.`);
+
+      failed.forEach(({ to, error }) =>
+        console.error(`NOC mail to ${to} failed: ${error}`),
+      );
+    })
+    .catch((error) => console.error("NOC mail dispatch failed:", error));
+};
 
 /**
  * SPOC:
@@ -141,14 +256,11 @@ const resolveSignatories = async ({
 
   for (const id of candidateIds) {
     const found = await SPOC.findById(id).lean();
-
     if (!found) continue;
-
     if (getDepartmentCode(found.department) === departmentCode) {
       spoc = found;
       break;
     }
-
     if (!mismatchedSpoc) {
       mismatchedSpoc = found;
     }
@@ -168,9 +280,7 @@ const resolveSignatories = async ({
   /* ------------------------------- TPO ------------------------------ */
 
   let tpo = null;
-
   const tpoId = idOf(application.tpoReviewedBy);
-
   if (isValidId(tpoId)) {
     tpo = await TPO.findById(String(tpoId)).lean();
   }
@@ -184,10 +294,6 @@ const resolveSignatories = async ({
 
   return { spoc, tpo };
 };
-
-/* =========================================================
-   BUILD NOC PDF
-========================================================= */
 
 /**
  * Builds the PDF using PLAIN objects.
@@ -240,15 +346,68 @@ const buildNocPdfBuffer = async ({
   });
 };
 
-/* =========================================================
-   CREATE NOC REFERENCE
-========================================================= */
+/**
+ * Builds ONE PDF for a group of applications (same organisation,
+ * same department).
+ *
+ * generateNocPdf already renders one table row per entry of
+ * `application.students`, so the students are passed there. The first
+ * application of the group supplies the organisation, designation,
+ * internship dates and TPO.
+ */
+const buildBulkNocPdfBuffer = async ({
+  items, // [{ application, student }]
+  referenceNumber,
+  generatedAt,
+  academicYear,
+  department,
+  spocIds = [],
+}) => {
+  const applicationsData = items.map(({ application, student }) => {
+    const applicationData =
+      typeof application.toObject === "function"
+        ? application.toObject()
+        : { ...application };
 
+    /* plain (lean) student keeps gurdianName / gurdianMobile */
+    applicationData.student = student;
+
+    return applicationData;
+  });
+
+  const students = applicationsData.map((data) => data.student);
+  const primary = applicationsData[0];
+  /* generateNocPdf reads application.students for the table rows */
+  primary.students = students;
+
+  const { spoc, tpo } = await resolveSignatories({
+    application: primary,
+    department,
+    spocIds: [
+      ...spocIds,
+      ...applicationsData.map((data) => data.spocReviewedBy),
+    ],
+  });
+
+  return generateNocPdf({
+    noc: {
+      referenceNumber,
+      generatedAt,
+      academicYear,
+      department,
+      student: students[0],
+      organisation: primary.organisation,
+    },
+    application: primary,
+    spoc,
+    tpo,
+  });
+};
+
+// CREATE the NOC REFERENCE NUMBERS
 const createNocReference = async ({ department, session }) => {
   const year = new Date().getFullYear();
-
   const departmentCode = getDepartmentCode(department);
-
   const counter = await NOCCounter.findOneAndUpdate(
     {
       year,
@@ -278,16 +437,11 @@ const createNocReference = async ({ department, session }) => {
       "Unable to create NOC reference counter",
     );
   }
-
   const sequence = String(counter.sequence).padStart(3, "0");
-
   return `TNP/JGEC/INT/${year}/${departmentCode}/${sequence}`;
 };
 
-/* =========================================================
-   GET APPLICATION
-========================================================= */
-
+// Get Applications
 export const getApplication = async (applicationId) => {
   validateObjectId(applicationId, "Invalid application ID");
 
@@ -303,10 +457,7 @@ export const getApplication = async (applicationId) => {
   return application;
 };
 
-/* =========================================================
-   TPO APPLICATIONS
-========================================================= */
-
+// TPO Applications
 export const getTpoApplications = async () => {
   return StudentApplication.find({
     status: {
@@ -329,10 +480,7 @@ export const getTpoApplications = async () => {
     });
 };
 
-/* =========================================================
-   SPOC APPLICATIONS
-========================================================= */
-
+// SPOC Applications
 export const getSpocApplications = async () => {
   return StudentApplication.find({
     status: {
@@ -353,10 +501,7 @@ export const getSpocApplications = async () => {
     });
 };
 
-/* =========================================================
-   SPOC APPLICATIONS BY ORGANISATION
-========================================================= */
-
+// Get SPOC applications by the Organisations
 export const getSpocApplicationsByOrganisation = async (organisationId) => {
   validateObjectId(organisationId, "Invalid organisation ID");
 
@@ -381,10 +526,7 @@ export const getSpocApplicationsByOrganisation = async (organisationId) => {
     });
 };
 
-/* =========================================================
-   TPO REVIEW
-========================================================= */
-
+// TPO Review
 export const reviewByTpo = async ({
   applicationId,
   reviewerId,
@@ -392,9 +534,7 @@ export const reviewByTpo = async ({
   reason = "",
 }) => {
   validateObjectId(applicationId, "Invalid application ID");
-
   validateObjectId(reviewerId, "Invalid TPO user ID");
-
   const normalizedDecision = String(decision || "")
     .trim()
     .toLowerCase();
@@ -402,9 +542,7 @@ export const reviewByTpo = async ({
   if (!["approve", "reject", "send_back"].includes(normalizedDecision)) {
     throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Invalid TPO decision");
   }
-
   const application = await StudentApplication.findById(applicationId);
-
   if (!application) {
     throw new APIERR(HTTP_STATUS.NOT_FOUND, "Application not found");
   }
@@ -438,7 +576,6 @@ export const reviewByTpo = async ({
    * documents).
    */
   application.tpoReviewedBy = reviewerId;
-
   application.tpoReviewedAt = new Date();
 
   if (
@@ -450,13 +587,18 @@ export const reviewByTpo = async ({
 
   await application.save();
 
+  await notifyReviewOutcome({
+    application,
+    reviewerId,
+    role: NOTIFICATION_ROLES.TPO,
+    decision: normalizedDecision,
+    reason,
+  });
+
   return application;
 };
 
-/* =========================================================
-   SPOC REVIEW
-========================================================= */
-
+// SPOC Review
 export const reviewBySpoc = async ({
   applicationId,
   reviewerId,
@@ -464,7 +606,6 @@ export const reviewBySpoc = async ({
   reason = "",
 }) => {
   validateObjectId(applicationId, "Invalid application ID");
-
   validateObjectId(reviewerId, "Invalid SPOC user ID");
 
   const normalizedDecision = String(decision || "")
@@ -505,7 +646,6 @@ export const reviewBySpoc = async ({
    * are assigned directly (this is why spocReviewedBy stayed null).
    */
   application.spocReviewedBy = reviewerId;
-
   application.spocReviewedAt = new Date();
 
   if (
@@ -516,17 +656,20 @@ export const reviewBySpoc = async ({
   }
 
   await application.save();
+  await notifyReviewOutcome({
+    application,
+    reviewerId,
+    role: NOTIFICATION_ROLES.SPOC,
+    decision: normalizedDecision,
+    reason,
+  });
 
   return application;
 };
 
-/* =========================================================
-   RESUBMIT APPLICATION
-========================================================= */
-
+// Resubmit the applications
 export const resubmitApplication = async ({ applicationId, studentId }) => {
   validateObjectId(applicationId, "Invalid application ID");
-
   validateObjectId(studentId, "Invalid student ID");
 
   const application = await StudentApplication.findOne({
@@ -549,29 +692,37 @@ export const resubmitApplication = async ({ applicationId, studentId }) => {
 
   await application.save();
 
+  const student = await Student.findById(studentId)
+    .select("fullName name")
+    .lean();
+
+  await publishEvent({
+    type: T.APPLICATION_SUBMITTED,
+    application: application._id,
+    actor: { id: studentId, role: NOTIFICATION_ROLES.STUDENT },
+    context: { studentName: studentNameOf(student) },
+  });
+
   return application;
 };
 
-/* =========================================================
-   GENERATE NOC
-========================================================= */
-
+// Generate the NOC
 export const generateNoc = async ({ applicationId, generatedBy }) => {
   validateObjectId(applicationId, "Invalid application ID");
-
   validateObjectId(generatedBy, "Invalid SPOC user ID");
 
   const session = await mongoose.startSession();
+  const postCommit = { events: [], mails: [] };
 
   let generatedNoc = null;
   let savedFilePath = null;
 
   try {
     await session.withTransaction(async () => {
-      /* --------------------------------------------------
-           GET APPLICATION
-        -------------------------------------------------- */
-
+      /* a transaction callback can be retried - start clean */
+      postCommit.events.length = 0;
+      postCommit.mails.length = 0;
+      // Get the Applications
       const application = await StudentApplication.findById(applicationId)
         .populate("student")
         .populate("organisation")
@@ -580,11 +731,7 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
       if (!application) {
         throw new APIERR(HTTP_STATUS.NOT_FOUND, "Application not found");
       }
-
-      /* --------------------------------------------------
-           ALREADY GENERATED
-        -------------------------------------------------- */
-
+      // Already Generated
       if (application.noc) {
         const existingNoc = await NOC.findById(application.noc).session(
           session,
@@ -596,11 +743,7 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
           return;
         }
       }
-
-      /* --------------------------------------------------
-           STATUS CHECK
-        -------------------------------------------------- */
-
+      // Status Check
       if (application.status !== "approved_by_spoc") {
         throw new APIERR(
           HTTP_STATUS.BAD_REQUEST,
@@ -608,10 +751,10 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         );
       }
 
-      /* --------------------------------------------------
-           GET STUDENT (plain object, keeps non-schema fields
-           such as gurdianName / gurdianMobile)
-        -------------------------------------------------- */
+      /* 
+      GET STUDENT (plain object, keeps non-schema fields
+      such as gurdianName / gurdianMobile)
+      */
 
       const student = await Student.findById(
         application.student?._id || application.student,
@@ -622,11 +765,7 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
       if (!student) {
         throw new APIERR(HTTP_STATUS.NOT_FOUND, "Student not found");
       }
-
-      /* --------------------------------------------------
-           DEPARTMENT
-        -------------------------------------------------- */
-
+      // Department
       const department = student.department || application.department;
 
       if (!department) {
@@ -635,24 +774,15 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
           "Student department is required to generate NOC",
         );
       }
-
-      /* --------------------------------------------------
-           REFERENCE NUMBER
-        -------------------------------------------------- */
-
+      // Reference Number
       const referenceNumber = await createNocReference({
         department,
         session,
       });
 
       const academicYear = new Date().getFullYear();
-
       const generatedAt = new Date();
-
-      /* --------------------------------------------------
-           GENERATE PDF
-        -------------------------------------------------- */
-
+      // Generated PDF
       const pdfBuffer = await buildNocPdfBuffer({
         application,
         student,
@@ -669,66 +799,36 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
           "Failed to generate NOC PDF",
         );
       }
-
-      /* --------------------------------------------------
-           FILE NAME
-        -------------------------------------------------- */
-
+      // File Name
       const fileName = buildNocFileName(referenceNumber);
-
-      /* --------------------------------------------------
-           SAVE PDF ON SERVER
-        -------------------------------------------------- */
-
+      // Save PDF on the Server
       const savedFile = await saveNocPdf({
         pdfBuffer,
         academicYear,
         department: getDepartmentCode(department),
         fileName,
       });
-
       savedFilePath = savedFile.absoluteFilePath;
-
-      /* --------------------------------------------------
-           BACKEND FILE URL
-        -------------------------------------------------- */
-
+      // Backend File URL
       const fileUrl = `/applications/spoc/${application._id}/noc/pdf`;
-
-      /* --------------------------------------------------
-           CREATE NOC RECORD
-        -------------------------------------------------- */
-
+      // Create the NOC Record
       const [noc] = await NOC.create(
         [
           {
             application: application._id,
-
             student: student._id,
-
             organisation:
               application.organisation?._id || application.organisation,
-
             referenceNumber,
-
             generatedBy,
-
             generatedAt,
-
             academicYear,
-
             department,
-
             fileName: savedFile.fileName,
-
             filePath: savedFile.relativeFilePath,
-
             fileUrl,
-
             fileMimeType: savedFile.mimeType,
-
             fileSize: savedFile.fileSize,
-
             status: "generated",
           },
         ],
@@ -736,11 +836,7 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
           session,
         },
       );
-
-      /* --------------------------------------------------
-           UPDATE APPLICATION
-        -------------------------------------------------- */
-
+      // Update the Applications
       await StudentApplication.updateOne(
         {
           _id: application._id,
@@ -759,8 +855,19 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         },
       );
 
+      collectNocDelivery(postCommit, {
+        items: [{ application, student }],
+        referenceNumber,
+        generatedBy,
+        pdfBuffer,
+        fileName: savedFile.fileName,
+        summarize: false,
+      });
+
       generatedNoc = noc;
     });
+
+    await dispatchPostCommit(postCommit);
 
     return generatedNoc;
   } catch (error) {
@@ -785,9 +892,262 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
   }
 };
 
-/* =========================================================
-   REGENERATE NOC
-========================================================= */
+/**
+ * Generates NOCs for many SPOC-approved applications at once.
+ *
+ * Applications are grouped by ORGANISATION + DEPARTMENT. Every group
+ * gets:
+ *   - its own reference number (TNP/JGEC/INT/<year>/<DEPT>/<seq>)
+ *   - ONE PDF listing all students of that group
+ *   - one NOC record per application (all sharing the same reference
+ *     number and PDF file), so the existing
+ *     /applications/spoc/:applicationId/noc/pdf route keeps working.
+ *   - one notification per student, one summary notification for the
+ *     generating SPOC and one email (with the NOC PDF attached) per student
+ *
+ * Example (all applied to organisation X):
+ *   A-CSE, B-CSE, C-IT, D-CSE, E-IT
+ *     C, E     -> TNP/JGEC/INT/2026/IT/001
+ *     A, B, D  -> TNP/JGEC/INT/2026/CSE/005
+ *
+ * Applications that cannot be processed (already generated, wrong
+ * status, student/department missing) are returned in `skipped`
+ * instead of failing the whole batch.
+ */
+export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
+  if (!Array.isArray(applicationIds) || applicationIds.length === 0) {
+    throw new APIERR(
+      HTTP_STATUS.BAD_REQUEST,
+      "applicationIds must be a non-empty array",
+    );
+  }
+  validateObjectId(generatedBy, "Invalid SPOC user ID");
+  const uniqueIds = [...new Set(applicationIds.map(String))];
+  uniqueIds.forEach((id) =>
+    validateObjectId(id, `Invalid application ID: ${id}`),
+  );
+  const session = await mongoose.startSession();
+  const savedFilePaths = [];
+  const postCommit = { events: [], mails: [] };
+  let result = null;
+
+  try {
+    await session.withTransaction(async () => {
+      /* a transaction callback can be retried - start clean */
+      savedFilePaths.length = 0;
+      postCommit.events.length = 0;
+      postCommit.mails.length = 0;
+      const groupsResult = [];
+      const skipped = [];
+      // Get the applications
+      const applications = await StudentApplication.find({
+        _id: { $in: uniqueIds },
+      })
+        .populate("student")
+        .populate("organisation")
+        .session(session);
+      const foundIds = new Set(applications.map((a) => String(a._id)));
+      for (const id of uniqueIds) {
+        if (!foundIds.has(id)) {
+          skipped.push({
+            applicationId: id,
+            reason: "Application not found",
+          });
+        }
+      }
+      // Filter out the elligible applications
+      const eligible = [];
+
+      for (const application of applications) {
+        if (application.noc) {
+          skipped.push({
+            applicationId: String(application._id),
+            reason: "NOC already generated",
+          });
+          continue;
+        }
+
+        if (application.status !== "approved_by_spoc") {
+          skipped.push({
+            applicationId: String(application._id),
+            reason: `Application status is ${application.status}`,
+          });
+          continue;
+        }
+
+        eligible.push(application);
+      }
+
+      /* --------------------------------------------------
+           GET STUDENTS (plain objects, keeps non-schema
+           fields such as gurdianName / gurdianMobile)
+        -------------------------------------------------- */
+
+      const students = await Student.find({
+        _id: {
+          $in: eligible.map((a) => idOf(a.student)).filter(isValidId),
+        },
+      })
+        .session(session)
+        .lean();
+
+      const studentMap = new Map(students.map((s) => [String(s._id), s]));
+      // Group by Organisations & Department
+      const groups = new Map();
+
+      for (const application of eligible) {
+        const student = studentMap.get(String(idOf(application.student)));
+
+        if (!student) {
+          skipped.push({
+            applicationId: String(application._id),
+            reason: "Student not found",
+          });
+          continue;
+        }
+
+        const department = student.department || application.department;
+
+        if (!department) {
+          skipped.push({
+            applicationId: String(application._id),
+            reason: "Student department is required to generate NOC",
+          });
+          continue;
+        }
+
+        const organisationId = String(idOf(application.organisation));
+        const departmentCode = getDepartmentCode(department);
+        const key = `${organisationId}|${departmentCode}`;
+
+        if (!groups.has(key)) {
+          groups.set(key, {
+            organisationId,
+            departmentCode,
+            department,
+            items: [],
+          });
+        }
+
+        groups.get(key).items.push({ application, student });
+      }
+      // One NOC refrence per Groups
+      for (const group of groups.values()) {
+        const referenceNumber = await createNocReference({
+          department: group.department,
+          session,
+        });
+        const academicYear = new Date().getFullYear();
+        const generatedAt = new Date();
+        const pdfBuffer = await buildBulkNocPdfBuffer({
+          items: group.items,
+          referenceNumber,
+          generatedAt,
+          academicYear,
+          department: group.department,
+          spocIds: [generatedBy],
+        });
+
+        if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
+          throw new APIERR(
+            HTTP_STATUS.INTERNAL_SERVER_ERROR,
+            "Failed to generate bulk NOC PDF",
+          );
+        }
+
+        const savedFile = await saveNocPdf({
+          pdfBuffer,
+          academicYear,
+          department: group.departmentCode,
+          fileName: buildNocFileName(referenceNumber),
+        });
+
+        savedFilePaths.push(savedFile.absoluteFilePath);
+
+        /* one NOC record per application, same reference + file */
+        const nocDocs = await NOC.create(
+          group.items.map(({ application, student }) => ({
+            application: application._id,
+            student: student._id,
+            organisation: idOf(application.organisation),
+            referenceNumber,
+            generatedBy,
+            generatedAt,
+            academicYear,
+            department: group.department,
+            fileName: savedFile.fileName,
+            filePath: savedFile.relativeFilePath,
+            fileUrl: `/applications/spoc/${application._id}/noc/pdf`,
+            fileMimeType: savedFile.mimeType,
+            fileSize: savedFile.fileSize,
+            status: "generated",
+          })),
+          {
+            session,
+            ordered: true,
+          },
+        );
+
+        await StudentApplication.bulkWrite(
+          nocDocs.map((noc) => ({
+            updateOne: {
+              filter: { _id: noc.application },
+              update: {
+                $set: {
+                  status: "noc_generated",
+                  noc: noc._id,
+                  nocGeneratedAt: generatedAt,
+                },
+              },
+            },
+          })),
+          { session },
+        );
+
+        collectNocDelivery(postCommit, {
+          items: group.items,
+          referenceNumber,
+          generatedBy,
+          pdfBuffer,
+          fileName: savedFile.fileName,
+          summarize: true,
+        });
+
+        groupsResult.push({
+          referenceNumber,
+          department: group.departmentCode,
+          organisation: group.organisationId,
+          applicationIds: nocDocs.map((noc) => String(noc.application)),
+          nocs: nocDocs,
+        });
+      }
+
+      result = { groups: groupsResult, skipped };
+    });
+
+    await dispatchPostCommit(postCommit);
+
+    return result;
+  } catch (error) {
+    /*
+     * MongoDB transaction failed after one or more PDFs were written.
+     *
+     * Remove every orphan PDF.
+     */
+
+    for (const filePath of savedFilePaths) {
+      try {
+        await deleteNocPdf(filePath);
+      } catch (deleteError) {
+        console.error("Failed to remove orphan NOC PDF:", deleteError);
+      }
+    }
+
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
 
 /**
  * Re-creates the PDF of an ALREADY generated NOC.
@@ -871,10 +1231,7 @@ export const regenerateNoc = async ({ applicationId, generatedBy }) => {
   return noc;
 };
 
-/* =========================================================
-   GET NOC
-========================================================= */
-
+// Get the NOC
 export const getNocByApplication = async (applicationId) => {
   validateObjectId(applicationId, "Invalid application ID");
 
@@ -894,10 +1251,7 @@ export const getNocByApplication = async (applicationId) => {
   return noc;
 };
 
-/* =========================================================
-   GET ALL SPOC NOCS
-========================================================= */
-
+// Get all the SPOC NOCs
 export const getSpocNocs = async () => {
   return NOC.find({
     status: "generated",
@@ -909,10 +1263,7 @@ export const getSpocNocs = async () => {
     });
 };
 
-/* =========================================================
-   REVIEW HISTORY
-========================================================= */
-
+// Get the applications Review History
 export const getApplicationReviews = async (applicationId) => {
   validateObjectId(applicationId, "Invalid application ID");
 

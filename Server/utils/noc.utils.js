@@ -2,12 +2,8 @@ import PDFDocument from "pdfkit";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-/* -------------------------------------------------------------------------- */
-/* Static fallbacks                                                           */
-/* -------------------------------------------------------------------------- */
-
+// Static Fallbacks
 const COLLEGE_NAME = "Jalpaiguri Government Engineering College";
-
 const DEPARTMENT_NAMES = {
   CE: "Civil Engineering",
   CIVIL: "Civil Engineering",
@@ -18,10 +14,23 @@ const DEPARTMENT_NAMES = {
   ME: "Mechanical Engineering",
 };
 
-/* -------------------------------------------------------------------------- */
-/* Generic helpers                                                            */
-/* -------------------------------------------------------------------------- */
+// Page Layout Constants
+const PAGE_WIDTH = 595.28;
+const PAGE_HEIGHT = 841.89;
+const MARGIN_TOP = 30;
+const MARGIN_BOTTOM = 30;
+const MARGIN_SIDE = 35;
+const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN_BOTTOM;
 
+/*
+ * Vertical space required by everything rendered after the student table:
+ * "With best regards", both signatory blocks, the head signatory and the
+ * footer note. The last student row is always kept on the same page as this
+ * block so the signatories never appear on a page without student data.
+ * Update this value if the sign-off layout changes.
+ */
+const SIGNOFF_HEIGHT = 270;
+// Generic Helpers
 const safe = (value, fallback = "-") =>
   value === undefined || value === null || value === ""
     ? fallback
@@ -33,10 +42,10 @@ const firstValue = (...values) =>
 const ordinal = (number) => {
   const n = Number(number);
   if (!Number.isFinite(n)) return "";
-
   const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
-
+  if (mod100 >= 11 && mod100 <= 13) {
+    return `${n}th`;
+  }
   switch (n % 10) {
     case 1:
       return `${n}st`;
@@ -65,19 +74,12 @@ const MONTHS = [
 ];
 
 const isValidDate = (date) => date && !Number.isNaN(new Date(date).getTime());
-
-/*
- * Internship dates are stored as midnight UTC (e.g. 2026-10-08T00:00:00.000Z),
- * so they are formatted with UTC getters.
- */
-
-/** "October 23rd" */
+// Date Helpers
 const formatMonthDay = (date) => {
   const d = new Date(date);
   return `${MONTHS[d.getUTCMonth()]} ${ordinal(d.getUTCDate())}`;
 };
 
-/** "23/10/26" */
 const formatShortDate = (date) => {
   const d = new Date(date);
   const dd = String(d.getUTCDate()).padStart(2, "0");
@@ -86,7 +88,6 @@ const formatShortDate = (date) => {
   return `${dd}/${mm}/${yy}`;
 };
 
-/** Letter date (a real timestamp) in IST: { day, month, year } */
 const splitDateIST = (date) => {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Kolkata",
@@ -94,10 +95,12 @@ const splitDateIST = (date) => {
     month: "2-digit",
     year: "numeric",
   }).formatToParts(isValidDate(date) ? new Date(date) : new Date());
-
   const get = (type) => parts.find((part) => part.type === type)?.value;
-
-  return { day: get("day"), month: get("month"), year: get("year") };
+  return {
+    day: get("day"),
+    month: get("month"),
+    year: get("year"),
+  };
 };
 
 const getSemesterNumber = (semester) => {
@@ -110,37 +113,20 @@ const formatSemester = (semester) => {
   return n ? `${ordinal(n)} Semester` : safe(semester);
 };
 
-/** Sem 7/8 -> "4th year" */
 const getYearText = (semester) => {
   const n = getSemesterNumber(semester);
   return n ? `${ordinal(Math.ceil(n / 2))} year` : "";
 };
 
-/**
- * Batch, e.g. "2023-2027".
- *
- * Semester mapping:
- *   1/2 -> 1st year
- *   3/4 -> 2nd year
- *   5/6 -> 3rd year
- *   7/8 -> 4th year
- *
- * The admission year is derived from the academic year containing the
- * internship/reference date.
- */
+// Get the Students Batch (e.g. 2023 to 2027)
 const getBatch = ({ student, application, semester, referenceDate }) => {
   const sem = getSemesterNumber(semester);
-
   if (sem && isValidDate(referenceDate)) {
     const d = new Date(referenceDate);
-
     const academicStart =
       d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1;
-
     const yearNumber = Math.ceil(sem / 2);
-
     const admissionYear = academicStart - (yearNumber - 1);
-
     return `${admissionYear}-${admissionYear + 4}`;
   }
 
@@ -155,42 +141,22 @@ const getBatch = ({ student, application, semester, referenceDate }) => {
   return explicit ? String(explicit) : "-";
 };
 
+// Get Department Names
 const getDepartmentName = (department) => {
   const raw = String(department || "").trim();
-
   if (!raw) return "-";
-
   return DEPARTMENT_NAMES[raw.toUpperCase()] || raw;
 };
 
-/* -------------------------------------------------------------------------- */
-/* People (SPOC / TPO)                                                        */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Normalises a populated SPOC / TPO document.
- *
- * Both schemas use:
- *   fullName
- *   email
- *   mobile
- *   department
- *   role
- *
- * A bare ObjectId (not populated) returns null.
- */
+// Get Peoples
 const getPerson = (user) => {
   if (!user || typeof user !== "object" || Array.isArray(user)) {
     return null;
   }
-
   const name = firstValue(user.fullName, user.name);
-
   if (!name) return null;
-
   return {
     name: String(name),
-
     mobile: safe(
       firstValue(
         user.mobile,
@@ -200,38 +166,28 @@ const getPerson = (user) => {
       ),
       "",
     ),
-
     email: safe(user.email, ""),
-
     department: safe(user.department, ""),
-
     role: safe(user.role, "").toLowerCase(),
   };
 };
 
+// Format the Phone Numbers
 const formatPhone = (phone) => {
   const digits = String(phone || "").replace(/\D/g, "");
-
   if (!digits) return "";
-
   if (digits.length === 10) {
     return `+91-${digits}`;
   }
-
   return String(phone);
 };
 
-/* -------------------------------------------------------------------------- */
-/* Images                                                                     */
-/* -------------------------------------------------------------------------- */
-
+// Images
 const detectImageType = (buffer) => {
   if (!buffer || buffer.length < 4) return null;
-
   if (buffer[0] === 0xff && buffer[1] === 0xd8) {
     return "jpeg";
   }
-
   if (
     buffer[0] === 0x89 &&
     buffer[1] === 0x50 &&
@@ -240,98 +196,68 @@ const detectImageType = (buffer) => {
   ) {
     return "png";
   }
-
   return null;
 };
 
-/** Converts to PNG with `sharp` if it is installed (optional dependency). */
 const convertToPng = async (buffer) => {
   try {
     const { default: sharp } = await import("sharp");
-
     return await sharp(buffer).png().toBuffer();
   } catch {
     return null;
   }
 };
 
-/**
- * Returns a buffer pdfkit can embed (JPEG/PNG), or null.
- *
- * If `sharp` is installed it is used to normalise any image
- * (WebP, CMYK or progressive JPEG, wrongly named files, ...)
- * to PNG.
- */
 const normalizeImage = async (buffer, label = "image") => {
   if (!buffer) return null;
-
   const png = await convertToPng(buffer);
-
   if (png) return png;
-
   if (detectImageType(buffer)) {
     return buffer;
   }
-
   console.error(
-    `${label}: unsupported image format. pdfkit only supports JPEG and PNG - ` +
-      `convert the file, or run "npm i sharp" to convert automatically.`,
+    `${label}: unsupported image format. ` +
+      `pdfkit only supports JPEG and PNG - ` +
+      `convert the file, or run "npm i sharp" ` +
+      `to convert automatically.`,
   );
-
   return null;
 };
 
-/* ---- Local assets (logos) ---- */
-
+// Local Assests
 const stripExtension = (name) => name.replace(/\.[^.]+$/, "").toLowerCase();
 
-/**
- * "/public/logo.jpg" in a .env file is an absolute filesystem path,
- * so we try it as given and also as project-relative.
- */
 const assetCandidates = (configured, fallback) => {
   const value = String(configured || fallback).trim();
-
   const projectRelative = path.resolve(
     process.cwd(),
     value.replace(/^[/\\]+/, ""),
   );
-
   return path.isAbsolute(value) ? [value, projectRelative] : [projectRelative];
 };
 
-/**
- * Reads the first candidate that exists.
- *
- * If the exact file name is not found it also looks in the same folder
- * for a file with the same base name but a different case / extension.
- */
 const readFirstAvailable = async (candidates) => {
   for (const candidate of candidates) {
     try {
       return await fs.readFile(candidate);
     } catch {
-      // fall through to fuzzy lookup
+      // Try extension-agnostic lookup below.
     }
 
     try {
       const directory = path.dirname(candidate);
-
       const wanted = stripExtension(path.basename(candidate));
-
       const entries = await fs.readdir(directory);
-
       const match = entries.find(
         (entry) =>
           stripExtension(entry) === wanted &&
           /\.(jpe?g|png|webp|gif|avif)$/i.test(entry),
       );
-
       if (match) {
         return await fs.readFile(path.join(directory, match));
       }
     } catch {
-      // directory missing - try next candidate
+      // Try next candidate.
     }
   }
 
@@ -346,11 +272,9 @@ const loadLocalImage = async (configured, fallback, label) =>
     label,
   );
 
-/* ---- Student signature ---- */
-
+// Student Signature
 const getStudentSignatureUrl = (student) => {
   if (!student) return null;
-
   const direct = firstValue(
     student.signatureUrl,
     student.signature?.url,
@@ -358,34 +282,26 @@ const getStudentSignatureUrl = (student) => {
     student.studentSignatureUrl,
     student.studentSignature,
   );
-
   if (typeof direct === "string" && direct.trim()) {
     return direct.trim();
   }
-
   const documents = student.documents;
-
   if (!documents) return null;
-
   if (typeof documents.signature === "string" && documents.signature.trim()) {
     return documents.signature.trim();
   }
-
   if (typeof documents.signature?.url === "string") {
     return documents.signature.url;
   }
-
   if (typeof documents.studentSignature?.url === "string") {
     return documents.studentSignature.url;
   }
-
   if (
     typeof documents.studentSignature === "string" &&
     documents.studentSignature.trim()
   ) {
     return documents.studentSignature.trim();
   }
-
   if (Array.isArray(documents)) {
     const found = documents.find((document) =>
       String(
@@ -398,7 +314,6 @@ const getStudentSignatureUrl = (student) => {
         .toLowerCase()
         .includes("signature"),
     );
-
     if (found) {
       return (
         found.url ||
@@ -409,35 +324,27 @@ const getStudentSignatureUrl = (student) => {
       );
     }
   }
-
   return null;
 };
 
 const downloadImage = async (url) => {
   if (!url) return null;
-
   try {
     const response = await fetch(url);
-
     if (!response.ok) {
       throw new Error(`Unable to download image: ${response.status}`);
     }
-
     return await normalizeImage(
       Buffer.from(await response.arrayBuffer()),
       "Student signature",
     );
   } catch (error) {
     console.error("Signature download failed:", error.message);
-
     return null;
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/* Drawing helpers                                                            */
-/* -------------------------------------------------------------------------- */
-
+// Drawing Helpers
 const drawCell = ({
   doc,
   text,
@@ -451,11 +358,8 @@ const drawCell = ({
   padding = 3,
 }) => {
   doc.lineWidth(0.8).rect(x, y, width, height).stroke();
-
   doc.font(font).fontSize(fontSize);
-
   const innerWidth = Math.max(width - padding * 2, 5);
-
   const textHeight = doc.heightOfString(safe(text), {
     width: innerWidth,
     align,
@@ -474,9 +378,7 @@ const drawCell = ({
 
 const drawSignatureCell = ({ doc, buffer, x, y, width, height }) => {
   doc.lineWidth(0.8).rect(x, y, width, height).stroke();
-
   if (!buffer) return;
-
   try {
     doc.image(buffer, x + 4, y + 4, {
       fit: [width - 8, height - 8],
@@ -489,35 +391,94 @@ const drawSignatureCell = ({ doc, buffer, x, y, width, height }) => {
 };
 
 /**
- * Paragraph of mixed-style segments:
- * [{ text, font? }]
- *
- * Returns end y.
+ * Splits styled segments into word tokens. `space` marks whether a token is
+ * preceded by whitespace, which keeps spacing correct across segment borders
+ * (e.g. a bold segment followed by a segment starting with a space).
  */
-const drawRichParagraph = (doc, segments, x, y, width, fontSize = 9.5) => {
-  doc.fontSize(fontSize);
+const tokenizeSegments = (segments) => {
+  const tokens = [];
+  let pendingSpace = false;
+  segments.forEach((segment) => {
+    const text = String(segment.text ?? "");
+    const font = segment.font || "Times-Roman";
+    const words = text.match(/\S+/g) || [];
+    if (/^\s/.test(text)) pendingSpace = true;
+    words.forEach((word, index) => {
+      tokens.push({
+        text: word,
+        font,
+        space: tokens.length > 0 && (pendingSpace || index > 0),
+      });
+      pendingSpace = false;
+    });
 
-  segments.forEach((segment, index) => {
-    doc.font(segment.font || "Times-Roman");
-
-    const options = {
-      width,
-      align: "justify",
-      lineGap: 2,
-      continued: index < segments.length - 1,
-    };
-
-    if (index === 0) {
-      doc.text(segment.text, x, y, options);
-    } else {
-      doc.text(segment.text, options);
-    }
+    if (words.length && /\s$/.test(text)) pendingSpace = true;
   });
-
-  return doc.y;
+  return tokens;
 };
 
-/** Dashed line + name + lines. Returns the y after the block. */
+/**
+ * Justified paragraph with mixed fonts.
+ *
+ * PDFKit's `continued` text justifies every fragment independently, which
+ * produces uneven gaps wherever the font changes. Lines are therefore wrapped
+ * and justified here, once per line, and words are drawn individually.
+ *
+ * Returns the Y position below the last line.
+ */
+const drawRichParagraph = (
+  doc,
+  segments,
+  x,
+  y,
+  width,
+  fontSize = 9.5,
+  lineGap = 2,
+) => {
+  const tokens = tokenizeSegments(segments);
+  doc.font("Times-Roman").fontSize(fontSize);
+  const spaceWidth = doc.widthOfString(" ");
+  const lineHeight = doc.currentLineHeight() + lineGap;
+  tokens.forEach((token) => {
+    token.width = doc
+      .font(token.font)
+      .fontSize(fontSize)
+      .widthOfString(token.text);
+  });
+  const lines = [];
+  let current = { tokens: [], width: 0 };
+  tokens.forEach((token) => {
+    const gap = token.space && current.tokens.length ? spaceWidth : 0;
+    if (current.tokens.length && current.width + gap + token.width > width) {
+      lines.push(current);
+      current = { tokens: [], width: 0 };
+    }
+    const appliedGap = token.space && current.tokens.length ? spaceWidth : 0;
+    current.tokens.push({ ...token, gap: appliedGap });
+    current.width += appliedGap + token.width;
+  });
+  if (current.tokens.length) lines.push(current);
+  let cursorY = y;
+  lines.forEach((line, lineIndex) => {
+    const isLast = lineIndex === lines.length - 1;
+    const gapCount = line.tokens.filter((token) => token.gap > 0).length;
+    const extra = !isLast && gapCount ? (width - line.width) / gapCount : 0;
+    let cursorX = x;
+    line.tokens.forEach((token) => {
+      if (token.gap > 0) cursorX += token.gap + extra;
+      doc
+        .font(token.font)
+        .fontSize(fontSize)
+        .text(token.text, cursorX, cursorY, { lineBreak: false });
+
+      cursorX += token.width;
+    });
+    cursorY += lineHeight;
+  });
+  return cursorY;
+};
+
+// Signatory
 const drawSignatory = ({
   doc,
   x,
@@ -529,7 +490,6 @@ const drawSignatory = ({
   boldContact,
 }) => {
   const lineLen = 140;
-
   const lineStart =
     align === "center"
       ? x + width / 2 - lineLen / 2
@@ -539,7 +499,9 @@ const drawSignatory = ({
 
   doc
     .lineWidth(0.6)
-    .dash(2, { space: 1.5 })
+    .dash(2, {
+      space: 1.5,
+    })
     .moveTo(lineStart, y)
     .lineTo(lineStart + lineLen, y)
     .stroke()
@@ -555,16 +517,13 @@ const drawSignatory = ({
 
     cy += 11.5;
   }
-
   lines.filter(Boolean).forEach((line) => {
     doc.font("Times-Roman").fontSize(9).text(line, x, cy, {
       width,
       align,
     });
-
     cy += 11.5;
   });
-
   if (boldContact) {
     doc.font("Times-Bold").fontSize(9).text(boldContact, x, cy, {
       width,
@@ -573,23 +532,10 @@ const drawSignatory = ({
 
     cy += 11.5;
   }
-
   return cy;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Main PDF generator                                                         */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Generate the JGEC Training & Placement Cell internship permission (NOC) PDF.
- *
- * @param {Object}  params
- * @param {Object}  params.application
- * @param {Object} [params.noc]
- * @param {Object} [params.spoc]
- * @param {Object} [params.tpo]
- */
+// Main PDF Generator
 export const generateNocPdf = async ({
   noc,
   application: rawApplication,
@@ -597,34 +543,23 @@ export const generateNocPdf = async ({
   tpo: tpoOverride,
 }) => {
   const application = rawApplication?.data ?? rawApplication ?? {};
-
   const nocData = noc || application.noc || {};
-
   const students =
     Array.isArray(application.students) && application.students.length
       ? application.students
       : [application.student || {}];
 
   const primary = students[0];
-
   const organisation = application.organisation || {};
-
   const isPlural = students.length > 1;
-
-  /* ---------------------------------------------------------------------- */
-  /* Dates                                                                  */
-  /* ---------------------------------------------------------------------- */
-
+  // Dates
   const startDate = firstValue(
     application.tentativeStartDate,
     application.startDate,
   );
-
   const endDate = firstValue(application.tentativeEndDate, application.endDate);
-
   let periodText = "-";
   let shortPeriod = "-";
-
   if (isValidDate(startDate) && isValidDate(endDate)) {
     const s = new Date(startDate);
     const e = new Date(endDate);
@@ -642,17 +577,10 @@ export const generateNocPdf = async ({
   const { day, month, year } = splitDateIST(
     firstValue(nocData.generatedAt, application.nocGeneratedAt),
   );
-
-  /* ---------------------------------------------------------------------- */
-  /* Student / academic details                                             */
-  /* ---------------------------------------------------------------------- */
-
+  // Students & Academic Details
   const semesterRaw = firstValue(primary.semester, application.semester);
-
   const semesterText = formatSemester(semesterRaw);
-
   const yearText = getYearText(semesterRaw);
-
   const batch = getBatch({
     student: primary,
     application,
@@ -663,11 +591,7 @@ export const generateNocPdf = async ({
   const department = getDepartmentName(
     firstValue(primary.department, application.department, nocData.department),
   );
-
-  /* ---------------------------------------------------------------------- */
-  /* Organisation                                                           */
-  /* ---------------------------------------------------------------------- */
-
+  // Organisations
   const organisationName = safe(
     firstValue(
       organisation.organisationName,
@@ -686,12 +610,6 @@ export const generateNocPdf = async ({
     "",
   );
 
-  /*
-   * Do NOT hard-code:
-   * "The Head of the Organisation"
-   *
-   * The designation must come from the student's application.
-   */
   const addresseeLine = firstValue(
     application.designation,
     application.internshipDesignation,
@@ -705,17 +623,9 @@ export const generateNocPdf = async ({
       : organisationLocation,
   ].filter(Boolean);
 
-  /*
-   * Organisation employee/contact comes from the application.
-   */
   const contactName = firstValue(
     application.organisationsEmployye,
     application.organisationEmployee,
-  );
-
-  const designation = firstValue(
-    application.designation,
-    application.internshipDesignation,
   );
 
   const toLines = [
@@ -724,22 +634,7 @@ export const generateNocPdf = async ({
     ...addressLines,
     contactName ? `Attn: ${contactName}` : "",
   ].filter(Boolean);
-
-  /* ---------------------------------------------------------------------- */
-  /* SPOC / TPO                                                             */
-  /* ---------------------------------------------------------------------- */
-
-  /*
-   * Prefer the actual reviewed users supplied by the application/NOC.
-   *
-   * No hard-coded:
-   * - TPO name
-   * - TPO mobile
-   * - SPOC name
-   * - SPOC mobile
-   *
-   * The Head of T&P Cell (Dr. Samir Das) is the only static signatory.
-   */
+  // SPOC & TPO Details
   const populated = [
     application.spocReviewedBy,
     application.tpoReviewedBy,
@@ -762,13 +657,11 @@ export const generateNocPdf = async ({
     getPerson(application.tpo) ||
     byRole("tpo");
 
-  /* Static Head of T&P Cell */
   const HEAD_TNP = {
     name: "Dr. Samir Das",
     lines: ["Head, Training & Placement Cell", COLLEGE_NAME],
   };
 
-  /* Left: Faculty Coordinator = TPO (name and details from DB) */
   const facultyBlock = {
     name: tpo?.name ? `Prof. ${tpo.name.replace(/^prof\.?\s*/i, "")}` : "",
 
@@ -785,7 +678,6 @@ export const generateNocPdf = async ({
     ],
   };
 
-  /* Right: Coordinator, Internship & Training = SPOC (name and details from DB) */
   const spocContact = [formatPhone(spoc?.mobile), spoc?.email]
     .filter(Boolean)
     .join(" | ");
@@ -795,9 +687,7 @@ export const generateNocPdf = async ({
 
     lines: [
       "Coordinator, Internship & Training",
-
       "Training and Placement Cell",
-
       COLLEGE_NAME,
     ],
 
@@ -805,26 +695,13 @@ export const generateNocPdf = async ({
   };
 
   if (!spoc) {
-    console.warn(
-      "NOC PDF: SPOC not resolved. Pass the actual SPOC document to " +
-        "generateNocPdf or populate application.spocReviewedBy.",
-    );
+    console.warn("NOC PDF: SPOC not resolved.");
   }
 
   if (!tpo) {
-    console.warn(
-      "NOC PDF: TPO not resolved. Pass the actual TPO document to " +
-        "generateNocPdf or populate application.tpoReviewedBy.",
-    );
+    console.warn("NOC PDF: TPO not resolved.");
   }
-
-  /* ---------------------------------------------------------------------- */
-  /* Assets                                                                 */
-  /* ---------------------------------------------------------------------- */
-
-  /*
-   * Env vars are read at call time so dotenv load order cannot break them.
-   */
+  // Assests
   const [collegeLogo, govtEmblem, signatureBuffers] = await Promise.all([
     loadLocalImage(
       process.env.NOC_COLLEGE_LOGO_PATH,
@@ -843,41 +720,32 @@ export const generateNocPdf = async ({
     ),
   ]);
 
+  /*
+   * For bulk NOCs, every application in the same organisation + department
+   * group shares one reference number, supplied by the bulk service through
+   * the `noc` object.
+   */
   const referenceNumber = safe(nocData.referenceNumber, "");
-
-  /* ---------------------------------------------------------------------- */
-  /* PDF                                                                    */
-  /* ---------------------------------------------------------------------- */
-
+  // PDF
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
         size: "A4",
-
         margins: {
-          top: 30,
-          bottom: 30,
-          left: 35,
-          right: 35,
+          top: MARGIN_TOP,
+          bottom: MARGIN_BOTTOM,
+          left: MARGIN_SIDE,
+          right: MARGIN_SIDE,
         },
-
         bufferPages: true,
       });
 
       const chunks = [];
-
       doc.on("data", (chunk) => chunks.push(chunk));
-
       doc.on("end", () => resolve(Buffer.concat(chunks)));
-
       doc.on("error", reject);
-
-      const pageWidth = 595.28;
-
-      const left = 35;
-
-      const right = pageWidth - 35;
-
+      const left = MARGIN_SIDE;
+      const right = PAGE_WIDTH - MARGIN_SIDE;
       const contentWidth = right - left;
 
       /* ------------------------------ HEADER ----------------------------- */
@@ -903,9 +771,7 @@ export const generateNocPdf = async ({
       }
 
       const headerX = left + 85;
-
       const headerWidth = contentWidth - 170;
-
       doc
         .font("Times-Bold")
         .fontSize(13)
@@ -913,19 +779,16 @@ export const generateNocPdf = async ({
           width: headerWidth,
           align: "center",
         });
-
       doc
         .fontSize(10.5)
         .text("JALPAIGURI GOVERNMENT ENGINEERING COLLEGE", headerX, 53, {
           width: headerWidth,
           align: "center",
         });
-
       doc.fontSize(9.5).text("GOVERNMENT OF WEST BENGAL", headerX, 67, {
         width: headerWidth,
         align: "center",
       });
-
       doc.fontSize(9.5).text("JALPAIGURI-735102", headerX, 80, {
         width: headerWidth,
         align: "center",
@@ -943,31 +806,24 @@ export const generateNocPdf = async ({
         })
         .font("Times-Bold")
         .text(referenceNumber);
-
       doc.font("Times-Roman").fontSize(9);
-
       doc.text("Date:", right - 135, y, {
         lineBreak: false,
       });
-
       doc.text(day, right - 100, y, {
         width: 22,
         align: "center",
       });
-
       doc.text("/", right - 76, y, {
         lineBreak: false,
       });
-
       doc.text(month, right - 68, y, {
         width: 22,
         align: "center",
       });
-
       doc.text("/", right - 44, y, {
         lineBreak: false,
       });
-
       doc.text(year, right - 38, y, {
         width: 38,
         align: "right",
@@ -976,17 +832,12 @@ export const generateNocPdf = async ({
       /* -------------------------------- TO ------------------------------- */
 
       y = 150;
-
       doc.font("Times-Bold").fontSize(9.5).text("To", left, y);
-
       y += 12;
-
       toLines.forEach((line) => {
         doc.font("Times-Bold").fontSize(9.5).text(line, left, y);
-
         y += 11.5;
       });
-
       y += 12;
 
       /* ------------------------------ SUBJECT ---------------------------- */
@@ -1003,22 +854,16 @@ export const generateNocPdf = async ({
             align: "center",
           },
         );
-
       y += 26;
-
       /* --------------------------- SALUTATION ---------------------------- */
 
       doc.font("Times-Roman").fontSize(9.5).text("Dear Sir/Madam,", left, y);
-
       y += 12;
-
       doc
         .font("Times-Roman")
         .fontSize(9.5)
         .text(`Greetings from ${COLLEGE_NAME}.`, left, y);
-
       y += 18;
-
       /* ---------------------------- PARAGRAPH 1 -------------------------- */
 
       y = drawRichParagraph(
@@ -1042,12 +887,8 @@ export const generateNocPdf = async ({
           },
 
           {
-            /*
-             * NBSP prevents the unwanted visual gap after
-             * "Internship Programme".
-             */
             text:
-              `\u00A0at your distinguished organization from ${periodText} ` +
+              ` at your distinguished organization from ${periodText} ` +
               `(${shortPeriod}). This internship program is an integral part ` +
               `of the B. Tech Program curriculum and is designed to provide ` +
               `instruction that is relevant to industry and research. We are ` +
@@ -1091,6 +932,84 @@ export const generateNocPdf = async ({
 
       /* ------------------------------ TABLE ------------------------------ */
 
+      const columns = [
+        {
+          key: "name",
+          title: "Name of the student",
+          width: 100,
+        },
+        {
+          key: "email",
+          title: "Email-Id",
+          width: 120,
+        },
+        {
+          key: "roll",
+          title: "Roll No.",
+          width: 65,
+        },
+        {
+          key: "contact",
+          title: "Contact No.\n(Student)",
+          width: 70,
+        },
+        {
+          key: "guardian",
+          title: "Guardian's Name\nand Contact Number",
+          width: 100,
+        },
+        {
+          key: "signature",
+          title: "Signature of the\nStudent",
+          width: 85,
+        },
+      ];
+
+      const tableWidth = columns.reduce((sum, c) => sum + c.width, 0);
+      const tableLeft = left + (contentWidth - tableWidth) / 2;
+      const headerHeight = 32;
+      const rowHeight = 46;
+      const introHeight = 15;
+      const lastIndex = students.length - 1;
+
+      /*
+       * Space a row needs on the current page. The last row also reserves
+       * room for the sign-off block so it is never rendered without
+       * at least one student above it.
+       */
+      const spaceNeededFor = (index) =>
+        rowHeight + (index === lastIndex ? SIGNOFF_HEIGHT : 0);
+
+      const startNewPage = () => {
+        doc.addPage();
+
+        return MARGIN_TOP;
+      };
+
+      const drawTableHeader = (headerY) => {
+        let headerCellX = tableLeft;
+
+        columns.forEach((column) => {
+          drawCell({
+            doc,
+            text: column.title,
+            x: headerCellX,
+            y: headerY,
+            width: column.width,
+            height: headerHeight,
+            font: "Times-Bold",
+            fontSize: 8.5,
+          });
+
+          headerCellX += column.width;
+        });
+      };
+
+      /* Keep the intro line, header and first row together. */
+      if (y + introHeight + headerHeight + spaceNeededFor(0) > PAGE_BOTTOM) {
+        y = startNewPage();
+      }
+
       doc
         .font("Times-Roman")
         .fontSize(9.5)
@@ -1102,79 +1021,16 @@ export const generateNocPdf = async ({
           y,
         );
 
-      y += 15;
-
-      const columns = [
-        {
-          key: "name",
-          title: "Name of the student",
-          width: 100,
-        },
-
-        {
-          key: "email",
-          title: "Email-Id",
-          width: 120,
-        },
-
-        {
-          key: "roll",
-          title: "Roll No.",
-          width: 65,
-        },
-
-        {
-          key: "contact",
-          title: "Contact No.\n(Student)",
-          width: 70,
-        },
-
-        {
-          key: "guardian",
-          title: "Guardian's Name\nand Contact Number",
-          width: 100,
-        },
-
-        {
-          key: "signature",
-          title: "Signature of the\nStudent",
-          width: 85,
-        },
-      ];
-
-      const tableWidth = columns.reduce((sum, c) => sum + c.width, 0);
-
-      const tableLeft = left + (contentWidth - tableWidth) / 2;
-
-      const headerHeight = 32;
-
-      const rowHeight = 46;
-
-      let x = tableLeft;
-
-      columns.forEach((column) => {
-        drawCell({
-          doc,
-          text: column.title,
-          x,
-          y,
-          width: column.width,
-          height: headerHeight,
-          font: "Times-Bold",
-          fontSize: 8.5,
-        });
-
-        x += column.width;
-      });
-
+      y += introHeight;
+      drawTableHeader(y);
       let rowY = y + headerHeight;
-
       students.forEach((student, index) => {
-        /*
-         * Guardian name:
-         * Student schema -> guardianName
-         * (API response currently returns the typo'd "gurdianName")
-         */
+        if (rowY + spaceNeededFor(index) > PAGE_BOTTOM) {
+          rowY = startNewPage();
+          drawTableHeader(rowY);
+          rowY += headerHeight;
+        }
+
         const guardianName = safe(
           firstValue(
             student.guardianName,
@@ -1186,11 +1042,6 @@ export const generateNocPdf = async ({
           "",
         );
 
-        /*
-         * Guardian contact:
-         * Student schema -> guardianMobile
-         * (API response currently returns the typo'd "gurdianMobile")
-         */
         const guardianContact = formatPhone(
           firstValue(
             student.guardianMobile,
@@ -1239,7 +1090,7 @@ export const generateNocPdf = async ({
             [guardianName, guardianContact].filter(Boolean).join("\n") || "-",
         };
 
-        x = tableLeft;
+        let x = tableLeft;
 
         columns.forEach((column) => {
           if (column.key === "signature") {
@@ -1281,70 +1132,41 @@ export const generateNocPdf = async ({
 
       const blockWidth = 250;
 
-      /* Left: Faculty Coordinator (TPO) */
       const leftEnd = drawSignatory({
         doc,
-
         x: left + 5,
-
         y,
-
         width: blockWidth,
-
         align: "left",
-
         name: facultyBlock.name,
-
         lines: facultyBlock.lines,
       });
 
-      /* Right: Coordinator, Internship & Training (SPOC) */
       const rightEnd = drawSignatory({
         doc,
-
         x: right - blockWidth - 5,
-
         y,
-
         width: blockWidth,
-
         align: "right",
-
         name: coordinatorBlock.name,
-
         lines: coordinatorBlock.lines,
-
         boldContact: coordinatorBlock.boldContact,
       });
 
       y = Math.max(leftEnd, rightEnd) + 30;
-
-      /* Static: Head of T&P Cell, centered */
       const headWidth = 260;
-
       const headEnd = drawSignatory({
         doc,
-
         x: left + (contentWidth - headWidth) / 2,
-
         y,
-
         width: headWidth,
-
         align: "center",
-
         name: HEAD_TNP.name,
-
         lines: HEAD_TNP.lines,
       });
 
       y = headEnd + 20;
 
-      /*
-       * Electronically generated notice.
-       *
-       * This replaces the old hard-coded Head of TNP information.
-       */
       doc
         .font("Times-Italic")
         .fontSize(8)
@@ -1365,39 +1187,7 @@ export const generateNocPdf = async ({
   });
 };
 
-/* -------------------------------------------------------------------------- */
-/* Controller helpers                                                         */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Loads the SPOC and TPO documents for an application.
- *
- * The models are passed in so this file needs no import paths from your app.
- *
- * Example:
- *
- * const { spoc, tpo } =
- *   await resolveNocSignatories({
- *     application,
- *     noc,
- *     SPOC,
- *     TPO,
- *     User,
- *   });
- *
- * SPOC resolution:
- *   1. application.spocReviewedBy if populated
- *   2. application.spoc if populated
- *   3. SPOC model by spocReviewedBy / noc.generatedBy
- *   4. User model by spocReviewedBy / noc.generatedBy
- *   5. Active SPOC of student's department
- *
- * TPO resolution:
- *   1. application.tpoReviewedBy if populated
- *   2. application.tpo if populated
- *   3. TPO model by tpoReviewedBy
- *   4. User model by tpoReviewedBy
- */
+// Controllers
 export const resolveNocSignatories = async ({
   application: rawApplication,
   noc,
@@ -1406,17 +1196,13 @@ export const resolveNocSignatories = async ({
   User,
 }) => {
   const application = rawApplication?.data ?? rawApplication ?? {};
-
   const nocData = noc || application.noc || {};
-
-  /* A real person document, not a bare ObjectId */
   const isPerson = (value) =>
     Boolean(
       value && typeof value === "object" && (value.fullName || value.name),
     );
 
   const idOf = (value) => value?._id ?? value ?? null;
-
   const findById = async (Model, id) => {
     if (!Model || !id) {
       return null;
@@ -1447,13 +1233,16 @@ export const resolveNocSignatories = async ({
 
     for (const id of ids) {
       spoc = (await findById(SPOC, id)) || (await findById(User, id));
+
       if (spoc) break;
     }
   }
 
-  /* Last resort: the active SPOC of the student's department */
   if (!spoc && SPOC && department) {
-    spoc = await SPOC.findOne({ department, isActive: true }).lean();
+    spoc = await SPOC.findOne({
+      department,
+      isActive: true,
+    }).lean();
   }
 
   /* ------------------------------- TPO ------------------------------- */
@@ -1466,46 +1255,35 @@ export const resolveNocSignatories = async ({
     tpo = (await findById(TPO, id)) || (await findById(User, id));
   }
 
-  /* Last resort: the active TPO */
   if (!tpo && TPO) {
-    tpo = await TPO.findOne({ isActive: true }).lean();
+    tpo = await TPO.findOne({
+      isActive: true,
+    }).lean();
   }
 
-  if (!spoc) console.warn("resolveNocSignatories: SPOC not found");
-  if (!tpo) console.warn("resolveNocSignatories: TPO not found");
+  if (!spoc) {
+    console.warn("resolveNocSignatories: SPOC not found");
+  }
 
-  return { spoc, tpo };
+  if (!tpo) {
+    console.warn("resolveNocSignatories: TPO not found");
+  }
+
+  return {
+    spoc,
+    tpo,
+  };
 };
 
-/* -------------------------------------------------------------------------- */
-/* NOC file name                                                              */
-/* -------------------------------------------------------------------------- */
-
-/**
- * File name:
- *
- *   "<Organisation_Name>_<dd-mm-yyyy>.pdf"
- *
- * Example:
- *
- *   Indian_Institute_of_Technology_Bombay_08-10-2026.pdf
- *
- * The date is the NOC generation date (IST).
- *
- * Pass `suffix` (e.g. the roll number) if several students can get a NOC
- * for the same organisation on the same day.
- */
+// NOC File Name
 export const buildNocFileName = ({
   noc,
   application: rawApplication,
   suffix,
 } = {}) => {
   const application = rawApplication?.data ?? rawApplication ?? {};
-
   const nocData = noc || application.noc || {};
-
   const organisation = application.organisation || {};
-
   const organisationName =
     firstValue(
       organisation.organisationName,
@@ -1524,6 +1302,5 @@ export const buildNocFileName = ({
       .replace(/\s+/g, "_");
 
   const suffixPart = suffix ? `_${clean(suffix)}` : "";
-
   return `${clean(organisationName)}_${day}-${month}-${year}${suffixPart}.pdf`;
 };

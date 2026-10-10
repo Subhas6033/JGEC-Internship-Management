@@ -1,18 +1,17 @@
 import mongoose from "mongoose";
-
 import { StudentApplication } from "../../models/studentApplication.models.js";
 import { Student } from "../../models/students.models.js";
 import { Organisation } from "../../models/organisation.models.js";
-
 import { APIERR } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-
 import { createApplicationNotification } from "../students/studentNotification.service.js";
+import { publishEvent } from "../notification/notification.service.js";
+import {
+  NOTIFICATION_ROLES as R,
+  NOTIFICATION_TYPES as T,
+} from "../../config/notification.config.js";
 
-/* -------------------------------------------------------------------------- */
-/* GET TPO APPLICATION BY ID                                                  */
-/* -------------------------------------------------------------------------- */
-
+// Get TPO applications BY ID
 const getTpoApplicationById = async ({ applicationId, user }) => {
   if (!user?._id) {
     throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Authenticated user not found");
@@ -61,10 +60,7 @@ const getTpoApplicationById = async ({ applicationId, user }) => {
   return application;
 };
 
-/* -------------------------------------------------------------------------- */
-/* GET TPO APPLICATIONS                                                       */
-/* -------------------------------------------------------------------------- */
-
+// Get TPO applications
 const getTpoApplications = async ({ user, search = "", status }) => {
   if (!user?._id) {
     throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Authenticated user not found");
@@ -192,9 +188,37 @@ const getTpoApplications = async ({ user, search = "", status }) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* ACCEPT TPO APPLICATION                                                     */
+/* NOTIFY SPOCs ABOUT A TPO-APPROVED APPLICATION                              */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Tells the active SPOCs of the student's department that an application
+ * has been approved by the TPO and is waiting for their review.
+ *
+ * Notifications are a side effect: a failure here is logged and never
+ * breaks the TPO's acceptance.
+ */
+const notifySpocsOfAcceptedApplication = async ({ application, tpoId }) => {
+  try {
+    const student = await Student.findById(application.student)
+      .select("fullName name department")
+      .lean();
+
+    await publishEvent({
+      type: T.APPLICATION_FORWARDED,
+      application: application._id,
+      actor: { id: tpoId, role: R.TPO },
+      department: student?.department,
+      context: {
+        studentName: student?.fullName || student?.name,
+      },
+    });
+  } catch (error) {
+    console.error("SPOC notification failed:", error.message);
+  }
+};
+
+// Accept TPO applications
 const acceptStudentApplication = async ({ applicationId, tpoId }) => {
   if (!mongoose.Types.ObjectId.isValid(applicationId)) {
     throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Invalid application ID");
@@ -232,22 +256,14 @@ const acceptStudentApplication = async ({ applicationId, tpoId }) => {
    * SPOC will now see this application.
    */
   application.status = "approved_by_tpo";
-
   application.tpoReviewedBy = tpoId;
   application.tpoReviewedAt = new Date();
-
   application.updateRequiredReason = "";
   application.updateRequiredBy = null;
-
   application.rejectionReason = "";
   application.rejectedBy = null;
-
   await application.save();
-
-  /* ---------------------------------------------------------------------- */
-  /* STUDENT NOTIFICATION                                                   */
-  /* ---------------------------------------------------------------------- */
-
+  // Send student notifications
   await createApplicationNotification({
     application: application._id,
     student: application.student,
@@ -255,16 +271,14 @@ const acceptStudentApplication = async ({ applicationId, tpoId }) => {
     actorRole: "tpo",
     type: "tpo_accepted",
   });
-
+  // Send SPOC Notifications
+  await notifySpocsOfAcceptedApplication({ application, tpoId });
   return StudentApplication.findById(application._id)
     .populate("student")
     .populate("organisation");
 };
 
-/* -------------------------------------------------------------------------- */
-/* SEND APPLICATION BACK                                                     */
-/* -------------------------------------------------------------------------- */
-
+// Send applications Back to the Students
 const sendStudentApplicationBack = async ({ applicationId, tpoId, reason }) => {
   if (!mongoose.Types.ObjectId.isValid(applicationId)) {
     throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Invalid application ID");
@@ -302,20 +316,12 @@ const sendStudentApplicationBack = async ({ applicationId, tpoId, reason }) => {
   }
 
   application.status = "update_required";
-
   application.updateRequiredReason = reason.trim();
-
   application.updateRequiredBy = "tpo";
-
   application.tpoReviewedBy = tpoId;
   application.tpoReviewedAt = new Date();
-
   await application.save();
-
-  /* ---------------------------------------------------------------------- */
-  /* STUDENT NOTIFICATION                                                   */
-  /* ---------------------------------------------------------------------- */
-
+  // Send Student Notifications
   await createApplicationNotification({
     application: application._id,
     student: application.student,

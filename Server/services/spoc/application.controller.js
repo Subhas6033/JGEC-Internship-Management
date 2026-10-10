@@ -7,23 +7,18 @@ import {
   reviewBySpoc,
   resubmitApplication,
   generateNoc,
+  generateBulkNoc,
   regenerateNoc,
   getApplicationReviews,
   getNocByApplication,
   getSpocNocs,
 } from "./application.service.js";
-
 import { asyncHandler, APIRES, APIERR } from "../../utils/helper.utils.js";
-
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-
 import fs from "node:fs/promises";
 import path from "node:path";
 
-/* -------------------------------------------------------------------------- */
-/* TPO APPLICATIONS                                                           */
-/* -------------------------------------------------------------------------- */
-
+// TPO Applications
 export const getTpoApplicationsController = asyncHandler(async (req, res) => {
   const applications = await getTpoApplications();
 
@@ -38,10 +33,7 @@ export const getTpoApplicationsController = asyncHandler(async (req, res) => {
     );
 });
 
-/* -------------------------------------------------------------------------- */
-/* SPOC APPLICATIONS                                                          */
-/* -------------------------------------------------------------------------- */
-
+// SPOC applications
 export const getSpocApplicationsController = asyncHandler(async (req, res) => {
   const applications = await getSpocApplications();
 
@@ -56,10 +48,7 @@ export const getSpocApplicationsController = asyncHandler(async (req, res) => {
     );
 });
 
-/* -------------------------------------------------------------------------- */
-/* SPOC APPLICATIONS BY ORGANISATION                                          */
-/* -------------------------------------------------------------------------- */
-
+// SPOC applications by the Organisations
 export const getSpocApplicationsByOrganisationController = asyncHandler(
   async (req, res) => {
     const { organisationId } = req.params;
@@ -79,10 +68,7 @@ export const getSpocApplicationsByOrganisationController = asyncHandler(
   },
 );
 
-/* -------------------------------------------------------------------------- */
-/* APPLICATION BY ID                                                          */
-/* -------------------------------------------------------------------------- */
-
+// Get the Applications by ID
 export const getApplicationController = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
 
@@ -99,17 +85,11 @@ export const getApplicationController = asyncHandler(async (req, res) => {
     );
 });
 
-/* -------------------------------------------------------------------------- */
-/* TPO REVIEW                                                                 */
-/* -------------------------------------------------------------------------- */
-
+// TPO reviews
 export const tpoReviewController = asyncHandler(async (req, res) => {
   const { decision, reason } = req.body;
-
   const { applicationId } = req.params;
-
   const reviewerId = req.user?._id || req.user?.id || req.userId;
-
   const application = await reviewByTpo({
     applicationId,
     reviewerId,
@@ -128,17 +108,11 @@ export const tpoReviewController = asyncHandler(async (req, res) => {
     );
 });
 
-/* -------------------------------------------------------------------------- */
-/* SPOC REVIEW                                                                */
-/* -------------------------------------------------------------------------- */
-
+// SPOC reviews
 export const spocReviewController = asyncHandler(async (req, res) => {
   const { decision, reason } = req.body;
-
   const { applicationId } = req.params;
-
   const reviewerId = req.user?._id || req.user?.id || req.userId;
-
   const application = await reviewBySpoc({
     applicationId,
     reviewerId,
@@ -157,10 +131,7 @@ export const spocReviewController = asyncHandler(async (req, res) => {
     );
 });
 
-/* -------------------------------------------------------------------------- */
-/* RESUBMIT APPLICATION                                                       */
-/* -------------------------------------------------------------------------- */
-
+// Resubmit the Applications
 export const resubmitApplicationController = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
 
@@ -182,10 +153,7 @@ export const resubmitApplicationController = asyncHandler(async (req, res) => {
     );
 });
 
-/* -------------------------------------------------------------------------- */
-/* GENERATE NOC                                                               */
-/* -------------------------------------------------------------------------- */
-
+// Generate NOC
 export const generateNocController = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
 
@@ -226,20 +194,60 @@ export const generateNocController = asyncHandler(async (req, res) => {
   );
 });
 
-/* -------------------------------------------------------------------------- */
-/* REGENERATE NOC                                                             */
-/* -------------------------------------------------------------------------- */
+/**
+ * Generate NOC in BULK
+ * Groups the applications by organisation + department and generates
+ * one NOC (own reference number, one PDF) per group.
+ */
+export const generateBulkNocController = asyncHandler(async (req, res) => {
+  const { applicationIds } = req.body;
+  const generatedBy = req.user?._id || req.user?.id || req.userId;
+
+  if (!generatedBy) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json(
+        new APIRES(
+          HTTP_STATUS.UNAUTHORIZED,
+          null,
+          "Authenticated SPOC user not found",
+        ),
+      );
+  }
+
+  const { groups, skipped } = await generateBulkNoc({
+    applicationIds,
+    generatedBy,
+  });
+
+  return res.status(HTTP_STATUS.OK).json(
+    new APIRES(
+      HTTP_STATUS.OK,
+      {
+        groups: groups.map((group) => ({
+          referenceNumber: group.referenceNumber,
+          department: group.department,
+          organisation: group.organisation,
+          applicationIds: group.applicationIds,
+          downloadUrls: group.applicationIds.map(
+            (id) => `/applications/spoc/${id}/noc/pdf`,
+          ),
+          nocs: group.nocs,
+        })),
+        skipped,
+      },
+      "Bulk NOC generated successfully",
+    ),
+  );
+});
 
 /**
- * POST
- * /applications/spoc/:applicationId/noc/regenerate
- *
+ * Regenerate the NOC
  * Rebuilds the PDF of an already generated NOC (same reference number)
  * with the current SPOC / TPO / student data.
  */
 export const regenerateNocController = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
-
   const generatedBy = req.user?._id || req.user?.id || req.userId;
 
   if (!generatedBy) {
@@ -272,14 +280,10 @@ export const regenerateNocController = asyncHandler(async (req, res) => {
   );
 });
 
-/* -------------------------------------------------------------------------- */
-/* APPLICATION REVIEWS                                                        */
-/* -------------------------------------------------------------------------- */
-
+// Application Reviews
 export const getApplicationReviewsController = asyncHandler(
   async (req, res) => {
     const { applicationId } = req.params;
-
     const reviews = await getApplicationReviews(applicationId);
 
     return res
@@ -294,10 +298,7 @@ export const getApplicationReviewsController = asyncHandler(
   },
 );
 
-/* -------------------------------------------------------------------------- */
-/* APPLICATION NOC                                                            */
-/* -------------------------------------------------------------------------- */
-
+// Applications NOC
 export const getApplicationNocController = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
 
@@ -308,14 +309,8 @@ export const getApplicationNocController = asyncHandler(async (req, res) => {
     .json(new APIRES(HTTP_STATUS.OK, noc, "NOC fetched successfully"));
 });
 
-/* -------------------------------------------------------------------------- */
-/* DOWNLOAD / OPEN NOC PDF                                                    */
-/* -------------------------------------------------------------------------- */
-
 /**
- * GET
- * /applications/spoc/:applicationId/noc/pdf
- *
+ * Download NOC
  * The PDF is already stored on the backend server.
  *
  * MongoDB
@@ -329,11 +324,7 @@ export const getApplicationNocController = asyncHandler(async (req, res) => {
 
 export const downloadNocPdfController = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
-
-  /* ------------------------------------------------------------
-       Get NOC
-    ------------------------------------------------------------ */
-
+  // Get NOC
   const noc = await getNocByApplication(applicationId);
 
   if (!noc) {
@@ -342,27 +333,16 @@ export const downloadNocPdfController = asyncHandler(async (req, res) => {
       "NOC not found for this application",
     );
   }
-
-  /* ------------------------------------------------------------
-       Check file path
-    ------------------------------------------------------------ */
-
+  // Check file path
   if (!noc.filePath) {
     throw new APIERR(HTTP_STATUS.NOT_FOUND, "NOC PDF file path not found");
   }
-
-  /* ------------------------------------------------------------
-       Convert relative path to absolute path
-    ------------------------------------------------------------ */
-
+  // Convert absolute path to relative path
   const absoluteFilePath = path.isAbsolute(noc.filePath)
     ? noc.filePath
     : path.join(process.cwd(), noc.filePath);
 
-  /* ------------------------------------------------------------
-       Check that file exists
-    ------------------------------------------------------------ */
-
+  // Check if file exist or not
   try {
     await fs.access(absoluteFilePath);
   } catch {
@@ -371,13 +351,8 @@ export const downloadNocPdfController = asyncHandler(async (req, res) => {
       "NOC PDF file does not exist on the server",
     );
   }
-
-  /* ------------------------------------------------------------
-       Set headers
-    ------------------------------------------------------------ */
-
+  // Set Headers
   res.setHeader("Content-Type", "application/pdf");
-
   res.setHeader("Content-Disposition", `inline; filename="${noc.fileName}"`);
 
   /*
@@ -385,18 +360,10 @@ export const downloadNocPdfController = asyncHandler(async (req, res) => {
    * could differ from the file on disk. sendFile sets the correct
    * length itself.
    */
-
-  /* ------------------------------------------------------------
-       Send PDF
-    ------------------------------------------------------------ */
-
   return res.sendFile(absoluteFilePath);
 });
 
-/* -------------------------------------------------------------------------- */
-/* ALL SPOC NOCS                                                              */
-/* -------------------------------------------------------------------------- */
-
+// All SPOC NOCs
 export const getSpocNocsController = asyncHandler(async (req, res) => {
   const nocs = await getSpocNocs();
 
