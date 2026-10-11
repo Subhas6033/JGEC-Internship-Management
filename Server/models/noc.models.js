@@ -24,7 +24,6 @@ const nocSchema = new mongoose.Schema(
     referenceNumber: {
       type: String,
       required: true,
-      // unique: true,
       index: true,
       uppercase: true,
       trim: true,
@@ -34,7 +33,6 @@ const nocSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-
     generatedAt: {
       type: Date,
       default: Date.now,
@@ -43,25 +41,39 @@ const nocSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
     department: {
       type: String,
       required: true,
       trim: true,
+    },
+    // tells the application where the file is stored.
+    storageProvider: {
+      type: String,
+      enum: ["local", "google_drive"],
+      default: "google_drive",
+      required: true,
+    },
+    // Google Drive file ID for newly uploaded PDFs.
+    driveFileId: {
+      type: String,
+      default: null,
+      index: true,
     },
     fileName: {
       type: String,
       required: true,
       trim: true,
     },
+    // Retained for compatibility; for Drive files this is the Drive ID.
     filePath: {
       type: String,
       required: true,
       trim: true,
     },
+    // No public Drive URL is needed.
     fileUrl: {
       type: String,
-      required: true,
+      default: null,
       trim: true,
     },
     fileMimeType: {
@@ -72,6 +84,7 @@ const nocSchema = new mongoose.Schema(
     fileSize: {
       type: Number,
       default: 0,
+      min: 0,
     },
     status: {
       type: String,

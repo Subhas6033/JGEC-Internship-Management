@@ -116,9 +116,13 @@ const registerStudents = asyncHandler(async (req, res) => {
       "image",
       "jgec-internship/students/signatures",
       `signature_${normalizedRollNumber}`,
+      {
+        removeSignatureBackground: true,
+      },
     );
   } catch (error) {
     console.error("Signature upload failed:", error);
+    if (error instanceof APIERR) throw error;
     throw new APIERR(
       HTTP_STATUS.INTERNAL_SERVER_ERROR,
       "Failed to upload signature. Please try again.",

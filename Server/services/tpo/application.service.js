@@ -187,9 +187,7 @@ const getTpoApplications = async ({ user, search = "", status }) => {
     .lean();
 };
 
-/* -------------------------------------------------------------------------- */
-/* NOTIFY SPOCs ABOUT A TPO-APPROVED APPLICATION                              */
-/* -------------------------------------------------------------------------- */
+/* NOTIFY SPOCs ABOUT A TPO-APPROVED APPLICATION  */
 
 /**
  * Tells the active SPOCs of the student's department that an application

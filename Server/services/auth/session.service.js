@@ -1,9 +1,7 @@
 import mongoose from "mongoose";
-
 import { RefreshSession } from "../../models/refreshSessions.models.js";
 import { APIERR } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-
 import {
   generateAccessToken,
   generateRefreshSecret,
@@ -14,13 +12,10 @@ import {
 
 const REFRESH_TOKEN_EXPIRY_DAYS =
   Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS) || 7;
-
 const REFRESH_TOKEN_GRACE_SECONDS =
   Number(process.env.REFRESH_TOKEN_GRACE_SECONDS) || 10;
-
 const MIN_ROTATE_INTERVAL_MS =
   (Number(process.env.REFRESH_ROTATION_MIN_INTERVAL_SECONDS) || 0) * 1000;
-
 const SUPPORTED_USER_MODELS = new Set(["Student", "TPO", "SPOC"]);
 
 const validateUserModel = (userModel) => {
