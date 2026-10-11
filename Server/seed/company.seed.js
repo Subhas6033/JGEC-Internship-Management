@@ -5,9 +5,7 @@ import { Organisation } from "../models/organisation.models.js";
 dotenv.config({ path: "../.env" });
 
 const organisations = [
-  // ============================================================
   // IITs
-  // ============================================================
 
   {
     organisationName: "Indian Institute of Technology Bhubaneswar",

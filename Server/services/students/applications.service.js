@@ -6,9 +6,7 @@ import { Organisation } from "../../models/organisation.models.js";
 
 const buildApplicationTimeline = (application) => {
   const status = application.status || "submitted";
-
   const submittedDate = application.createdAt || application.updatedAt || null;
-
   const updatedDate = application.updatedAt || application.createdAt || null;
 
   const formatDate = (date) => {

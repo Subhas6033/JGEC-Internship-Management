@@ -9,7 +9,7 @@ import { SPOC } from "../../models/spoc.models.js";
 import { TPO } from "../../models/tpo.models.js";
 import { APIERR } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
-import { generateNocPdf } from "../../utils/noc.utils.js";
+import { generateNocPdf } from "../../services/noc/noc.service.js";
 import { saveNocPdf, deleteNocPdf } from "../../utils/nocStorage.utils.js";
 import { sendNocMails } from "../../utils/Mail/mail.utils.js";
 import { publishEvent } from "../notification/notification.service.js";
@@ -715,14 +715,40 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
   const postCommit = { events: [], mails: [] };
 
   let generatedNoc = null;
-  let savedFilePath = null;
+
+  /*
+   * A transaction callback can be retried.
+   * Retain every uploaded Drive ID so abandoned uploads can be cleaned up.
+   */
+  const savedDriveFileIds = new Set();
+
+  const cleanupOrphanDriveFiles = async () => {
+    for (const driveFileId of savedDriveFileIds) {
+      try {
+        const referencedNoc = await NOC.exists({ driveFileId });
+
+        if (!referencedNoc) {
+          await deleteNocPdf(driveFileId);
+        }
+      } catch (deleteError) {
+        console.error(
+          "Failed to clean up orphan Google Drive NOC PDF:",
+          driveFileId,
+          deleteError,
+        );
+      }
+    }
+  };
 
   try {
     await session.withTransaction(async () => {
-      /* a transaction callback can be retried - start clean */
+      // Clear transaction-dependent notification data before each attempt.
       postCommit.events.length = 0;
       postCommit.mails.length = 0;
-      // Get the Applications
+
+      generatedNoc = null;
+
+      // Get the application.
       const application = await StudentApplication.findById(applicationId)
         .populate("student")
         .populate("organisation")
@@ -731,7 +757,8 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
       if (!application) {
         throw new APIERR(HTTP_STATUS.NOT_FOUND, "Application not found");
       }
-      // Already Generated
+
+      // If an NOC already exists, return it without generating another.
       if (application.noc) {
         const existingNoc = await NOC.findById(application.noc).session(
           session,
@@ -739,11 +766,11 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
 
         if (existingNoc) {
           generatedNoc = existingNoc;
-
           return;
         }
       }
-      // Status Check
+
+      // Preserve the existing status validation.
       if (application.status !== "approved_by_spoc") {
         throw new APIERR(
           HTTP_STATUS.BAD_REQUEST,
@@ -751,11 +778,11 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         );
       }
 
-      /* 
-      GET STUDENT (plain object, keeps non-schema fields
-      such as gurdianName / gurdianMobile)
-      */
-
+      /*
+       * Get the student as a plain object.
+       * This preserves non-schema fields such as gurdianName
+       * and gurdianMobile.
+       */
       const student = await Student.findById(
         application.student?._id || application.student,
       )
@@ -765,7 +792,8 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
       if (!student) {
         throw new APIERR(HTTP_STATUS.NOT_FOUND, "Student not found");
       }
-      // Department
+
+      // Department.
       const department = student.department || application.department;
 
       if (!department) {
@@ -774,7 +802,8 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
           "Student department is required to generate NOC",
         );
       }
-      // Reference Number
+
+      // Reference number.
       const referenceNumber = await createNocReference({
         department,
         session,
@@ -782,7 +811,8 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
 
       const academicYear = new Date().getFullYear();
       const generatedAt = new Date();
-      // Generated PDF
+
+      // Generate the PDF.
       const pdfBuffer = await buildNocPdfBuffer({
         application,
         student,
@@ -799,19 +829,34 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
           "Failed to generate NOC PDF",
         );
       }
-      // File Name
+
+      // File name.
       const fileName = buildNocFileName(referenceNumber);
-      // Save PDF on the Server
+
+      // Save the PDF in Google Drive instead of the local server.
       const savedFile = await saveNocPdf({
         pdfBuffer,
         academicYear,
         department: getDepartmentCode(department),
         fileName,
       });
-      savedFilePath = savedFile.absoluteFilePath;
-      // Backend File URL
+
+      if (
+        savedFile.storageProvider !== "google_drive" ||
+        !savedFile.driveFileId
+      ) {
+        throw new APIERR(
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          "Failed to store NOC PDF in Google Drive",
+        );
+      }
+
+      savedDriveFileIds.add(savedFile.driveFileId);
+
+      // Keep the existing backend download endpoint.
       const fileUrl = `/applications/spoc/${application._id}/noc/pdf`;
-      // Create the NOC Record
+
+      // Create the NOC record.
       const [noc] = await NOC.create(
         [
           {
@@ -819,29 +864,34 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
             student: student._id,
             organisation:
               application.organisation?._id || application.organisation,
+
             referenceNumber,
             generatedBy,
             generatedAt,
             academicYear,
             department,
+
+            // Google Drive storage metadata.
+            storageProvider: savedFile.storageProvider,
+            driveFileId: savedFile.driveFileId,
+
             fileName: savedFile.fileName,
-            filePath: savedFile.relativeFilePath,
+
+            // Compatibility field only; this is not a local path.
+            filePath: savedFile.driveFileId,
+
             fileUrl,
             fileMimeType: savedFile.mimeType,
             fileSize: savedFile.fileSize,
             status: "generated",
           },
         ],
-        {
-          session,
-        },
+        { session },
       );
-      // Update the Applications
-      await StudentApplication.updateOne(
-        {
-          _id: application._id,
-        },
 
+      // Update the application exactly as before.
+      await StudentApplication.updateOne(
+        { _id: application._id },
         {
           $set: {
             status: "noc_generated",
@@ -849,12 +899,10 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
             nocGeneratedAt: generatedAt,
           },
         },
-
-        {
-          session,
-        },
+        { session },
       );
 
+      // Preserve the existing post-commit notification workflow.
       collectNocDelivery(postCommit, {
         items: [{ application, student }],
         referenceNumber,
@@ -867,24 +915,19 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
       generatedNoc = noc;
     });
 
+    /*
+     * MongoDB has committed successfully.
+     * Remove only Drive files that were uploaded during a failed retry
+     * and are not referenced by any NOC.
+     */
+    await cleanupOrphanDriveFiles();
+
     await dispatchPostCommit(postCommit);
 
     return generatedNoc;
   } catch (error) {
-    /*
-     * MongoDB transaction failed after the PDF
-     * was successfully written.
-     *
-     * Remove the orphan PDF.
-     */
-
-    if (savedFilePath) {
-      try {
-        await deleteNocPdf(savedFilePath);
-      } catch (deleteError) {
-        console.error("Failed to remove orphan NOC PDF:", deleteError);
-      }
-    }
+    // Preserve Drive files referenced by existing NOC records.
+    await cleanupOrphanDriveFiles();
 
     throw error;
   } finally {
@@ -921,32 +964,72 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
       "applicationIds must be a non-empty array",
     );
   }
+
   validateObjectId(generatedBy, "Invalid SPOC user ID");
+
   const uniqueIds = [...new Set(applicationIds.map(String))];
+
   uniqueIds.forEach((id) =>
     validateObjectId(id, `Invalid application ID: ${id}`),
   );
+
   const session = await mongoose.startSession();
-  const savedFilePaths = [];
+
+  // Store Drive IDs, not filesystem paths.
+  // Do not clear this set when MongoDB retries its transaction callback.
+  const savedDriveFileIds = new Set();
+
   const postCommit = { events: [], mails: [] };
+
   let result = null;
+
+  /*
+   * Delete only Drive files that are not referenced by any NOC.
+   * A bulk PDF can be shared by multiple NOC records.
+   */
+  const cleanupOrphanDriveFiles = async () => {
+    for (const driveFileId of savedDriveFileIds) {
+      try {
+        const referencedNoc = await NOC.exists({ driveFileId });
+
+        if (!referencedNoc) {
+          await deleteNocPdf(driveFileId);
+        }
+      } catch (deleteError) {
+        console.error(
+          "Failed to clean up orphan Google Drive NOC PDF:",
+          driveFileId,
+          deleteError,
+        );
+      }
+    }
+  };
 
   try {
     await session.withTransaction(async () => {
-      /* a transaction callback can be retried - start clean */
-      savedFilePaths.length = 0;
+      /*
+       * MongoDB may retry this callback.
+       * Reset transaction-dependent data, but preserve uploaded Drive IDs
+       * so PDFs from failed attempts can be cleaned up safely afterward.
+       */
       postCommit.events.length = 0;
       postCommit.mails.length = 0;
+
       const groupsResult = [];
       const skipped = [];
-      // Get the applications
+
+      // Get the applications.
       const applications = await StudentApplication.find({
         _id: { $in: uniqueIds },
       })
         .populate("student")
         .populate("organisation")
         .session(session);
-      const foundIds = new Set(applications.map((a) => String(a._id)));
+
+      const foundIds = new Set(
+        applications.map((application) => String(application._id)),
+      );
+
       for (const id of uniqueIds) {
         if (!foundIds.has(id)) {
           skipped.push({
@@ -955,7 +1038,8 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           });
         }
       }
-      // Filter out the elligible applications
+
+      // Filter eligible applications.
       const eligible = [];
 
       for (const application of applications) {
@@ -964,6 +1048,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
             applicationId: String(application._id),
             reason: "NOC already generated",
           });
+
           continue;
         }
 
@@ -972,27 +1057,33 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
             applicationId: String(application._id),
             reason: `Application status is ${application.status}`,
           });
+
           continue;
         }
 
         eligible.push(application);
       }
 
-      /* --------------------------------------------------
-           GET STUDENTS (plain objects, keeps non-schema
-           fields such as gurdianName / gurdianMobile)
-        -------------------------------------------------- */
-
+      /*
+       * Get students as plain objects.
+       * This preserves non-schema fields such as gurdianName
+       * and gurdianMobile.
+       */
       const students = await Student.find({
         _id: {
-          $in: eligible.map((a) => idOf(a.student)).filter(isValidId),
+          $in: eligible
+            .map((application) => idOf(application.student))
+            .filter(isValidId),
         },
       })
         .session(session)
         .lean();
 
-      const studentMap = new Map(students.map((s) => [String(s._id), s]));
-      // Group by Organisations & Department
+      const studentMap = new Map(
+        students.map((student) => [String(student._id), student]),
+      );
+
+      // Group by organisation and department.
       const groups = new Map();
 
       for (const application of eligible) {
@@ -1003,6 +1094,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
             applicationId: String(application._id),
             reason: "Student not found",
           });
+
           continue;
         }
 
@@ -1013,10 +1105,12 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
             applicationId: String(application._id),
             reason: "Student department is required to generate NOC",
           });
+
           continue;
         }
 
         const organisationId = String(idOf(application.organisation));
+
         const departmentCode = getDepartmentCode(department);
         const key = `${organisationId}|${departmentCode}`;
 
@@ -1031,14 +1125,17 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
 
         groups.get(key).items.push({ application, student });
       }
-      // One NOC refrence per Groups
+
+      // One NOC reference and one PDF per group.
       for (const group of groups.values()) {
         const referenceNumber = await createNocReference({
           department: group.department,
           session,
         });
+
         const academicYear = new Date().getFullYear();
         const generatedAt = new Date();
+
         const pdfBuffer = await buildBulkNocPdfBuffer({
           items: group.items,
           referenceNumber,
@@ -1055,6 +1152,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           );
         }
 
+        // Save the PDF in Google Drive.
         const savedFile = await saveNocPdf({
           pdfBuffer,
           academicYear,
@@ -1062,9 +1160,22 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           fileName: buildNocFileName(referenceNumber),
         });
 
-        savedFilePaths.push(savedFile.absoluteFilePath);
+        if (
+          savedFile.storageProvider !== "google_drive" ||
+          !savedFile.driveFileId
+        ) {
+          throw new APIERR(
+            HTTP_STATUS.INTERNAL_SERVER_ERROR,
+            "Failed to store bulk NOC PDF in Google Drive",
+          );
+        }
 
-        /* one NOC record per application, same reference + file */
+        savedDriveFileIds.add(savedFile.driveFileId);
+
+        /*
+         * Create one NOC document per application.
+         * All documents in this group share the same PDF and reference.
+         */
         const nocDocs = await NOC.create(
           group.items.map(({ application, student }) => ({
             application: application._id,
@@ -1075,9 +1186,20 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
             generatedAt,
             academicYear,
             department: group.department,
+
+            // Google Drive storage metadata.
+            storageProvider: savedFile.storageProvider,
+            driveFileId: savedFile.driveFileId,
+
             fileName: savedFile.fileName,
-            filePath: savedFile.relativeFilePath,
+
+            // Retained for compatibility with existing code.
+            // This is a Drive file ID, not a local filesystem path.
+            filePath: savedFile.driveFileId,
+
+            // Downloads must continue through your authenticated backend.
             fileUrl: `/applications/spoc/${application._id}/noc/pdf`,
+
             fileMimeType: savedFile.mimeType,
             fileSize: savedFile.fileSize,
             status: "generated",
@@ -1088,6 +1210,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           },
         );
 
+        // Update application status and NOC reference.
         await StudentApplication.bulkWrite(
           nocDocs.map((noc) => ({
             updateOne: {
@@ -1104,6 +1227,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           { session },
         );
 
+        // Preserve the existing post-commit notification workflow.
         collectNocDelivery(postCommit, {
           items: group.items,
           referenceNumber,
@@ -1125,23 +1249,21 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
       result = { groups: groupsResult, skipped };
     });
 
+    /*
+     * Transaction committed. Any file uploaded during a transaction retry
+     * but not referenced by an NOC is now safe to clean up.
+     */
+    await cleanupOrphanDriveFiles();
+
     await dispatchPostCommit(postCommit);
 
     return result;
   } catch (error) {
     /*
-     * MongoDB transaction failed after one or more PDFs were written.
-     *
-     * Remove every orphan PDF.
+     * Clean up only files that have no NOC references.
+     * Never delete a Drive file still referenced by another NOC.
      */
-
-    for (const filePath of savedFilePaths) {
-      try {
-        await deleteNocPdf(filePath);
-      } catch (deleteError) {
-        console.error("Failed to remove orphan NOC PDF:", deleteError);
-      }
-    }
+    await cleanupOrphanDriveFiles();
 
     throw error;
   } finally {
@@ -1160,6 +1282,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
  */
 export const regenerateNoc = async ({ applicationId, generatedBy }) => {
   validateObjectId(applicationId, "Invalid application ID");
+  validateObjectId(generatedBy, "Invalid SPOC user ID");
 
   const application = await StudentApplication.findById(applicationId)
     .populate("student")
@@ -1186,7 +1309,15 @@ export const regenerateNoc = async ({ applicationId, generatedBy }) => {
     throw new APIERR(HTTP_STATUS.NOT_FOUND, "Student not found");
   }
 
-  const department = noc.department || student.department;
+  const department =
+    noc.department || student.department || application.department;
+
+  if (!department) {
+    throw new APIERR(
+      HTTP_STATUS.BAD_REQUEST,
+      "Student department is required to regenerate NOC",
+    );
+  }
 
   const pdfBuffer = await buildNocPdfBuffer({
     application,
@@ -1195,7 +1326,7 @@ export const regenerateNoc = async ({ applicationId, generatedBy }) => {
     generatedAt: noc.generatedAt,
     academicYear: noc.academicYear,
     department,
-    spocIds: [noc.generatedBy, generatedBy],
+    spocIds: [noc.generatedBy, generatedBy].filter(Boolean),
   });
 
   if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
@@ -1205,15 +1336,7 @@ export const regenerateNoc = async ({ applicationId, generatedBy }) => {
     );
   }
 
-  /* Remove the old file (ignore if it is already gone) */
-  if (noc.filePath) {
-    try {
-      await deleteNocPdf(toAbsolutePath(noc.filePath));
-    } catch (deleteError) {
-      console.error("Old NOC PDF could not be removed:", deleteError.message);
-    }
-  }
-
+  // Preserve the existing reference number and file naming convention.
   const savedFile = await saveNocPdf({
     pdfBuffer,
     academicYear: noc.academicYear,
@@ -1221,12 +1344,79 @@ export const regenerateNoc = async ({ applicationId, generatedBy }) => {
     fileName: buildNocFileName(noc.referenceNumber),
   });
 
+  if (savedFile.storageProvider !== "google_drive" || !savedFile.driveFileId) {
+    throw new APIERR(
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      "Failed to store regenerated NOC PDF in Google Drive",
+    );
+  }
+
+  // Keep the previous file metadata in case saving the NOC record fails.
+  const previousStorageProvider = noc.storageProvider;
+  const previousDriveFileId = noc.driveFileId;
+  const previousFilePath = noc.filePath;
+
+  // Update the existing NOC record; do not create a new NOC.
+  noc.storageProvider = savedFile.storageProvider;
+  noc.driveFileId = savedFile.driveFileId;
   noc.fileName = savedFile.fileName;
-  noc.filePath = savedFile.relativeFilePath;
+
+  // Compatibility only: filePath now holds the Drive ID.
+  noc.filePath = savedFile.driveFileId;
+
+  noc.fileUrl = `/applications/spoc/${application._id}/noc/pdf`;
   noc.fileMimeType = savedFile.mimeType;
   noc.fileSize = savedFile.fileSize;
 
-  await noc.save();
+  try {
+    await noc.save();
+  } catch (error) {
+    // The new Drive file is not referenced if saving the record failed.
+    try {
+      const referencedNoc = await NOC.exists({
+        driveFileId: savedFile.driveFileId,
+      });
+
+      if (!referencedNoc) {
+        await deleteNocPdf(savedFile.driveFileId);
+      }
+    } catch (cleanupError) {
+      console.error("Failed to clean up regenerated NOC PDF:", cleanupError);
+    }
+
+    throw error;
+  }
+
+  /*
+   * Delete the old Drive file only when no other NOC references it.
+   * This is important because bulk NOCs can share one PDF.
+   */
+  if (
+    previousStorageProvider === "google_drive" &&
+    previousDriveFileId &&
+    previousDriveFileId !== savedFile.driveFileId
+  ) {
+    try {
+      const referencedNoc = await NOC.exists({
+        driveFileId: previousDriveFileId,
+      });
+
+      if (!referencedNoc) {
+        await deleteNocPdf(previousDriveFileId);
+      }
+    } catch (deleteError) {
+      console.error(
+        "Old Google Drive NOC PDF could not be removed:",
+        deleteError.message,
+      );
+    }
+  } else if (previousStorageProvider === "local" && previousFilePath) {
+    /*
+     * If you still support legacy local files, delete them through your
+     * existing local-file cleanup utility. Do not pass a local path to
+     * the Google Drive deleteNocPdf() function.
+     */
+  }
 
   return noc;
 };

@@ -15,6 +15,7 @@ import {
 } from "./application.service.js";
 import { asyncHandler, APIRES, APIERR } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
+import { getNocPdfStream } from "../../utils/nocStorage.utils.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -324,7 +325,7 @@ export const getApplicationNocController = asyncHandler(async (req, res) => {
 
 export const downloadNocPdfController = asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
-  // Get NOC
+
   const noc = await getNocByApplication(applicationId);
 
   if (!noc) {
@@ -333,16 +334,54 @@ export const downloadNocPdfController = asyncHandler(async (req, res) => {
       "NOC not found for this application",
     );
   }
-  // Check file path
+
+  if (noc.status !== "generated") {
+    throw new APIERR(HTTP_STATUS.NOT_FOUND, "NOC PDF is not available");
+  }
+
+  const fileName = path
+    .basename(noc.fileName || "NOC.pdf")
+    .replace(/["\r\n]/g, "_");
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+  res.setHeader("Cache-Control", "private, no-store");
+
+  // Google Drive storage
+  if (noc.storageProvider === "google_drive" || noc.driveFileId) {
+    const driveFileId = noc.driveFileId || noc.filePath;
+
+    if (!driveFileId) {
+      throw new APIERR(
+        HTTP_STATUS.NOT_FOUND,
+        "Google Drive file ID not found for this NOC",
+      );
+    }
+
+    const pdfStream = await getNocPdfStream(driveFileId);
+
+    pdfStream.on("error", (error) => {
+      console.error("Google Drive NOC streaming error:", error);
+
+      if (!res.headersSent) {
+        res.status(500).end("Failed to retrieve NOC PDF");
+      } else {
+        res.destroy(error);
+      }
+    });
+
+    return pdfStream.pipe(res);
+  }
+
+  // Legacy local-file storage
   if (!noc.filePath) {
     throw new APIERR(HTTP_STATUS.NOT_FOUND, "NOC PDF file path not found");
   }
-  // Convert absolute path to relative path
+
   const absoluteFilePath = path.isAbsolute(noc.filePath)
     ? noc.filePath
-    : path.join(process.cwd(), noc.filePath);
+    : path.resolve(process.cwd(), noc.filePath);
 
-  // Check if file exist or not
   try {
     await fs.access(absoluteFilePath);
   } catch {
@@ -351,15 +390,7 @@ export const downloadNocPdfController = asyncHandler(async (req, res) => {
       "NOC PDF file does not exist on the server",
     );
   }
-  // Set Headers
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `inline; filename="${noc.fileName}"`);
 
-  /*
-   * No Content-Length from the DB: after a regenerate the stored value
-   * could differ from the file on disk. sendFile sets the correct
-   * length itself.
-   */
   return res.sendFile(absoluteFilePath);
 });
 
