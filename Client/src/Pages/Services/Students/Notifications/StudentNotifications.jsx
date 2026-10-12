@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Bell, CheckCheck, Inbox, MailOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button, Card } from "../../../../Components";
@@ -83,12 +83,15 @@ const StudentNotifications = () => {
 
   return (
     <>
+      {/* Page MetaData */}
       <title>Notifications | JGEC Internship Portal</title>
       <meta
         name="description"
         content="View important internship application, verification, document, and portal notifications through the JGEC Internship Portal."
       />
       <meta name="robots" content="noindex, nofollow" />
+
+      {/* Main Page Components */}
       <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
           <motion.div

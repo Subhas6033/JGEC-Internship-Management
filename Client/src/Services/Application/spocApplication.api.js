@@ -1,69 +1,23 @@
 import { apiClient } from "../api/apiClient";
 
-/**
- * --------------------------------------------------------------------------
- * Response helper
- * --------------------------------------------------------------------------
- *
- * Supports both:
- *
- * {
- *   success: true,
- *   data: ...
- * }
- *
- * and:
- *
- * {
- *   data: ...
- * }
- *
- * This also works with the centralized apiClient response interceptor.
- */
+// Helper Functions
 const getApiData = (response) => {
   if (!response) {
     return null;
   }
 
-  /**
-   * API response:
-   *
-   * {
-   *   data: {
-   *     success: true,
-   *     data: ...
-   *   }
-   * }
-   */
   if (response?.data && response?.data?.success !== undefined) {
     return response.data.data ?? null;
   }
 
-  /**
-   * API response:
-   *
-   * {
-   *   success: true,
-   *   data: ...
-   * }
-   */
   if (response?.success !== undefined) {
     return response.data ?? null;
   }
-
-  /**
-   * Normal axios response fallback.
-   */
+  // Normal axios response fallback
   return response?.data ?? response;
 };
 
-/**
- * --------------------------------------------------------------------------
- * Get all SPOC applications
- * --------------------------------------------------------------------------
- *
- * GET /applications/spoc
- */
+// Get the all SPOC Applications
 const getSpocApplications = ({ search = "", status = "all" } = {}) => {
   return apiClient.get("/applications/spoc", {
     params: {
@@ -73,64 +27,31 @@ const getSpocApplications = ({ search = "", status = "all" } = {}) => {
   });
 };
 
-/**
- * --------------------------------------------------------------------------
- * Get single SPOC application
- * --------------------------------------------------------------------------
- *
- * GET /applications/spoc/:applicationId
- */
+// Get the Single SPOC Applications
 const getSpocApplicationById = (applicationId) => {
   if (!applicationId) {
     throw new Error("Application ID is required");
   }
-
   return apiClient.get(`/applications/spoc/${applicationId}`);
 };
 
-/**
- * --------------------------------------------------------------------------
- * Get applications by organisation
- * --------------------------------------------------------------------------
- *
- * GET /applications/spoc/organisation/:organisationId
- */
+// Get the Applications by Organisations
 const getSpocApplicationsByOrganisation = (organisationId) => {
   if (!organisationId) {
     throw new Error("Organisation ID is required");
   }
-
   return apiClient.get(`/applications/spoc/organisation/${organisationId}`);
 };
 
-/**
- * --------------------------------------------------------------------------
- * Accept application
- * --------------------------------------------------------------------------
- *
- * POST /applications/spoc/:applicationId/accept
- *
- * Result:
- *
- * approved_by_tpo
- *      ↓
- * approved_by_spoc
- */
+// Accept the Applications
 const acceptSpocApplication = (applicationId) => {
   if (!applicationId) {
     throw new Error("Application ID is required");
   }
-
   return apiClient.post(`/applications/spoc/${applicationId}/accept`);
 };
 
-/**
- * --------------------------------------------------------------------------
- * Send application back
- * --------------------------------------------------------------------------
- *
- * POST /applications/spoc/:applicationId/send-back
- */
+// Send the Applications Back to the Students
 const sendBackSpocApplication = (applicationId, reason) => {
   if (!applicationId) {
     throw new Error("Application ID is required");
@@ -145,19 +66,7 @@ const sendBackSpocApplication = (applicationId, reason) => {
   });
 };
 
-/**
- * --------------------------------------------------------------------------
- * Review application
- * --------------------------------------------------------------------------
- *
- * PATCH /applications/spoc/:applicationId/review
- *
- * decision:
- *
- * approve
- * reject
- * send_back
- */
+// Review Applications
 const reviewSpocApplication = (applicationId, payload) => {
   if (!applicationId) {
     throw new Error("Application ID is required");
@@ -170,19 +79,7 @@ const reviewSpocApplication = (applicationId, payload) => {
   return apiClient.patch(`/applications/spoc/${applicationId}/review`, payload);
 };
 
-/**
- * --------------------------------------------------------------------------
- * Generate NOC
- * --------------------------------------------------------------------------
- *
- * POST /applications/spoc/:applicationId/noc
- *
- * Only an application with:
- *
- * approved_by_spoc
- *
- * can generate an NOC.
- */
+// Generate the NOCs
 const generateSpocNoc = (applicationId) => {
   if (!applicationId) {
     throw new Error("Application ID is required");
@@ -192,12 +89,21 @@ const generateSpocNoc = (applicationId) => {
 };
 
 /**
- * --------------------------------------------------------------------------
- * Get application NOC
- * --------------------------------------------------------------------------
- *
- * GET /applications/spoc/:applicationId/noc
+ * Generate the BULK NOCs
+ * The backend groups the applications by organisation + department and
+ * generates one NOC (own reference number, one PDF) per group.
  */
+const generateBulkSpocNoc = (applicationIds) => {
+  if (!Array.isArray(applicationIds) || applicationIds.length === 0) {
+    throw new Error("Select at least one application");
+  }
+
+  return apiClient.post("/applications/spoc/noc/bulk", {
+    applicationIds,
+  });
+};
+
+// Get the NOC
 const getSpocApplicationNoc = (applicationId) => {
   if (!applicationId) {
     throw new Error("Application ID is required");
@@ -206,17 +112,7 @@ const getSpocApplicationNoc = (applicationId) => {
   return apiClient.get(`/applications/spoc/${applicationId}/noc`);
 };
 
-/**
- * --------------------------------------------------------------------------
- * Download NOC PDF
- * --------------------------------------------------------------------------
- *
- * GET /applications/spoc/:applicationId/noc/pdf
- *
- * Important:
- *
- * responseType must be blob because the backend returns a PDF.
- */
+// Download the NOCs
 const downloadSpocNocPdf = (applicationId) => {
   if (!applicationId) {
     throw new Error("Application ID is required");
@@ -227,40 +123,24 @@ const downloadSpocNocPdf = (applicationId) => {
   });
 };
 
-/**
- * --------------------------------------------------------------------------
- * Get all SPOC NOCs
- * --------------------------------------------------------------------------
- *
- * GET /applications/spoc/nocs
- */
+// Get all the SPOC NOCs
 const getSpocNocs = () => {
   return apiClient.get("/applications/spoc/nocs");
 };
 
-/**
- * --------------------------------------------------------------------------
- * Download blob helper
- * --------------------------------------------------------------------------
- */
+// NOC Download Blob Helpers
 const downloadBlob = (blob, filename = "NOC.pdf") => {
   if (!blob) {
     throw new Error("PDF file is not available");
   }
 
   const url = window.URL.createObjectURL(blob);
-
   const anchor = document.createElement("a");
-
   anchor.href = url;
   anchor.download = filename;
-
   document.body.appendChild(anchor);
-
   anchor.click();
-
   anchor.remove();
-
   window.URL.revokeObjectURL(url);
 };
 
@@ -273,6 +153,7 @@ export {
   sendBackSpocApplication,
   reviewSpocApplication,
   generateSpocNoc,
+  generateBulkSpocNoc,
   getSpocApplicationNoc,
   downloadSpocNocPdf,
   getSpocNocs,

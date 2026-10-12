@@ -1,10 +1,4 @@
-import {
-  Bell,
-  BriefcaseBusiness,
-  FileCheck2,
-  FileText,
-  ShieldCheck,
-} from "lucide-react";
+import { Bell, BriefcaseBusiness, FileText, ShieldCheck } from "lucide-react";
 
 const categoryConfig = {
   application: {
@@ -12,19 +6,16 @@ const categoryConfig = {
     icon: Bell,
     className: "bg-primary/10 text-primary",
   },
-
   verification: {
     label: "Verification",
     icon: ShieldCheck,
     className: "bg-success/10 text-success",
   },
-
   document: {
     label: "Document",
     icon: FileText,
     className: "bg-warning/10 text-warning",
   },
-
   internship: {
     label: "Internship",
     icon: BriefcaseBusiness,

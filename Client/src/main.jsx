@@ -98,7 +98,7 @@ const DeptTPOSettings = lazy(
 const SPOCSignup = lazy(() => import("./Pages/Auth/SPOCSignup.jsx"));
 const SPOCLogin = lazy(() => import("./Pages/Auth/SPOCLogin.jsx"));
 const SPOCDashboard = lazy(
-  () => import("./Pages/Services/SPOC/SPOCDashboard.jsx.jsx"),
+  () => import("./Pages/Services/SPOC/Dashboard/SPOCDashboard.jsx"),
 );
 const SPOCApplications = lazy(
   () => import("./Pages/Services/SPOC/SPOCApplications.jsx"),
@@ -108,7 +108,7 @@ const SPOCProfile = lazy(
   () => import("./Pages/Services/SPOC/Profile/SPOCProfile.jsx"),
 );
 const SPOCApplicationDetails = lazy(
-  () => import("./Pages/Services/SPOC/SPOCApplicationDetails.jsx"),
+  () => import("./Pages/Services/SPOC/Application/SPOCApplicationDetails.jsx"),
 );
 
 // Admin Routes

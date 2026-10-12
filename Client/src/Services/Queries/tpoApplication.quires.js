@@ -12,16 +12,13 @@ import {
 const useTpoApplications = ({ search = "", status = "all" } = {}) => {
   return useQuery({
     queryKey: ["tpoApplications", search, status],
-
     queryFn: async () => {
       const response = await getTpoApplications({
         search,
         status,
       });
-
       return getApiData(response);
     },
-
     staleTime: 30 * 1000,
   });
 };
@@ -30,12 +27,9 @@ const useTpoApplications = ({ search = "", status = "all" } = {}) => {
 const useTpoApplication = (applicationId) => {
   return useQuery({
     queryKey: ["tpoApplication", applicationId],
-
     queryFn: async () => {
       const response = await getTpoApplicationById(applicationId);
-
       const application = getApiData(response);
-
       /**
        * React Query does not allow the query
        * function to return undefined.
@@ -47,7 +41,6 @@ const useTpoApplication = (applicationId) => {
     },
 
     enabled: Boolean(applicationId),
-
     staleTime: 30 * 1000,
   });
 };
@@ -56,15 +49,11 @@ const useTpoApplication = (applicationId) => {
 const useTpoApplicationsByOrganisation = (organisationId) => {
   return useQuery({
     queryKey: ["tpoApplications", "organisation", organisationId],
-
     queryFn: async () => {
       const response = await getTpoApplicationsByOrganisation(organisationId);
-
       return getApiData(response);
     },
-
     enabled: Boolean(organisationId),
-
     staleTime: 30 * 1000,
   });
 };
@@ -72,25 +61,17 @@ const useTpoApplicationsByOrganisation = (organisationId) => {
 // Accept the applications
 const useAcceptTpoApplication = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (applicationId) => {
       const response = await acceptTpoApplication(applicationId);
-
       return getApiData(response);
     },
-
     onSuccess: (_data, applicationId) => {
-      /**
-       * Refresh current application
-       */
+      // Refresh the Current Applications
       queryClient.invalidateQueries({
         queryKey: ["tpoApplication", applicationId],
       });
-
-      /**
-       * Refresh application lists
-       */
+      // refresh the current lsits
       queryClient.invalidateQueries({
         queryKey: ["tpoApplications"],
       });
@@ -101,25 +82,17 @@ const useAcceptTpoApplication = () => {
 // Send applications back to the students
 const useSendBackTpoApplication = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({ applicationId, reason }) => {
       const response = await sendBackTpoApplication(applicationId, reason);
-
       return getApiData(response);
     },
-
     onSuccess: (_data, variables) => {
-      /**
-       * Refresh current application
-       */
+      // refresh the current applications
       queryClient.invalidateQueries({
         queryKey: ["tpoApplication", variables.applicationId],
       });
-
-      /**
-       * Refresh application lists
-       */
+      // refresh the current lists
       queryClient.invalidateQueries({
         queryKey: ["tpoApplications"],
       });

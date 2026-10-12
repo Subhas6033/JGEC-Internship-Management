@@ -1,5 +1,4 @@
 import { CalendarClock } from "lucide-react";
-
 import { Card } from "../../../../Components/index";
 
 const UpcomingDeadlines = ({ deadlines = [] }) => {

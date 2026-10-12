@@ -1,8 +1,6 @@
 import { ArrowUpRight, Building2, CalendarDays } from "lucide-react";
-
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-
 import {
   cardAnimation,
   staggerContainer,

@@ -1,12 +1,10 @@
 import { ArrowUpRight, Building2, MapPin } from "lucide-react";
 import { motion } from "motion/react";
-
 import { Card } from "../../../../Components/index";
 import {
   hoverLiftSmall,
   tapScaleSmall,
 } from "../../../../Animations/animations";
-
 import ApplicationStatusBadge from "./ApplicationStatusBadge";
 import { InfoTooltip } from "./ApplicationTooltip";
 

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getStudentDashboard } from "../Dashboard/studentDashboard.api";
 
-const useStudentDashboard = () => {
+export const useStudentDashboard = () => {
   return useQuery({
     queryKey: ["studentDashboard"],
     queryFn: getStudentDashboard,
@@ -9,5 +9,3 @@ const useStudentDashboard = () => {
     refetchOnWindowFocus: true,
   });
 };
-
-export { useStudentDashboard };

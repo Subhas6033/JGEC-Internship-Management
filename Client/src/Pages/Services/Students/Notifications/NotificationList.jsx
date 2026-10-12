@@ -1,5 +1,4 @@
 import { AnimatePresence } from "framer-motion";
-
 import NotificationItem from "./NotificationItem";
 import NotificationEmpty from "./NotificationEmpty";
 

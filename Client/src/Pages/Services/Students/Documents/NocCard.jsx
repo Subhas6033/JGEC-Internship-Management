@@ -93,9 +93,7 @@ const NocCard = ({ noc, applicationAccepted }) => {
     }
   };
 
-  /*
-   * Download NOC
-   */
+  // Download NOC
   const handleDownload = async () => {
     try {
       const response = await fetch(noc.url);
@@ -117,9 +115,7 @@ const NocCard = ({ noc, applicationAccepted }) => {
     }
   };
 
-  /*
-   * SPOC accepted + NOC generated.
-   */
+  // SPOC Accepted & Generated NOCs
   return (
     <motion.div
       initial={{

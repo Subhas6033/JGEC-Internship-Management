@@ -21,6 +21,7 @@ const StudentProfile = () => {
 
   return (
     <>
+      {/* Page MetaData */}
       <title>My Profile | JGEC Internship Portal</title>
       <meta
         name="description"
@@ -35,6 +36,7 @@ const StudentProfile = () => {
       />
       <meta property="og:type" content="website" />
 
+      {/* Main Page Component */}
       <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl space-y-6">
           {/* Page heading */}

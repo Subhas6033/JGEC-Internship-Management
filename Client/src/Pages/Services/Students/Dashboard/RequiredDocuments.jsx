@@ -1,6 +1,5 @@
 import { ArrowRight, Check, CircleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
-
 import { Card } from "../../../../Components/index";
 
 const RequiredDocuments = ({ documents = [] }) => {

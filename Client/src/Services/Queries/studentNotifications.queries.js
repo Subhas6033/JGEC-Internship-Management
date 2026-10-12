@@ -23,7 +23,6 @@ export const useStudentNotifications = ({
         search,
       },
     ],
-
     queryFn: () =>
       getStudentNotifications({
         category,
@@ -35,10 +34,8 @@ export const useStudentNotifications = ({
 
 export const useMarkStudentNotificationRead = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: markStudentNotificationRead,
-
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: studentNotificationsQueryKey,
@@ -49,10 +46,8 @@ export const useMarkStudentNotificationRead = () => {
 
 export const useMarkAllStudentNotificationsRead = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: markAllStudentNotificationsRead,
-
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: studentNotificationsQueryKey,
@@ -63,10 +58,8 @@ export const useMarkAllStudentNotificationsRead = () => {
 
 export const useDeleteStudentNotification = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: deleteStudentNotification,
-
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: studentNotificationsQueryKey,
@@ -78,7 +71,6 @@ export const useDeleteStudentNotification = () => {
 export const useUnreadStudentNotificationCount = () => {
   return useQuery({
     queryKey: [...studentNotificationsQueryKey, "unread-count"],
-
     queryFn: getUnreadStudentNotificationCount,
   });
 };

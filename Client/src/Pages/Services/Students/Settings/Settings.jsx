@@ -1,31 +1,27 @@
 import { ArrowLeft, Bell, Construction, Settings2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-
 import { Button } from "../../../../Components";
 
 const Settings = () => {
   return (
     <>
+      {/* Page MetaData */}
       <title>Settings | JGEC Internship Portal</title>
-
       <meta
         name="description"
         content="Manage your JGEC Internship Portal account, preferences, and notification settings."
       />
-
       <meta name="robots" content="noindex, nofollow" />
-
       <meta name="theme-color" content="#ffffff" />
-
       <meta property="og:title" content="Settings | JGEC Internship Portal" />
-
       <meta
         property="og:description"
         content="Manage your account preferences and notification settings through the JGEC Internship Portal."
       />
-
       <meta property="og:type" content="website" />
+
+      {/* Main page Components */}
       <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl items-center justify-center">
           <motion.div

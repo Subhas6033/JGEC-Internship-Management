@@ -6,7 +6,6 @@ const statusConfig = {
     icon: CheckCircle2,
     className: "bg-success/10 text-success border border-success/20",
   },
-
   locked: {
     label: "Read only",
     icon: LockKeyhole,
