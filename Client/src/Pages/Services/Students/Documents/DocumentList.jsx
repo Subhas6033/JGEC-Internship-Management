@@ -8,9 +8,7 @@ const DocumentList = ({ documents, onPreview }) => {
         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
           <FileText size={22} className="text-muted-foreground" />
         </div>
-
         <h3 className="font-medium text-foreground">No documents available</h3>
-
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
           Your uploaded documents will appear here once they are submitted.
         </p>

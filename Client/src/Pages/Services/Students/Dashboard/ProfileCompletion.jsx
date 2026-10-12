@@ -6,7 +6,6 @@ const ProfileCompletion = ({ profileCompletion }) => {
   const percentage = profileCompletion?.percentage ?? 0;
   const completed = profileCompletion?.completed ?? 0;
   const total = profileCompletion?.total ?? 0;
-
   const isComplete = percentage >= 100;
 
   return (

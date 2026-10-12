@@ -26,6 +26,7 @@ const StudentDashboard = () => {
 
   return (
     <>
+      {/* Page MetaData */}
       <title>Student Dashboard | JGEC Internship Portal</title>
       <meta
         name="description"
@@ -43,6 +44,7 @@ const StudentDashboard = () => {
       />
       <meta property="og:type" content="website" />
 
+      {/* Main Page Component */}
       <section className="w-full px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-7xl space-y-6">
           {/* Header */}

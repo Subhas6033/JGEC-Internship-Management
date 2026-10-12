@@ -22,7 +22,6 @@ const useSpocRegistration = () => {
 const useSpocLogin = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (credentials) => {
       const response = await loginSpoc(credentials);

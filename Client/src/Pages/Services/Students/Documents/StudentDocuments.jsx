@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { FileCheck2, Files, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
-import { Card } from "../../../../Components/index";
+import { Card, Toast } from "../../../../Components/index";
 import DocumentSection from "./DocumentSection";
 import DocumentList from "./DocumentList";
 import DocumentPreview from "./DocumentPreview";
@@ -14,8 +14,15 @@ import {
   useUpdateStudentResume,
 } from "../../../../Services/Queries/studentDocuments.queries";
 
+const getServerMessage = (source, fallback) =>
+  source?.response?.data?.message ||
+  source?.data?.message ||
+  source?.message ||
+  fallback;
+
 const StudentDocuments = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [toast, setToast] = useState(null);
   const { data, isLoading, isError, error } = useStudentDocuments();
   const updateSignature = useUpdateStudentSignature();
   const updateResume = useUpdateStudentResume();
@@ -24,22 +31,17 @@ const StudentDocuments = () => {
   const acceptedApplication = documentsData?.acceptedApplication ?? null;
   const nocDocument = documentsData?.noc ?? null;
 
-  /*
-   * NOC is available only after SPOC accepts
-   * the student's internship application.
-   */
+  const showToast = useCallback((variant, title, message) => {
+    setToast({ id: Date.now(), variant, title, message });
+  }, []);
+
+  const closeToast = useCallback(() => setToast(null), []);
+
+  // NOC is available only after SPOC accepts the application
   const applicationAccepted =
     acceptedApplication?.status === "approved_by_spoc" ||
     acceptedApplication?.status === "accepted";
 
-  /*
-   * Check whether signature already exists.
-   *
-   * The backend currently returns documents
-   * containing name/fileName information, so
-   * support both explicit type fields and
-   * filename/name matching.
-   */
   const signatureUploaded = uploadedDocuments.some(
     (document) =>
       document?.type === "signature" ||
@@ -48,9 +50,6 @@ const StudentDocuments = () => {
       document?.fileName?.toLowerCase().includes("signature"),
   );
 
-  /*
-   * Check whether resume already exists.
-   */
   const resumeUploaded = uploadedDocuments.some(
     (document) =>
       document?.type === "resume" ||
@@ -59,33 +58,42 @@ const StudentDocuments = () => {
       document?.fileName?.toLowerCase().includes("resume"),
   );
 
-  /*
-   * Handle signature upload/update.
-   */
-  const handleSignatureChange = (event) => {
+  const handleDocumentUpload = async ({ event, label, mutation }) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-    updateSignature.mutate(file);
-    /*
-     * Allows selecting the same file again
-     * after an update.
-     */
+    // Allows selecting the same file again
     event.target.value = "";
+    if (!file) return;
+
+    try {
+      const result = await mutation.mutateAsync(file);
+      showToast(
+        "success",
+        `${label} saved`,
+        getServerMessage(result, `${label} saved successfully.`),
+      );
+    } catch (err) {
+      console.error(`${label} upload failed:`, err);
+      showToast(
+        "error",
+        `${label} upload failed`,
+        getServerMessage(err, "Something went wrong. Please try again."),
+      );
+    }
   };
 
-  /*
-   * Handle resume upload/update.
-   */
-  const handleResumeChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    updateResume.mutate(file);
-    /*
-     * Allows selecting the same file again
-     * after an update.
-     */
-    event.target.value = "";
-  };
+  const handleSignatureChange = (event) =>
+    handleDocumentUpload({
+      event,
+      label: "Signature",
+      mutation: updateSignature,
+    });
+
+  const handleResumeChange = (event) =>
+    handleDocumentUpload({
+      event,
+      label: "Resume",
+      mutation: updateResume,
+    });
 
   if (isLoading) {
     return (
@@ -116,8 +124,10 @@ const StudentDocuments = () => {
               </h2>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                {error?.message ||
-                  "Something went wrong while loading your documents."}
+                {getServerMessage(
+                  error,
+                  "Something went wrong while loading your documents.",
+                )}
               </p>
             </Card>
           </div>
@@ -128,6 +138,7 @@ const StudentDocuments = () => {
 
   return (
     <>
+      {/* Page MetaData */}
       <title>My Documents | JGEC Internship Portal</title>
       <meta
         name="description"
@@ -144,6 +155,8 @@ const StudentDocuments = () => {
         content="View submitted internship documents and generated NOC through the JGEC Internship Portal."
       />
       <meta property="og:type" content="website" />
+
+      {/* Main Page Components */}
       <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
           {/* Header */}
@@ -237,8 +250,6 @@ const StudentDocuments = () => {
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="space-y-6">
-              {/* Uploaded documents */}
-
               <DocumentSection
                 title="Uploaded documents"
                 description="These are the documents submitted during your internship application."
@@ -259,8 +270,6 @@ const StudentDocuments = () => {
                 />
               </DocumentSection>
 
-              {/* NOC */}
-
               <DocumentSection
                 title="No Objection Certificate"
                 description="Your NOC is generated automatically when the SPOC accepts your internship application."
@@ -271,8 +280,6 @@ const StudentDocuments = () => {
                 />
               </DocumentSection>
             </div>
-
-            {/* Application status */}
 
             <aside>
               <div className="xl:sticky xl:top-6">
@@ -289,6 +296,18 @@ const StudentDocuments = () => {
           document={selectedDocument}
           onClose={() => setSelectedDocument(null)}
         />
+
+        {toast && (
+          <div className="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-end">
+            <Toast
+              key={toast.id}
+              variant={toast.variant}
+              title={toast.title}
+              message={toast.message}
+              onClose={closeToast}
+            />
+          </div>
+        )}
       </main>
     </>
   );

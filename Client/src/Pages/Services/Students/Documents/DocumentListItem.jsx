@@ -1,12 +1,5 @@
-import {
-  Download,
-  FileText,
-  Image,
-  LockKeyhole,
-  Eye,
-} from "lucide-react";
+import { Download, FileText, Image, LockKeyhole, Eye } from "lucide-react";
 import { motion } from "framer-motion";
-
 import { Button } from "../../../../Components";
 import DocumentStatusBadge from "./DocumentStatusBadge";
 
@@ -21,11 +14,7 @@ const DocumentListItem = ({ document, onPreview }) => {
     >
       <div className="flex min-w-0 items-start gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          {isImage ? (
-            <Image size={20} />
-          ) : (
-            <FileText size={20} />
-          )}
+          {isImage ? <Image size={20} /> : <FileText size={20} />}
         </div>
 
         <div className="min-w-0">

@@ -6,19 +6,16 @@ const statusConfig = {
     icon: CircleDashed,
     className: "bg-cream-dark text-ink",
   },
-
   under_review: {
     label: "Under review",
     icon: Clock3,
     className: "bg-info/10 text-info",
   },
-
   approved: {
     label: "Approved",
     icon: CheckCircle2,
     className: "bg-brand-50 text-brand-700",
   },
-
   rejected: {
     label: "Rejected",
     icon: XCircle,
@@ -28,7 +25,6 @@ const statusConfig = {
 
 const ApplicationStatusBadge = ({ status }) => {
   const config = statusConfig[status] ?? statusConfig.submitted;
-
   const Icon = config.icon;
 
   return (

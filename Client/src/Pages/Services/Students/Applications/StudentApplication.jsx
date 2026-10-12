@@ -306,9 +306,9 @@ const StudentApplicationPage = () => {
     );
   }
 
-  // Main Page Component
   return (
     <>
+      {/* Page MetaData */}
       <title>New Internship Application | JGEC Internship Portal</title>
       <meta
         name="description"

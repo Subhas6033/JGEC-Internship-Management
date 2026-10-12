@@ -4,16 +4,11 @@ import { setAuth, logout } from "../../Store/Slice/authSlice";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5850/api/v1";
-
 const REFRESH_ENDPOINT = "/auth/refresh-token";
-
 const MAX_REFRESH_ATTEMPTS = 3;
 const REFRESH_LOCK_NAME = "auth-refresh";
 
-/* -------------------------------------------------------------------------- */
-/* API ERROR                                                                   */
-/* -------------------------------------------------------------------------- */
-
+// API ERROR
 class APIError extends Error {
   constructor(message, status = 500, data = null) {
     super(message);
@@ -24,10 +19,7 @@ class APIError extends Error {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* ERROR NORMALIZER                                                            */
-/* -------------------------------------------------------------------------- */
-
+// Normalize the ERROR
 const normalizeError = (error) => {
   // Already normalized
   if (error instanceof APIError || axios.isCancel(error)) {
@@ -54,22 +46,19 @@ const normalizeError = (error) => {
   return new APIError("Network error. Please check your connection.", 0);
 };
 
-/* -------------------------------------------------------------------------- */
-/* MAIN API CLIENT                                                             */
-/* -------------------------------------------------------------------------- */
-
+// create the main apiClient
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 30000,
 });
 
-/* -------------------------------------------------------------------------- */
-/* AUTH CLIENT                                                                 */
-/*                                                                            */
-/* Used only for refresh requests.                                             */
-/* It intentionally does NOT use the main API interceptors.                   */
-/* -------------------------------------------------------------------------- */
+/*
+ *AUTH CLIENT
+ *
+ * Used only for refresh requests.
+ * It intentionally does NOT use the main API interceptors.
+ */
 
 const authClient = axios.create({
   baseURL: API_BASE_URL,
@@ -77,16 +66,10 @@ const authClient = axios.create({
   timeout: 15000,
 });
 
-/* -------------------------------------------------------------------------- */
-/* HELPERS                                                                     */
-/* -------------------------------------------------------------------------- */
-
+// Helper Fucntions
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/* -------------------------------------------------------------------------- */
-/* REFRESH TOKEN                                                               */
-/* -------------------------------------------------------------------------- */
-
+// refreshToken
 const callRefreshEndpoint = async () => {
   for (let attempt = 1; attempt <= MAX_REFRESH_ATTEMPTS; attempt++) {
     try {
@@ -105,7 +88,6 @@ const callRefreshEndpoint = async () => {
        */
 
       const data = response?.data?.data;
-
       const accessToken = data?.accessToken;
       const user = data?.user;
 
@@ -140,21 +122,15 @@ const callRefreshEndpoint = async () => {
        */
       if (apiError.status === 409 && attempt < MAX_REFRESH_ATTEMPTS) {
         await sleep(150 * attempt + Math.random() * 100);
-
         continue;
       }
-
       throw apiError;
     }
   }
-
   throw new APIError("Unable to refresh authentication", 401);
 };
 
-/* -------------------------------------------------------------------------- */
-/* CROSS-TAB REFRESH LOCK                                                      */
-/* -------------------------------------------------------------------------- */
-
+// Lock the refresh token rotations in CROSS TAB
 const withCrossTabLock = (task) => {
   /*
    * Web Locks API
@@ -169,10 +145,7 @@ const withCrossTabLock = (task) => {
   return task();
 };
 
-/* -------------------------------------------------------------------------- */
-/* REFRESH REQUEST                                                             */
-/* -------------------------------------------------------------------------- */
-
+// Refresh Request
 const requestRefreshToken = () =>
   withCrossTabLock(async () => {
     const result = await callRefreshEndpoint();
@@ -193,11 +166,8 @@ const requestRefreshToken = () =>
     return result;
   });
 
-/* -------------------------------------------------------------------------- */
-/* SINGLE REFRESH PROMISE                                                      */
-/* -------------------------------------------------------------------------- */
-
 /*
+ * SINGLE REFRESH REQUEST
  * If 5 API requests receive 401 simultaneously,
  * we DON'T want 5 refresh requests.
  *
@@ -216,10 +186,7 @@ const refreshAccessToken = () => {
   return refreshPromise;
 };
 
-/* -------------------------------------------------------------------------- */
-/* REQUEST INTERCEPTOR                                                         */
-/* -------------------------------------------------------------------------- */
-
+// Request Interceptors
 api.interceptors.request.use(
   (config) => {
     /*
@@ -250,10 +217,7 @@ api.interceptors.request.use(
   },
 );
 
-/* -------------------------------------------------------------------------- */
-/* RESPONSE INTERCEPTOR                                                        */
-/* -------------------------------------------------------------------------- */
-
+// Response Interceptors
 api.interceptors.response.use(
   /*
    * Successful requests return response.data directly.
@@ -267,12 +231,9 @@ api.interceptors.response.use(
    */
   (response) => response.data,
 
-  /*
-   * Failed requests
-   */
+  // Failed Request
   async (error) => {
     const originalRequest = error?.config;
-
     const status = error?.response?.status;
 
     /*
@@ -288,9 +249,7 @@ api.interceptors.response.use(
       !originalRequest.__retry &&
       !originalRequest.__skipAuthRefresh;
 
-    /*
-     * Not an authentication failure.
-     */
+    // Not authentications Faliures
     if (!shouldTryRefresh) {
       throw normalizeError(error);
     }
@@ -308,9 +267,7 @@ api.interceptors.response.use(
      * the failed request, we can simply retry with it.
      */
     const currentToken = store.getState()?.auth?.accessToken;
-
     const sentAuthHeader = originalRequest.headers?.Authorization;
-
     let accessToken;
 
     if (currentToken && sentAuthHeader !== `Bearer ${currentToken}`) {
@@ -347,15 +304,9 @@ api.interceptors.response.use(
      * Retry the original request with the fresh token.
      */
     originalRequest.headers = originalRequest.headers || {};
-
     originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
     return api(originalRequest);
   },
 );
-
-/* -------------------------------------------------------------------------- */
-/* EXPORTS                                                                     */
-/* -------------------------------------------------------------------------- */
 
 export { api as apiClient, APIError, refreshAccessToken };

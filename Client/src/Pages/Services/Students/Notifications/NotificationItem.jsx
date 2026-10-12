@@ -1,6 +1,5 @@
-import { Bell, Check, MoreHorizontal, Trash2 } from "lucide-react";
+import { Bell, Check, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-
 import { Button } from "../../../../Components";
 import NotificationBadge from "./NotificationBadge";
 

@@ -1,6 +1,5 @@
 import { ArrowRight, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
-
 import { Card } from "../../../../Components/index";
 
 const RecentNotifications = ({ notifications = [] }) => {
