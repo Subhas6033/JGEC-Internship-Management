@@ -65,6 +65,12 @@ const tpoSchema = new mongoose.Schema(
       minlength: [8, "Password must be at least 8 characters long"],
       select: false,
     },
+    // Stores the URL of the processed transparent PNG signature.
+    signature: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     role: {
       type: String,
       enum: ["TPO"],

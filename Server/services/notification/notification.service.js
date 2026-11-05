@@ -16,7 +16,6 @@ import {
    role: audience the event is delivered to
    title / message: string or (context) => string
 */
-
 const withReason = (text, reason) =>
   reason ? `${text} Reason: ${reason}` : text;
 

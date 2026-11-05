@@ -185,7 +185,6 @@ const router = createBrowserRouter([
         path: "/",
         element: <Landing />,
       },
-
       {
         path: "/auth/login",
         element: (
@@ -194,7 +193,6 @@ const router = createBrowserRouter([
           </AuthRoute>
         ),
       },
-
       {
         path: "/auth/signup",
         element: (

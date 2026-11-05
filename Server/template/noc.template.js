@@ -1,5 +1,5 @@
 const COLLEGE_NAME = "Jalpaiguri Government Engineering College";
-const CELL_NAME = "Training and Placement Cell";
+const CELL_NAME = "Training and Placement Cell JGEC";
 
 export const escapeHtml = (value) =>
   String(value ?? "").replace(
