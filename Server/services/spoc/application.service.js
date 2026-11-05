@@ -121,7 +121,7 @@ const notifyReviewOutcome = async ({
   const studentId = idOf(application.student);
 
   const student = await Student.findById(studentId)
-    .select("fullName name department")
+    .select("fullName department")
     .lean();
 
   const base = {
@@ -874,7 +874,6 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
             // Google Drive storage metadata.
             storageProvider: savedFile.storageProvider,
             driveFileId: savedFile.driveFileId,
-
             fileName: savedFile.fileName,
 
             // Compatibility field only; this is not a local path.

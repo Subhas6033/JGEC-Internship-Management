@@ -64,6 +64,12 @@ const spocSchema = new mongoose.Schema(
       minlength: 6,
       select: false,
     },
+    // Stores the URL of the processed transparent PNG signature.
+    signature: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     role: {
       type: String,
       enum: ["spoc"],

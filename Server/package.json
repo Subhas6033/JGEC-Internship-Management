@@ -5,7 +5,11 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
+    "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest test/unit --runInBand",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest test/integration --runInBand",
+    "test:regression": "NODE_OPTIONS=--experimental-vm-modules jest test/regression --runInBand",
+    "test:smoke": "NODE_OPTIONS=--experimental-vm-modules jest test/smoke --runInBand",
     "dev": "nodemon index.js"
   },
   "keywords": [
@@ -29,5 +33,9 @@
     "nodemon": "^3.1.14",
     "pdfkit": "^0.20.2",
     "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "jest": "^30.5.2"
   }
 }

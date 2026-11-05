@@ -1,4 +1,3 @@
-import React from "react";
 import { FileCheck, Loader2 } from "lucide-react";
 
 const BulkNocActionBar = ({ selectedCount, loading, onClear, onGenerate }) => {

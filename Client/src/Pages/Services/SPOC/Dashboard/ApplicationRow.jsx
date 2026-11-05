@@ -1,6 +1,4 @@
-import React from "react";
 import { CheckCircle2, Eye, RotateCcw, XCircle } from "lucide-react";
-
 import {
   formatDate,
   getApplicationId,

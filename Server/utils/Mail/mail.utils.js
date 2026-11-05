@@ -4,11 +4,13 @@ import { nocMailTemplate } from "../../template/noc.template.js";
 const DEFAULT_CONCURRENCY = 5;
 let transporter = null;
 
+// Check the mail transfer credentials
 export const isMailConfigured = () =>
   Boolean(
     process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS,
   );
 
+// Create the mail sending Transporter
 const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
@@ -28,10 +30,11 @@ const getTransporter = () => {
 };
 
 /** Sends a single email. Throws on failure. */
-export const sendMail = async ({ to, subject, text, html, attachments }) =>
+export const sendMail = async ({ to, cc, subject, text, html, attachments }) =>
   getTransporter().sendMail({
     from: process.env.MAIL_FROM || process.env.SMTP_USER,
     to,
+    cc,
     subject,
     text,
     html,
@@ -81,6 +84,7 @@ export const sendBulkMail = async (
 
 const buildNocMessage = ({
   to,
+  cc,
   studentName,
   organisationName,
   referenceNumber,
@@ -88,6 +92,7 @@ const buildNocMessage = ({
   pdfBuffer,
 }) => ({
   to,
+  cc,
   ...nocMailTemplate({
     studentName,
     organisationName,

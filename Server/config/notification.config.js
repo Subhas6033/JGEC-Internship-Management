@@ -3,7 +3,6 @@
  * Consumed by the Notification model, the notification service and any
  * module that publishes events.
  */
-
 export const NOTIFICATION_ROLES = Object.freeze({
   STUDENT: "student",
   TPO: "tpo",

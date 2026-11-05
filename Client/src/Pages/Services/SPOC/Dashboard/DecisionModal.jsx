@@ -1,10 +1,4 @@
-import React from "react";
-import {
-  CheckCircle2,
-  Loader2,
-  XCircle,
-} from "lucide-react";
-
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { getOrganisation, getStudentName } from "./spocDashboard.utils";
 
 const DecisionModal = ({
@@ -63,9 +57,7 @@ const DecisionModal = ({
               Student
             </p>
             <p className="mt-1 font-semibold text-slate-900">{studentName}</p>
-            <p className="mt-0.5 text-sm text-slate-500">
-              {organisation.name}
-            </p>
+            <p className="mt-0.5 text-sm text-slate-500">{organisation.name}</p>
           </div>
 
           {isApprove ? (
@@ -127,9 +119,7 @@ const DecisionModal = ({
                   : "bg-amber-600 hover:bg-amber-700"
             }`}
           >
-            {actionLoading && (
-              <Loader2 size={17} className="animate-spin" />
-            )}
+            {actionLoading && <Loader2 size={17} className="animate-spin" />}
 
             {actionLoading
               ? "Processing..."
