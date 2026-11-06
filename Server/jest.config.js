@@ -1,7 +1,9 @@
 export default {
   testEnvironment: "node",
 
-  testMatch: ["**/test/**/*.test.js", "**/tests/**/*.test.js"],
+  rootDir: "/home/developersubhas/Desktop/JGEC-Internship-Management",
+
+  testMatch: ["../test/**/*.test.js", "test/**/*.test.js"],
 
   transform: {},
 
@@ -14,4 +16,14 @@ export default {
   ],
 
   coveragePathIgnorePatterns: ["/node_modules/"],
+
+  testPathIgnorePatterns: [
+    "<rootDir>/Desktop",
+    "<rootDir>/snap",
+    "<rootDir>/.claude",
+    "<rootDir>/.vscode",
+    "<rootDir>/.bun",
+    "<rootDir>/.codex",
+    "<rootDir>/.nvm",
+  ],
 };

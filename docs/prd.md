@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD)
 ## JGEC Internship Management Portal
 
-**Version:** 1.0  
+**Version:** 1.0.1  
 **Date:** 2026-11-05  
 **Author:** Subhas Mondal  
 **Status:** Draft
