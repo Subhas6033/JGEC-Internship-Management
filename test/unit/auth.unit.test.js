@@ -1,8 +1,28 @@
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
+// Mock the helper utils BEFORE any imports
+jest.mock("../../Server/utils/helper.utils.js", () => {
+  const actual = jest.requireActual("../../Server/utils/helper.utils.js");
+  return {
+    ...actual,
+    asyncHandler: (fn) => async (req, res, next) => {
+      try {
+        return await fn(req, res, next);
+      } catch (error) {
+        // Don't log in tests
+        return next(error);
+      }
+    },
+  };
+});
+
+// Mock student model - returns a Mongoose-like query object
+const mockStudentFindOne = jest.fn();
+const mockStudentCreate = jest.fn();
+
 const mockStudent = {
-  findOne: jest.fn(),
-  create: jest.fn(),
+  findOne: mockStudentFindOne,
+  create: mockStudentCreate,
 };
 
 const mockUploadToCloudinary = jest.fn();
@@ -11,41 +31,12 @@ const mockCreateUserSession = jest.fn();
 const mockRotateUserSession = jest.fn();
 
 // Mock student model
-jest.unstable_mockModule("../../models/students.models.js", () => ({
+jest.mock("../../Server/models/students.models.js", () => ({
   Student: mockStudent,
 }));
 
-// Mock common helper utilities
-jest.unstable_mockModule("../../utils/helper.utils.js", () => ({
-  asyncHandler: (fn) => async (req, res, next) => {
-    try {
-      return await fn(req, res, next);
-    } catch (error) {
-      return next(error);
-    }
-  },
-
-  APIERR: class APIERR extends Error {
-    constructor(statusCode, message, errors = []) {
-      super(message);
-      this.name = "APIERR";
-      this.statusCode = statusCode;
-      this.errors = errors;
-    }
-  },
-
-  APIRES: class APIRES {
-    constructor(statusCode, data, message = "Success") {
-      this.statusCode = statusCode;
-      this.data = data;
-      this.message = message;
-      this.success = statusCode < 400;
-    }
-  },
-}));
-
 // Mock Cloudinary upload utility
-jest.unstable_mockModule("../../upload/uploadOnCloudinary.upload.js", () => ({
+jest.mock("../../Server/upload/uploadOnCloudinary.upload.js", () => ({
   uploadToCloudinary: mockUploadToCloudinary,
   removeSignatureBackground: jest.fn(),
   cloudinary: {
@@ -57,17 +48,23 @@ jest.unstable_mockModule("../../upload/uploadOnCloudinary.upload.js", () => ({
 }));
 
 // Mock session service
-jest.unstable_mockModule("../../services/auth/session.service.js", () => ({
+jest.mock("../../Server/services/auth/session.service.js", () => ({
   createUserSession: mockCreateUserSession,
   rotateUserSession: mockRotateUserSession,
   revokeUserSession: mockRevokeUserSession,
 }));
 
-// These named exports must match auth.service.js.
-const authService = await import("../../services/auth/auth.service.js");
+// Mock the auth service to return the functions
+let loginStudents;
+let registerStudents;
+let logoutStudent;
+let refreshAccessToken;
 
-const { loginStudents, registerStudents, logoutStudent, refreshAccessToken } =
-  authService;
+beforeAll(async () => {
+  const authService = await import("../../Server/services/auth/auth.service.js");
+  ({ loginStudents, registerStudents, logoutStudent, refreshAccessToken } =
+    authService);
+});
 
 const createResponse = () => {
   const res = {};
@@ -86,8 +83,8 @@ describe("Authentication service unit tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockStudent.findOne.mockReset();
-    mockStudent.create.mockReset();
+    mockStudentFindOne.mockReset();
+    mockStudentCreate.mockReset();
 
     mockUploadToCloudinary.mockReset();
     mockRevokeUserSession.mockReset();
@@ -113,7 +110,7 @@ describe("Authentication service unit tests", () => {
 
       await loginStudents(req, res, next);
 
-      expect(mockStudent.findOne).not.toHaveBeenCalled();
+      expect(mockStudentFindOne).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
     });
 
@@ -129,15 +126,17 @@ describe("Authentication service unit tests", () => {
       const res = createResponse();
       const next = jest.fn();
 
-      mockStudent.findOne.mockReturnValue({
+      // Mock the query chain: Student.findOne().select()
+      const mockQuery = {
         select: jest.fn().mockResolvedValue(null),
-      });
+      };
+      mockStudentFindOne.mockReturnValue(mockQuery);
 
       await loginStudents(req, res, next);
 
-      expect(mockStudent.findOne).toHaveBeenCalled();
+      expect(mockStudentFindOne).toHaveBeenCalled();
 
-      const query = mockStudent.findOne.mock.calls[0][0];
+      const query = mockStudentFindOne.mock.calls[0][0];
 
       expect(query).toHaveProperty("email", "student@example.com");
       expect(next).toHaveBeenCalled();
@@ -155,13 +154,14 @@ describe("Authentication service unit tests", () => {
       const res = createResponse();
       const next = jest.fn();
 
-      mockStudent.findOne.mockReturnValue({
+      const mockQuery = {
         select: jest.fn().mockResolvedValue(null),
-      });
+      };
+      mockStudentFindOne.mockReturnValue(mockQuery);
 
       await loginStudents(req, res, next);
 
-      expect(mockStudent.findOne).toHaveBeenCalled();
+      expect(mockStudentFindOne).toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
     });
   });
@@ -179,7 +179,7 @@ describe("Authentication service unit tests", () => {
 
       await registerStudents(req, res, next);
 
-      expect(mockStudent.create).not.toHaveBeenCalled();
+      expect(mockStudentCreate).not.toHaveBeenCalled();
       expect(mockUploadToCloudinary).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
     });
@@ -202,8 +202,7 @@ describe("Authentication service unit tests", () => {
       await logoutStudent(req, res, next);
 
       // Confirm session revocation was attempted.
-      // The exact arguments depend on session.service.js.
-      expect(mockRevokeUserSession.mock.calls.length).toBeGreaterThanOrEqual(0);
+      expect(mockRevokeUserSession).toHaveBeenCalled();
     });
   });
 

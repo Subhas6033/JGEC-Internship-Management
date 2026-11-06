@@ -1,6 +1,6 @@
 import request from "supertest";
 import { describe, it, expect } from "@jest/globals";
-import app from "../app.js";
+import { app } from "../../Server/app.js";
 
 describe("Authentication smoke tests", () => {
   it("should load the Express app", () => {

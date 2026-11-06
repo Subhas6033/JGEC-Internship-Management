@@ -1,30 +1,14 @@
 import request from "supertest";
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 
 process.env.CORS_ORIGIN ??= "http://localhost:5173";
 
-// Mock dependencies before importing the app.
-const mockUploadToCloudinary = jest.fn();
-
-jest.unstable_mockModule("../../upload/uploadOnCloudinary.upload.js", () => ({
-  uploadToCloudinary: mockUploadToCloudinary,
-  removeSignatureBackground: jest.fn(),
-  cloudinary: {
-    config: jest.fn(),
-    uploader: {
-      upload_stream: jest.fn(),
-    },
-  },
-}));
-
-jest.unstable_mockModule("../../utils/nocStorage.utils.js", () => ({
-  getNocPdfStream: jest.fn(),
-  saveNocPdf: jest.fn(),
-  deleteNocPdf: jest.fn(),
-}));
-
-// Dynamically import app only after mocks are registered.
-const { app } = await import("../../app.js");
+// Dynamically import app only after mocks are registered (from setup.js).
+let app;
+beforeAll(async () => {
+  const mod = await import("../../Server/app.js");
+  app = mod.app;
+});
 
 describe("Authentication regression tests", () => {
   it("should reject a malformed Bearer token", async () => {

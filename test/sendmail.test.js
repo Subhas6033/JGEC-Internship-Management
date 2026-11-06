@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
-dotenv.config({ path: "../.env" });
+dotenv.config({ path: "./.env" });
 
 import {
   isMailConfigured,
   sendMail,
   sendNocMails,
-} from "../utils/Mail/mail.utils.js";
+} from "../Server/utils/Mail/mail.utils.js";
 
 const RECIPIENT = "goalkeepersubhas07@gmail.com";
 
