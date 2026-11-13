@@ -1,10 +1,15 @@
 import { AlertCircle, Check, Clock3, FileText, MapPin } from "lucide-react";
+
+// Format application date
 const formatApplicationDate = (date) => {
   if (!date) return null;
+
   const parsedDate = new Date(date);
+
   if (Number.isNaN(parsedDate.getTime())) {
     return null;
   }
+
   return parsedDate.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -12,6 +17,42 @@ const formatApplicationDate = (date) => {
   });
 };
 
+// Get individual timeline event date
+const getTimelineEventDate = (item) => {
+  if (!item) return null;
+
+  const date =
+    item.date ||
+    item.createdAt ||
+    item.timestamp ||
+    item.reviewedAt ||
+    item.approvedAt ||
+    item.generatedAt ||
+    item.updatedAt ||
+    null;
+
+  return formatApplicationDate(date);
+};
+
+// Normalize status values coming from backend
+const normalizeStatus = (status) => {
+  if (!status) return "";
+
+  const normalized = String(status)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  const statusAliases = {
+    noce_generated: "noc_generated",
+    nocgenerated: "noc_generated",
+    noc_generated: "noc_generated",
+  };
+
+  return statusAliases[normalized] || normalized;
+};
+
+// Status labels
 const getStatusLabel = (status) => {
   const labels = {
     draft: "Draft",
@@ -20,14 +61,16 @@ const getStatusLabel = (status) => {
     update_required: "Update Required",
     approved_by_tpo: "Approved by TPO",
     under_spoc_review: "Under SPOC Review",
+    noc_generated: "NOC Generated",
     approved_by_spoc: "Approved",
     rejected: "Rejected",
     withdrawn: "Withdrawn",
   };
 
-  return labels[status] || "Submitted";
+  return labels[status] || "Status unavailable";
 };
 
+// Status styles
 const getStatusClasses = (status) => {
   const classes = {
     draft: "border-border bg-muted text-muted-foreground",
@@ -36,22 +79,39 @@ const getStatusClasses = (status) => {
     update_required: "border-amber-200 bg-amber-50 text-amber-700",
     approved_by_tpo: "border-emerald-200 bg-emerald-50 text-emerald-700",
     under_spoc_review: "border-amber-200 bg-amber-50 text-amber-700",
+    noc_generated: "border-emerald-200 bg-emerald-50 text-emerald-700",
     approved_by_spoc: "border-emerald-200 bg-emerald-50 text-emerald-700",
     rejected: "border-red-200 bg-red-50 text-red-700",
     withdrawn: "border-slate-200 bg-slate-100 text-slate-600",
   };
 
-  return classes[status] || classes.submitted;
+  return classes[status] || "border-border bg-muted text-muted-foreground";
 };
 
+// Reviewer label
 const getReviewerLabel = (reviewer) => {
-  if (reviewer === "tpo") {
-    return "TPO";
-  }
-  if (reviewer === "spoc") {
-    return "SPOC";
-  }
+  if (reviewer === "tpo") return "TPO";
+  if (reviewer === "spoc") return "SPOC";
+
   return "Reviewer";
+};
+
+// Timeline progress
+const getTimelineProgress = (status) => {
+  const progress = {
+    draft: 0,
+    submitted: 1,
+    under_tpo_review: 1,
+    update_required: 1,
+    approved_by_tpo: 2,
+    under_spoc_review: 2,
+    noc_generated: 3,
+    approved_by_spoc: 3,
+    rejected: 3,
+    withdrawn: 3,
+  };
+
+  return progress[status] ?? null;
 };
 
 const ApplicationTracker = ({ application }) => {
@@ -62,9 +122,11 @@ const ApplicationTracker = ({ application }) => {
           <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-muted">
             <FileText size={21} className="text-muted-foreground" />
           </div>
+
           <h3 className="mt-4 text-sm font-semibold text-foreground">
             Select an application
           </h3>
+
           <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
             Select an application from the list to view its review progress.
           </p>
@@ -73,27 +135,96 @@ const ApplicationTracker = ({ application }) => {
     );
   }
 
-  const isUpdateRequired = application.status === "update_required";
+  // Always use normalized status throughout this component.
+  const status = normalizeStatus(
+    application.status ??
+      application.applicationStatus ??
+      application.application_status,
+  );
+
+  const isUpdateRequired = status === "update_required";
   const hasReviewerComment =
     isUpdateRequired && Boolean(application.updateRequiredReason?.trim());
-  const timeline = application.timeline || [];
   const submittedDate = formatApplicationDate(application.submittedAt);
-  const statusClasses = getStatusClasses(application.status);
+  const statusClasses = getStatusClasses(status);
   const reviewerLabel = getReviewerLabel(application.updateRequiredBy);
 
+  // Default timeline with individual event timestamps
+  const defaultTimeline = [
+    {
+      title: "Application submitted",
+      description:
+        "Your internship application has been submitted successfully.",
+      date: application.submittedAt || null,
+      completed: true,
+    },
+    {
+      title: "Application under review",
+      description:
+        "Your application is being reviewed by the concerned department.",
+      date:
+        application.reviewedAt ||
+        application.approvedByTpoAt ||
+        application.tpoReviewedAt ||
+        null,
+    },
+    {
+      title: "Final decision",
+      description:
+        "A final decision will appear here once the review is complete.",
+      date:
+        application.nocGeneratedAt ||
+        application.approvedBySpocAt ||
+        application.approvedAt ||
+        application.rejectedAt ||
+        null,
+    },
+  ];
+
+  const timelineSource =
+    application.timeline?.length > 0 ? application.timeline : defaultTimeline;
+
+  const progress = getTimelineProgress(status);
+
+  // Prepare timeline
+  const timeline = timelineSource.map((item, index) => {
+    const completed =
+      progress !== null
+        ? index < progress || (progress === 3 && index === 2)
+        : Boolean(item.completed);
+
+    const current =
+      progress !== null
+        ? progress < 3 && index === progress
+        : Boolean(item.current);
+
+    if (status === "noc_generated" && index === 2) {
+      return {
+        ...item,
+        title: "NOC Generated",
+        description:
+          "Your application has been approved and the No Objection Certificate has been generated.",
+        date:
+          item.date ||
+          item.generatedAt ||
+          item.createdAt ||
+          application.nocGeneratedAt ||
+          application.updatedAt ||
+          null,
+        completed: true,
+        current: false,
+      };
+    }
+
+    return {
+      ...item,
+      completed,
+      current,
+    };
+  });
+
   return (
-    <div
-      className="
-        overflow-hidden
-        rounded-2xl
-        border
-        border-border
-        bg-card
-        shadow-sm
-        xl:sticky
-        xl:top-5
-      "
-    >
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:sticky xl:top-5">
       {/* Header */}
       <div className="border-b border-border p-5 sm:p-6">
         <div className="flex items-start gap-3">
@@ -115,6 +246,7 @@ const ApplicationTracker = ({ application }) => {
                 )}
               </div>
 
+              {/* Application Status */}
               <div>
                 <span
                   className={`
@@ -130,18 +262,18 @@ const ApplicationTracker = ({ application }) => {
                     ${statusClasses}
                   `}
                 >
-                  {getStatusLabel(application.status)}
+                  {getStatusLabel(status)}
                 </span>
               </div>
             </div>
 
             <p
               className="mt-3 truncate text-[10px] text-muted-foreground"
-              title={application.id}
+              title={application._id}
             >
               Application ID:{" "}
               <span className="font-medium text-foreground/70">
-                {application.id}
+                {application._id}
               </span>
             </p>
           </div>
@@ -250,6 +382,8 @@ const ApplicationTracker = ({ application }) => {
             {timeline.map((item, index) => {
               const isLast = index === timeline.length - 1;
 
+              const eventDate = getTimelineEventDate(item);
+
               return (
                 <div
                   key={`${item.title}-${index}`}
@@ -268,6 +402,7 @@ const ApplicationTracker = ({ application }) => {
                     />
                   )}
 
+                  {/* Timeline Icon */}
                   <div
                     className={`
                       relative
@@ -295,6 +430,7 @@ const ApplicationTracker = ({ application }) => {
                     )}
                   </div>
 
+                  {/* Timeline Content */}
                   <div
                     className={`
                       min-w-0
@@ -317,9 +453,9 @@ const ApplicationTracker = ({ application }) => {
                         {item.title}
                       </p>
 
-                      {item.date && (
+                      {eventDate && (
                         <span className="shrink-0 text-[10px] text-muted-foreground">
-                          {item.date}
+                          {eventDate}
                         </span>
                       )}
                     </div>

@@ -16,12 +16,16 @@ const statusLabels = {
   approved_by_spoc: "Approved",
   rejected: "Rejected",
   withdrawn: "Withdrawn",
+  noc_generated: "NOC Generated",
 };
 
 const getStatusClasses = (status) => {
   switch (status) {
     case "approved_by_spoc":
       return "bg-brand-50 text-brand-700";
+
+    case "noc_generated":
+      return "bg-emerald-50 text-emerald-700";
 
     case "rejected":
       return "bg-red-50 text-red-700";
@@ -106,7 +110,7 @@ const RecentApplications = ({ applications = [] }) => {
         >
           {applications.map((application) => (
             <div
-              key={application.id}
+              key={application._id}
               className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">

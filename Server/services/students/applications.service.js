@@ -26,11 +26,16 @@ const buildApplicationTimeline = (application) => {
     "approved_by_tpo",
     "under_spoc_review",
     "approved_by_spoc",
+    "noc_generated",
     "update_required",
     "rejected",
   ].includes(status);
 
-  const decisionCompleted = ["approved_by_spoc", "rejected"].includes(status);
+  const decisionCompleted = [
+    "approved_by_spoc",
+    "noc_generated",
+    "rejected",
+  ].includes(status);
 
   return [
     {
@@ -46,7 +51,7 @@ const buildApplicationTimeline = (application) => {
       description:
         status === "update_required"
           ? "Your application requires changes before it can continue."
-          : "Your application is being reviewed by the concerned department.",
+          : "Your application has completed the review process.",
       completed: reviewStarted,
       current: [
         "under_tpo_review",
@@ -59,13 +64,15 @@ const buildApplicationTimeline = (application) => {
     {
       title: "Final decision",
       description:
-        status === "approved_by_spoc"
-          ? "Your internship application has been approved."
-          : status === "rejected"
-            ? "Your internship application has been rejected."
-            : status === "update_required"
-              ? "Please update your application and submit it again."
-              : "A final decision will appear here once the review is complete.",
+        status === "noc_generated"
+          ? "Your application has been approved and the No Objection Certificate has been generated."
+          : status === "approved_by_spoc"
+            ? "Your internship application has been approved."
+            : status === "rejected"
+              ? "Your internship application has been rejected."
+              : status === "update_required"
+                ? "Please update your application and submit it again."
+                : "A final decision will appear here once the review is complete.",
       completed: decisionCompleted,
       current: decisionCompleted,
       date: decisionCompleted ? formatDate(updatedDate) : null,
@@ -547,6 +554,7 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
                     "under_tpo_review",
                     "approved_by_tpo",
                     "under_spoc_review",
+                    "update_required",
                   ],
                 ],
               },
@@ -560,7 +568,7 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
           $sum: {
             $cond: [
               {
-                $eq: ["$status", "approved_by_spoc"],
+                $in: ["$status", ["approved_by_spoc", "noc_generated"]],
               },
               1,
               0,

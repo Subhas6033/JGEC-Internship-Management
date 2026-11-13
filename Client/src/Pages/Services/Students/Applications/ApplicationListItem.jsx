@@ -8,17 +8,52 @@ import {
 import ApplicationStatusBadge from "./ApplicationStatusBadge";
 import { InfoTooltip } from "./ApplicationTooltip";
 
+const formatDate = (date) => {
+  if (!date) return "Date unavailable";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Date unavailable";
+  }
+
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 const ApplicationListItem = ({ application, selected, onSelect }) => {
+  const applicationId =
+    application?._id || application?.id || application?.__id;
+
   return (
     <motion.button
       type="button"
       onClick={() => onSelect(application)}
       whileHover={hoverLiftSmall}
       whileTap={tapScaleSmall}
-      className="w-full text-left"
+      className="
+        group
+        relative
+        z-0
+        w-full
+        overflow-visible
+        rounded-xl
+        text-left
+        focus-visible:outline-none
+        focus-visible:ring-2
+        focus-visible:ring-brand-700
+        focus-visible:ring-offset-2
+        hover:z-30
+        focus-within:z-30
+      "
     >
       <Card
         className={`
+          relative
+          overflow-visible
           border
           bg-cream-soft
           p-4
@@ -27,58 +62,75 @@ const ApplicationListItem = ({ application, selected, onSelect }) => {
           duration-150
           ${
             selected
-              ? "border-brand-500 ring-1 ring-brand-500/20"
-              : "border-border hover:border-brand-300 hover:shadow-card-hover"
+              ? "z-10 border-brand-700 ring-1 ring-brand-700/20 shadow-card-hover"
+              : "border-border hover:border-brand-700/50 hover:shadow-card-hover"
           }
         `}
       >
         <div className="flex gap-3">
-          {/* Company icon */}
+          {/* Company Icon */}
           <div
-            className="
+            className={`
               flex
               size-10
               shrink-0
               items-center
               justify-center
               rounded-lg
-              bg-brand-50
-              text-brand-700
-            "
+              transition-colors
+              ${
+                selected
+                  ? "bg-brand-700 text-white"
+                  : "bg-brand-50 text-brand-700"
+              }
+            `}
           >
             <Building2 size={18} strokeWidth={1.8} />
           </div>
 
           <div className="min-w-0 flex-1">
-            {/* Top row */}
+            {/* Top Row */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
+                {/* Company Name and Tooltip */}
+                <div className="flex min-w-0 items-center gap-1.5">
                   <h3 className="truncate text-sm font-semibold text-ink">
-                    {application.company}
+                    {application?.company ||
+                      application?.organisation?.name ||
+                      "Unknown Organisation"}
                   </h3>
 
-                  <InfoTooltip content={`Application ID: ${application.id}`} />
+                  <InfoTooltip
+                    content={`Application ID: ${
+                      applicationId || "Unavailable"
+                    }`}
+                  />
                 </div>
 
+                {/* Role */}
                 <p className="mt-0.5 truncate text-xs text-ink-muted">
-                  {application.role}
+                  {application?.role ||
+                    application?.designation ||
+                    "Internship"}
                 </p>
               </div>
 
-              <ApplicationStatusBadge status={application.status} />
+              {/* Application Status */}
+              <ApplicationStatusBadge status={application?.status} />
             </div>
 
-            {/* Meta */}
+            {/* Metadata */}
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-muted">
               <span className="inline-flex items-center gap-1.5">
                 <MapPin size={13} strokeWidth={1.8} />
-                {application.location}
+                {application?.location || "Not specified"}
               </span>
 
-              <span>{application.mode}</span>
+              <span className="capitalize">
+                {application?.mode || "Not specified"}
+              </span>
 
-              <span>Applied {application.submittedAt}</span>
+              <span>Applied {formatDate(application?.submittedAt)}</span>
             </div>
 
             {/* Footer */}
@@ -90,7 +142,14 @@ const ApplicationListItem = ({ application, selected, onSelect }) => {
               <ArrowUpRight
                 size={15}
                 strokeWidth={1.8}
-                className={selected ? "text-brand-700" : "text-ink-muted"}
+                className={`
+                  transition-colors
+                  ${
+                    selected
+                      ? "text-brand-700"
+                      : "text-ink-muted group-hover:text-brand-700"
+                  }
+                `}
               />
             </div>
           </div>

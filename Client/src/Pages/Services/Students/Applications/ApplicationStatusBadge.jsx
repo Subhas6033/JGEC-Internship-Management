@@ -1,4 +1,10 @@
-import { CheckCircle2, Clock3, CircleDashed, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  CircleDashed,
+  XCircle,
+  FileCheck2,
+} from "lucide-react";
 
 const statusConfig = {
   submitted: {
@@ -15,6 +21,11 @@ const statusConfig = {
     label: "Approved",
     icon: CheckCircle2,
     className: "bg-brand-50 text-brand-700",
+  },
+  noc_generated: {
+    label: "NOC Generated",
+    icon: FileCheck2,
+    className: "border border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   rejected: {
     label: "Rejected",

@@ -32,7 +32,7 @@ const DashboardStats = ({ stats }) => {
     {
       id: "documents",
       label: "Documents",
-      value: stats?.withdrawnApplications ?? 0,
+      value: stats?.documents ?? 0,
       icon: "documents",
     },
   ];

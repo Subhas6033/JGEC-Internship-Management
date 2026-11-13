@@ -6,26 +6,17 @@ import {
 } from "../../../../Animations/animations";
 import ApplicationListItem from "./ApplicationListItem";
 
-const ApplicationList = ({ applications, selectedApplication, onSelect }) => {
+const getApplicationId = (application) =>
+  application?.id || application?._id || application?.__id || null;
+
+const ApplicationList = ({
+  applications = [],
+  selectedApplication,
+  onSelect,
+}) => {
   if (!applications.length) {
     return (
-      <div
-        className="
-          flex
-          min-h-85
-          flex-col
-          items-center
-          justify-center
-          rounded-2xl
-          border
-          border-dashed
-          border-border
-          bg-card
-          px-6
-          text-center
-          shadow-sm
-        "
-      >
+      <div className="flex min-h-85 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 text-center shadow-sm">
         <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
           <FileSearch size={21} strokeWidth={1.7} />
         </div>
@@ -48,19 +39,23 @@ const ApplicationList = ({ applications, selectedApplication, onSelect }) => {
       animate="visible"
       className="space-y-3"
     >
-      {applications.map((application) => (
-        <motion.div
-          key={application.id}
-          variants={cardAnimation}
-          className="min-w-0"
-        >
-          <ApplicationListItem
-            application={application}
-            selected={selectedApplication?.id === application.id}
-            onSelect={onSelect}
-          />
-        </motion.div>
-      ))}
+      {applications.map((application) => {
+        const applicationId = getApplicationId(application);
+
+        return (
+          <motion.div
+            key={applicationId}
+            variants={cardAnimation}
+            className="min-w-0"
+          >
+            <ApplicationListItem
+              application={application}
+              selected={getApplicationId(selectedApplication) === applicationId}
+              onSelect={() => onSelect(application)}
+            />
+          </motion.div>
+        );
+      })}
     </motion.div>
   );
 };

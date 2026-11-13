@@ -81,8 +81,8 @@ const ApprovalComponents = () => {
         <Card.Header className="border-b border-border p-4 sm:p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Card.Title className="text-sm tracking-tight text-ink">
-                INT-2026-00421
+              <Card.Title className="text-sm tracking-tight text-ink md:pl-5 ">
+                TNP/JGEC/INT/2026/IT/1002
               </Card.Title>
 
               <Card.Description className="eyebrow mt-1 text-[8px]">
