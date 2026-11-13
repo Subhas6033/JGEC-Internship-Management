@@ -115,20 +115,15 @@ const DeptTPODashboard = () => {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <ApplicationTrendChart trend={dashboard.trend} />
-
             <ApplicationStatusChart applications={dashboard.applications} />
           </div>
-
           <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
             <PendingApplications applications={dashboard.pendingApplications} />
-
             <DepartmentProgress progress={dashboard.progress} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            <UpcomingItems items={dashboard.upcoming} />
-
-            <RecentActivity items={dashboard.recentActivity} />
+          <div className="grid grid-cols-1 gap-4">
+            <RecentActivity items={dashboard?.recentActivity ?? []} />
           </div>
 
           <QuickActions />

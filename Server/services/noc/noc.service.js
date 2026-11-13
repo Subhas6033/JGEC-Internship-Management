@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { APIERR } from "../../utils/helper.utils.js";
 
 // Static Fallbacks
 const COLLEGE_NAME = "Jalpaiguri Government Engineering College";
@@ -29,7 +30,10 @@ const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN_BOTTOM;
  * block so the signatories never appear on a page without student data.
  * Update this value if the sign-off layout changes.
  */
-const SIGNOFF_HEIGHT = 270;
+const SIGNOFF_HEIGHT = 300;
+// Signatory signature image size (pt)
+const SIGNATORY_SIGNATURE_WIDTH = 180;
+const SIGNATORY_SIGNATURE_HEIGHT = 70;
 // Generic Helpers
 const safe = (value, fallback = "-") =>
   value === undefined || value === null || value === ""
@@ -155,6 +159,14 @@ const getPerson = (user) => {
   }
   const name = firstValue(user.fullName, user.name);
   if (!name) return null;
+
+  // The SPOC / TPO schemas store the signature as a plain URL string.
+  const signature = firstValue(
+    typeof user.signature === "string" ? user.signature.trim() : undefined,
+    user.signature?.url,
+    user.signatureUrl,
+  );
+
   return {
     name: String(name),
     mobile: safe(
@@ -169,6 +181,7 @@ const getPerson = (user) => {
     email: safe(user.email, ""),
     department: safe(user.department, ""),
     role: safe(user.role, "").toLowerCase(),
+    signature: signature ? String(signature).trim() : "",
   };
 };
 
@@ -327,7 +340,7 @@ const getStudentSignatureUrl = (student) => {
   return null;
 };
 
-const downloadImage = async (url) => {
+const downloadImage = async (url, label = "Student signature") => {
   if (!url) return null;
   try {
     const response = await fetch(url);
@@ -336,12 +349,30 @@ const downloadImage = async (url) => {
     }
     return await normalizeImage(
       Buffer.from(await response.arrayBuffer()),
-      "Student signature",
+      label,
     );
   } catch (error) {
-    console.error("Signature download failed:", error.message);
+    console.error(`${label} download failed:`, error.message);
     return null;
   }
+};
+
+// SPOC / TPO Signature
+// Remote URLs (e.g. Cloudinary) are downloaded; anything else is treated
+// as a local project path.
+const loadSignatory = async (person, label) => {
+  const url = person?.signature;
+  if (!url) {
+    // console.warn(`${label}: no signature stored for this user.`);
+    throw new APIERR(404, `${label}: no signature stored for this user.`);
+  }
+  if (/^https?:\/\//i.test(url)) {
+    return downloadImage(url, label);
+  }
+  return normalizeImage(
+    await readFirstAvailable(assetCandidates(url, url)),
+    label,
+  );
 };
 
 // Drawing Helpers
@@ -488,6 +519,7 @@ const drawSignatory = ({
   name,
   lines = [],
   boldContact,
+  signature,
 }) => {
   const lineLen = 140;
   const lineStart =
@@ -496,6 +528,28 @@ const drawSignatory = ({
       : align === "right"
         ? x + width - lineLen
         : x;
+
+  // Signature image sits on top of the dotted line, inside the blank space
+  // that is reserved above it.
+  if (signature) {
+    const signatureWidth = SIGNATORY_SIGNATURE_WIDTH;
+    const signatureHeight = SIGNATORY_SIGNATURE_HEIGHT;
+    const imageX =
+      align === "center"
+        ? lineStart + lineLen / 2 - signatureWidth / 2
+        : align === "right"
+          ? lineStart + lineLen - signatureWidth
+          : lineStart;
+    try {
+      doc.image(signature, imageX, y - signatureHeight - 2, {
+        fit: [signatureWidth, signatureHeight],
+        align: align === "center" ? "center" : align,
+        valign: "bottom",
+      });
+    } catch (error) {
+      console.error("Unable to render signatory signature:", error.message);
+    }
+  }
 
   doc
     .lineWidth(0.6)
@@ -662,6 +716,10 @@ export const generateNocPdf = async ({
     lines: ["Head, Training & Placement Cell", COLLEGE_NAME],
   };
 
+  const tpoContact = [formatPhone(tpo?.mobile), tpo?.email]
+    .filter(Boolean)
+    .join(" | ");
+
   const facultyBlock = {
     name: tpo?.name ? `Prof. ${tpo.name.replace(/^prof\.?\s*/i, "")}` : "",
 
@@ -676,6 +734,8 @@ export const generateNocPdf = async ({
 
       COLLEGE_NAME,
     ],
+
+    boldContact: tpoContact,
   };
 
   const spocContact = [formatPhone(spoc?.mobile), spoc?.email]
@@ -702,7 +762,13 @@ export const generateNocPdf = async ({
     console.warn("NOC PDF: TPO not resolved.");
   }
   // Assests
-  const [collegeLogo, govtEmblem, signatureBuffers] = await Promise.all([
+  const [
+    collegeLogo,
+    govtEmblem,
+    signatureBuffers,
+    tpoSignature,
+    spocSignature,
+  ] = await Promise.all([
     loadLocalImage(
       process.env.NOC_COLLEGE_LOGO_PATH,
       "public/jgecLogo.jpg",
@@ -718,6 +784,10 @@ export const generateNocPdf = async ({
     Promise.all(
       students.map((student) => downloadImage(getStudentSignatureUrl(student))),
     ),
+
+    loadSignatory(tpo, "TPO signature"),
+
+    loadSignatory(spoc, "SPOC signature"),
   ]);
 
   /*
@@ -1126,7 +1196,7 @@ export const generateNocPdf = async ({
 
       doc.font("Times-Roman").fontSize(9.5).text("With best regards.", left, y);
 
-      y += 52;
+      y += 80;
 
       /* --------------------------- SIGNATORIES --------------------------- */
 
@@ -1140,6 +1210,8 @@ export const generateNocPdf = async ({
         align: "left",
         name: facultyBlock.name,
         lines: facultyBlock.lines,
+        boldContact: facultyBlock.boldContact,
+        signature: tpoSignature,
       });
 
       const rightEnd = drawSignatory({
@@ -1151,6 +1223,7 @@ export const generateNocPdf = async ({
         name: coordinatorBlock.name,
         lines: coordinatorBlock.lines,
         boldContact: coordinatorBlock.boldContact,
+        signature: spocSignature,
       });
 
       y = Math.max(leftEnd, rightEnd) + 30;
