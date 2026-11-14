@@ -39,7 +39,7 @@ const StudentDocuments = () => {
 
   // NOC is available only after SPOC accepts the application
   const applicationAccepted =
-    acceptedApplication?.status === "approved_by_spoc" ||
+    acceptedApplication?.status === "noc_generated" ||
     acceptedApplication?.status === "accepted";
 
   const signatureUploaded = uploadedDocuments.some(

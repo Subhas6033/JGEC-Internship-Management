@@ -118,13 +118,13 @@ const StudentProfile = () => {
           >
             <ProfileField
               label="Guardian name"
-              value={student?.gurdianName}
+              value={student?.guardianName}
               icon={UsersRound}
             />
 
             <ProfileField
               label="Guardian mobile"
-              value={student?.gurdianMobile}
+              value={student?.guardianMobile}
               icon={Phone}
             />
           </ProfileSection>

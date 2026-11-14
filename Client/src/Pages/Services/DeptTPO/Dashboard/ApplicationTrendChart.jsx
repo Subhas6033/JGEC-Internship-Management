@@ -2,58 +2,62 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   Tooltip,
   Legend,
-  Filler,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
+
+import { Bar } from "react-chartjs-2";
 import { Card } from "../../../../Components";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Tooltip,
-  Legend,
-  Filler,
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const ApplicationTrendChart = ({ trend = [] }) => {
-  const labels = trend.map((item) => `${item.month}/${item.year}`);
+  // Aggregate monthly records into yearly totals
+  const yearlyData = Object.values(
+    trend.reduce((acc, item) => {
+      const year = String(item.year);
+
+      if (!acc[year]) {
+        acc[year] = {
+          year,
+          applications: 0,
+          accepted: 0,
+        };
+      }
+
+      acc[year].applications += Number(item.applications ?? 0);
+      acc[year].accepted += Number(item.accepted ?? 0);
+
+      return acc;
+    }, {}),
+  ).sort((a, b) => Number(a.year) - Number(b.year));
 
   const data = {
-    labels,
+    labels: yearlyData.map((item) => item.year),
+
     datasets: [
       {
-        label: "Applications",
-        data: trend.map((item) => item.applications ?? 0),
-        borderColor: "#4eae85",
-        backgroundColor: "rgba(78, 174, 133, 0.10)",
-        pointBackgroundColor: "#4eae85",
-        pointBorderColor: "#fefcf7",
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        borderWidth: 2,
-        tension: 0.35,
-        fill: true,
+        label: "Submitted",
+        data: yearlyData.map((item) => item.applications),
+        backgroundColor: "#5278C7",
+        hoverBackgroundColor: "#3D63B1",
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 38,
+        categoryPercentage: 0.65,
+        barPercentage: 0.85,
       },
       {
         label: "Accepted",
-        data: trend.map((item) => item.accepted ?? 0),
-        borderColor: "#006b42",
-        backgroundColor: "rgba(0, 107, 66, 0.05)",
-        pointBackgroundColor: "#006b42",
-        pointBorderColor: "#fefcf7",
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        borderWidth: 2,
-        tension: 0.35,
-        fill: false,
+        data: yearlyData.map((item) => item.accepted),
+        backgroundColor: "#E5A344",
+        hoverBackgroundColor: "#CA892D",
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 38,
+        categoryPercentage: 0.65,
+        barPercentage: 0.85,
       },
     ],
   };
@@ -69,21 +73,24 @@ const ApplicationTrendChart = ({ trend = [] }) => {
 
     plugins: {
       legend: {
+        display: true,
         position: "bottom",
         labels: {
           color: "#5f5b50",
           padding: 18,
           usePointStyle: true,
-          pointStyle: "circle",
+          pointStyle: "rectRounded",
+          boxWidth: 10,
           font: {
             family: "Inter, ui-sans-serif, system-ui, sans-serif",
             size: 12,
-            weight: "500",
+            weight: "600",
           },
         },
       },
 
       tooltip: {
+        enabled: true,
         backgroundColor: "#1c1a14",
         titleColor: "#fefcf7",
         bodyColor: "#fefcf7",
@@ -91,19 +98,34 @@ const ApplicationTrendChart = ({ trend = [] }) => {
         borderWidth: 1,
         padding: 12,
         displayColors: true,
+        callbacks: {
+          title: (context) => `Year ${context[0].label}`,
+          label: (context) =>
+            `${context.dataset.label}: ${context.parsed.y} applications`,
+        },
       },
     },
 
     scales: {
       x: {
+        title: {
+          display: true,
+          text: "Year",
+          color: "#5f5b50",
+          font: {
+            size: 11,
+            weight: "600",
+          },
+          padding: {
+            top: 10,
+          },
+        },
         border: {
           color: "#e5dfce",
         },
-
         grid: {
           display: false,
         },
-
         ticks: {
           color: "#5f5b50",
           font: {
@@ -114,16 +136,25 @@ const ApplicationTrendChart = ({ trend = [] }) => {
 
       y: {
         beginAtZero: true,
-
+        title: {
+          display: true,
+          text: "Number of Applications",
+          color: "#5f5b50",
+          font: {
+            size: 11,
+            weight: "600",
+          },
+          padding: {
+            bottom: 10,
+          },
+        },
         border: {
           display: false,
         },
-
         grid: {
           color: "#e5dfce",
           drawTicks: false,
         },
-
         ticks: {
           color: "#5f5b50",
           precision: 0,
@@ -131,6 +162,7 @@ const ApplicationTrendChart = ({ trend = [] }) => {
           font: {
             size: 11,
           },
+          stepSize: 1,
         },
       },
     },
@@ -147,24 +179,25 @@ const ApplicationTrendChart = ({ trend = [] }) => {
           </h2>
 
           <p className="mt-1 text-xs text-ink-muted">
-            Applications and approvals over time.
+            Year-wise applications submitted and accepted.
           </p>
         </div>
       </Card.Header>
 
       <Card.Content>
         <div className="h-72">
-          {trend.length > 0 ? (
-            <Line data={data} options={options} />
+          {yearlyData.length > 0 ? (
+            <Bar data={data} options={options} />
           ) : (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
                 <p className="text-sm font-medium text-ink">
                   No application activity yet
                 </p>
+
                 <p className="mt-1 text-xs text-ink-muted">
-                  Application trends will appear here once students submit
-                  applications.
+                  Year-wise application trends will appear here once students
+                  submit applications.
                 </p>
               </div>
             </div>

@@ -83,6 +83,9 @@ const CompanyApplicationDetails = lazy(
 const DeptTPOStats = lazy(
   () => import("./Pages/Services/DeptTPO/Stats/DeptTPOStatsOverview.jsx"),
 );
+const DeptManageOrganisations = lazy(
+  () => import("./Pages/Services/DeptTPO/Organisation/Otganisation.jsx"),
+);
 const DeptTPONotifications = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Notifications/DeptTPONotifications.jsx"),
@@ -118,7 +121,31 @@ const AdminDashboard = lazy(
   () => import("./Pages/Services/Admin/Dashboard/AdminDashboard.jsx"),
 );
 const AdminStudents = lazy(
-  () => import("./Pages/Services/Admin/Students/AdminStudents.jsx"),
+  () =>
+    import("./Pages/Services/Admin/StudentManagement/AdminStudentManagement.jsx"),
+);
+const AdminCompanies = lazy(
+  () => import("./Pages/Services/Admin/Companies/Companies.jsx"),
+);
+const AdminInternshipDrive = lazy(
+  () => import("./Pages/Services/Admin/Internship/InternshipDrive.jsx"),
+);
+const AdminNOCs = lazy(
+  () => import("./Pages/Services/Admin/NOC/AdminNOCManagement.jsx"),
+);
+const AdminStaffManagement = lazy(
+  () =>
+    import("./Pages/Services/Admin/StaffManagement/AdminStaffManagement.jsx"),
+);
+const AdminDepartmentManagement = lazy(
+  () =>
+    import("./Pages/Services/Admin/Department/AdminDepartmentManagement.jsx"),
+);
+const AdminAnalytics = lazy(
+  () => import("./Pages/Services/Admin/Reports/AdminAnalytics.jsx"),
+);
+const AdminSettings = lazy(
+  () => import("./Pages/Services/Admin/Settings/AdminSettings.jsx"),
 );
 
 // Create React Query client
@@ -334,6 +361,10 @@ const router = createBrowserRouter([
             element: <DeptTPOStats />,
           },
           {
+            path: "organisations",
+            element: <DeptManageOrganisations />,
+          },
+          {
             path: "notifications",
             element: <DeptTPONotifications />,
           },
@@ -379,7 +410,7 @@ const router = createBrowserRouter([
       // Admin Routes (Protected)
       {
         path: "/admin",
-        element: <AdminProtectedRoutes />,
+        // element: <AdminProtectedRoutes />,
         children: [
           {
             path: "/admin/dashboard",
@@ -388,6 +419,34 @@ const router = createBrowserRouter([
           {
             path: "/admin/students",
             element: <AdminStudents />,
+          },
+          {
+            path: "/admin/org",
+            element: <AdminCompanies />,
+          },
+          {
+            path: "/admin/internship-drives",
+            element: <AdminInternshipDrive />,
+          },
+          {
+            path: "/admin/nocs",
+            element: <AdminNOCs />,
+          },
+          {
+            path: "/admin/staff-management",
+            element: <AdminStaffManagement />,
+          },
+          {
+            path: "/admin/departments",
+            element: <AdminDepartmentManagement />,
+          },
+          {
+            path: "/admin/analytics",
+            element: <AdminAnalytics />,
+          },
+          {
+            path: "/admin/settings",
+            element: <AdminSettings />,
           },
         ],
       },

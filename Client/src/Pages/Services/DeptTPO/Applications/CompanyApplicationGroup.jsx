@@ -1,302 +1,198 @@
+import { ChevronDown, MapPin } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import ApplicationStudentRow, { ROW_GRID } from "./ApplicationStudentRow";
+import { getOrgInitials, getOrgTone } from "./applicationUtils";
 import {
-  ArrowRight,
-  Building2,
-  CalendarClock,
-  CheckCircle2,
-  Clock3,
-  MapPin,
-  Send,
-  Users,
-  XCircle,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Button, Card } from "../../../../Components";
+  sectionAnimation,
+  mobileMenu,
+  staggerFast,
+  useAnimationVariants,
+} from "../../../../Animations/animations";
 
-const PENDING_STATUSES = ["submitted", "under_tpo_review", "update_required"];
-
-const SPOC_STATUSES = ["under_spoc_review", "approved_by_spoc"];
-
-const STATUS_CONFIG = {
-  submitted: {
-    label: "Submitted",
-    className: "bg-cream-dark text-ink-muted",
+const SEGMENTS = [
+  {
+    key: "pending",
+    label: "Pending",
+    bar: "bg-amber-400",
+    dot: "bg-amber-500",
   },
-  under_tpo_review: {
-    label: "Under TPO Review",
-    className: "bg-cream-dark text-ink-muted",
+  {
+    key: "approved",
+    label: "Approved",
+    bar: "bg-emerald-600",
+    dot: "bg-emerald-600",
   },
-  update_required: {
-    label: "Update Required",
-    className: "bg-amber-100 text-amber-800",
+  { key: "rejected", label: "Rejected", bar: "bg-red-400", dot: "bg-red-500" },
+  {
+    key: "spoc",
+    label: "With SPOC",
+    bar: "bg-violet-400",
+    dot: "bg-violet-500",
   },
-  approved_by_tpo: {
-    label: "Approved by TPO",
-    className: "bg-green-100 text-green-800",
+  {
+    key: "other",
+    label: "Other",
+    bar: "bg-ink-muted/30",
+    dot: "bg-ink-muted/40",
   },
-  under_spoc_review: {
-    label: "Under SPOC Review",
-    className: "bg-blue-100 text-blue-800",
-  },
-  approved_by_spoc: {
-    label: "Approved by SPOC",
-    className: "bg-green-100 text-green-800",
-  },
-  rejected: {
-    label: "Rejected",
-    className: "bg-red-100 text-red-800",
-  },
-  withdrawn: {
-    label: "Withdrawn",
-    className: "bg-gray-100 text-gray-700",
-  },
-  draft: {
-    label: "Draft",
-    className: "bg-gray-100 text-gray-700",
-  },
-};
+];
 
-const formatDate = (date) => {
-  if (!date) {
-    return "—";
-  }
+const Stat = ({ segment, value }) => (
+  <div className={`min-w-18 ${value === 0 ? "opacity-45" : ""}`}>
+    <p className="text-lg font-semibold leading-none tabular-nums text-ink">
+      {value}
+    </p>
+    <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-ink-muted">
+      <span
+        className={`size-1.5 rounded-full ${segment.dot}`}
+        aria-hidden="true"
+      />
+      {segment.label}
+    </p>
+  </div>
+);
 
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "—";
-  }
-
-  return parsedDate.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const CompanyApplicationGroup = ({ group }) => {
-  const navigate = useNavigate();
-
-  const applications = Array.isArray(group?.applications)
-    ? group.applications
-    : [];
-
-  const organisation = group?.organisation || {};
-
-  const pendingApplications = applications.filter((application) =>
-    PENDING_STATUSES.includes(application?.status),
+const OrganisationApplicationGroup = ({
+  group,
+  expanded,
+  onToggle,
+  busyId,
+  onView,
+  onAccept,
+  onSendBack,
+}) => {
+  const { counts } = group;
+  const itemVariants = useAnimationVariants(sectionAnimation);
+  const panelVariants = useAnimationVariants(mobileMenu);
+  const rowsVariants = useAnimationVariants(staggerFast);
+  const panelId = `org-panel-${group.id}`;
+  const visibleSegments = SEGMENTS.filter(
+    (s) => s.key !== "other" || counts.other > 0,
   );
-
-  const acceptedApplications = applications.filter(
-    (application) => application?.status === "approved_by_tpo",
-  );
-
-  const sentToSpocApplications = applications.filter((application) =>
-    SPOC_STATUSES.includes(application?.status),
-  );
-
-  const latestEndDate = applications.reduce((latest, application) => {
-    const currentDate = application?.tentativeEndDate;
-
-    if (!currentDate) {
-      return latest;
-    }
-
-    if (!latest) {
-      return currentDate;
-    }
-
-    return new Date(currentDate) > new Date(latest) ? currentDate : latest;
-  }, null);
-
-  const firstApplication = applications[0];
-
-  const handleReviewApplications = () => {
-    const applicationId = firstApplication?._id;
-
-    if (!applicationId) {
-      console.error(
-        "Unable to review applications: application ID is missing.",
-      );
-      return;
-    }
-
-    navigate(`/depttpo/applications/${applicationId}`);
-  };
-
-  const getStatusConfig = (status) => {
-    return (
-      STATUS_CONFIG[status] || {
-        label: status || "Unknown",
-        className: "bg-cream-dark text-ink-muted",
-      }
-    );
-  };
+  const summary = SEGMENTS.filter((s) => counts[s.key] > 0)
+    .map((s) => `${counts[s.key]} ${s.label.toLowerCase()}`)
+    .join(", ");
 
   return (
-    <Card className="overflow-hidden">
-      <div className="p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 items-start gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-green-100 text-brand-700">
-              <Building2 size={22} strokeWidth={1.8} />
-            </span>
+    <motion.section
+      variants={itemVariants}
+      className="overflow-hidden rounded-xl border border-border bg-white shadow-sm"
+    >
+      <button
+        type="button"
+        onClick={() => onToggle(group.id)}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className="focus-ring block w-full px-5 py-4 text-left transition-colors hover:bg-cream/40"
+      >
+        <div className="flex items-center gap-4">
+          <span
+            className={`flex size-11 shrink-0 items-center justify-center rounded-lg text-sm font-semibold ${getOrgTone(group.id)}`}
+            aria-hidden="true"
+          >
+            {getOrgInitials(group.name)}
+          </span>
 
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-lg font-semibold text-ink">
-                  {organisation?.organisationName || "Unknown Organisation"}
-                </h2>
-
-                {applications.length > 0 && (
-                  <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-                    Active Applications
-                  </span>
-                )}
-              </div>
-
-              <p className="mt-1 text-sm text-ink-muted">
-                {firstApplication?.designation || "Internship"}
-              </p>
-
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-muted">
-                {organisation?.organisationLocation && (
-                  <span className="flex items-center gap-1.5">
-                    <MapPin size={14} strokeWidth={1.8} />
-                    {organisation.organisationLocation}
-                  </span>
-                )}
-
-                {firstApplication?.modeOfInternship && (
-                  <span className="capitalize">
-                    {firstApplication.modeOfInternship}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="shrink-0 rounded-xl border border-border bg-cream-soft px-4 py-3">
-            <p className="text-xs text-ink-muted">Latest internship end</p>
-
-            <div className="mt-1 flex items-center gap-2">
-              <CalendarClock
-                size={16}
-                strokeWidth={1.8}
-                className="text-ink-muted"
-              />
-
-              <p className="text-sm font-semibold text-ink">
-                {formatDate(latestEndDate)}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid border-y border-border sm:grid-cols-4">
-        <StatItem icon={Users} label="Students" value={applications.length} />
-
-        <StatItem
-          icon={Clock3}
-          label="Pending"
-          value={pendingApplications.length}
-        />
-
-        <StatItem
-          icon={CheckCircle2}
-          label="Accepted"
-          value={acceptedApplications.length}
-        />
-
-        <StatItem
-          icon={Send}
-          label="Sent to SPOC"
-          value={sentToSpocApplications.length}
-        />
-      </div>
-
-      <div className="p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-ink">
-              Student Applications
-            </h3>
-
-            <p className="mt-1 text-xs text-ink-muted">
-              {applications.length}{" "}
-              {applications.length === 1
-                ? "student applied"
-                : "students applied"}{" "}
-              for this internship.
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-base font-semibold text-ink">
+              {group.name}
+            </h2>
+            <p className="mt-0.5 flex items-center gap-x-3 text-sm text-ink-muted">
+              {group.location && (
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <MapPin size={13} strokeWidth={1.8} className="shrink-0" />
+                  <span className="truncate">{group.location}</span>
+                </span>
+              )}
+              <span className="shrink-0 font-medium text-ink">
+                {counts.total}{" "}
+                {counts.total === 1 ? "application" : "applications"}
+              </span>
             </p>
           </div>
 
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleReviewApplications}
-            disabled={!firstApplication?._id}
+          <div className="hidden items-start gap-5 md:flex">
+            {visibleSegments.map((segment) => (
+              <Stat
+                key={segment.key}
+                segment={segment}
+                value={counts[segment.key]}
+              />
+            ))}
+          </div>
+
+          <ChevronDown
+            size={18}
+            aria-hidden="true"
+            className={`shrink-0 text-ink-muted transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+          />
+        </div>
+
+        {/* Compact counts on small screens (stats above are hidden) */}
+        <p className="mt-3 text-xs text-ink-muted md:hidden">{summary}</p>
+
+        <div
+          role="img"
+          aria-label={`Status distribution: ${summary || "no applications"}`}
+          className="mt-4 flex h-1 w-full gap-0.5 overflow-hidden rounded-full"
+        >
+          {SEGMENTS.map((s) =>
+            counts[s.key] > 0 ? (
+              <span
+                key={s.key}
+                className={`${s.bar} first:rounded-l-full last:rounded-r-full`}
+                style={{ width: `${(counts[s.key] / counts.total) * 100}%` }}
+              />
+            ) : null,
+          )}
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            key="panel"
+            id={panelId}
+            role="region"
+            aria-label={`Applications to ${group.name}`}
+            variants={panelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden border-t border-border"
           >
-            Review Applications
-            <ArrowRight size={14} />
-          </Button>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {applications.map((application) => {
-            const statusConfig = getStatusConfig(application?.status);
-
-            return (
-              <div
-                key={application?._id}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-cream-soft p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink">
-                    {application?.student?.fullName || "Unknown Student"}
-                  </p>
-
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
-                    {application?.student?.rollNumber && (
-                      <span>{application.student.rollNumber}</span>
-                    )}
-
-                    {application?.student?.department && (
-                      <span>{application.student.department}</span>
-                    )}
-
-                    {application?.designation && (
-                      <span>{application.designation}</span>
-                    )}
-                  </div>
-                </div>
-
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusConfig.className}`}
-                >
-                  {statusConfig.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </Card>
+            <div
+              aria-hidden="true"
+              className={`hidden gap-4 border-b border-border bg-cream px-5 py-2.5 text-xs font-medium text-ink-muted xl:grid ${ROW_GRID}`}
+            >
+              <span>Student</span>
+              <span>Internship role</span>
+              <span>Sem</span>
+              <span>Submitted</span>
+              <span>Status</span>
+              <span className="text-right">Actions</span>
+            </div>
+            <motion.ul
+              variants={rowsVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {group.applications.map((application, index) => (
+                <ApplicationStudentRow
+                  key={application?._id || `${group.id}-${index}`}
+                  application={application}
+                  busy={busyId === application?._id}
+                  onView={onView}
+                  onAccept={onAccept}
+                  onSendBack={onSendBack}
+                />
+              ))}
+            </motion.ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
   );
 };
 
-const StatItem = ({ icon: Icon, label, value }) => {
-  return (
-    <div className="flex items-center gap-3 border-border px-5 py-3 sm:border-r last:border-r-0">
-      <Icon size={16} strokeWidth={1.8} className="shrink-0 text-ink-muted" />
-
-      <div>
-        <p className="text-xs text-ink-muted">{label}</p>
-        <p className="mt-0.5 text-sm font-semibold text-ink">{value}</p>
-      </div>
-    </div>
-  );
-};
-
-export default CompanyApplicationGroup;
+export default OrganisationApplicationGroup;

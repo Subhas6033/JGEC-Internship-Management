@@ -20,10 +20,12 @@ import {
   Building2,
   Send,
   ChartNoAxesCombined,
+  BuildingComplex,
 } from "lucide-react";
 import { Button, Card } from "../index";
 import { logout } from "../../Store/Slice/authSlice";
 import { logoutUser } from "../../Services/Auth/authApi";
+import { useTpoNotifications } from "../../Services/Queries/tpoNotification.uires";
 
 const navigationItems = [
   {
@@ -39,7 +41,7 @@ const navigationItems = [
 
     children: [
       {
-        label: "All Companies",
+        label: "All Organisations",
         to: "/depttpo/applications",
         icon: Building2,
       },
@@ -75,11 +77,16 @@ const navigationItems = [
     to: "/depttpo/stats",
     icon: ChartNoAxesCombined,
   },
-
+  {
+    label: "Manage Organisations",
+    to: "/depttpo/organisations",
+    icon: BuildingComplex,
+  },
   {
     label: "Notifications",
     to: "/depttpo/notifications",
     icon: Bell,
+    showBadge: true,
   },
 ];
 
@@ -119,7 +126,7 @@ const getInitials = (fullName = "") => {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
 
-const NavItem = ({ item, onClick }) => {
+const NavItem = ({ item, onClick, unreadCount = 0 }) => {
   const Icon = item.icon;
   const hasChildren = item.children?.length > 0;
 
@@ -138,7 +145,27 @@ const NavItem = ({ item, onClick }) => {
           ].join(" ")
         }
       >
-        <Icon size={16} strokeWidth={1.8} />
+        <span className="relative inline-flex">
+          <Icon size={16} strokeWidth={1.8} />
+
+          {item.showBadge && unreadCount > 0 && (
+            <span
+              aria-label={`${unreadCount} unread notifications`}
+              className="
+                absolute -right-2 -top-2
+                inline-flex h-4 min-w-4
+                items-center justify-center
+                rounded-full
+                bg-red-600 px-1
+                text-[10px] font-semibold leading-none tabular-nums
+                text-white
+                ring-2 ring-cream-soft
+              "
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </span>
 
         <span>{item.label}</span>
       </NavLink>
@@ -265,6 +292,17 @@ const DeptTPONavbar = ({ onMenuClick, open = false, onClose }) => {
    * from the centralized Redux auth state.
    */
   const user = useSelector((state) => state.auth?.user);
+
+  /*
+   * Notifications come from the shared React Query cache.
+   * Marking items as read elsewhere updates this instantly.
+   * Anything whose status isn't "read" counts as unread.
+   */
+  const { data: notifications = [] } = useTpoNotifications();
+
+  const unreadCount = notifications.filter(
+    (notification) => notification.status !== "read",
+  ).length;
 
   /*
    * Build navbar information from the
@@ -418,7 +456,7 @@ const DeptTPONavbar = ({ onMenuClick, open = false, onClose }) => {
             "
           >
             {navigationItems.map((item) => (
-              <NavItem key={item.to} item={item} />
+              <NavItem key={item.to} item={item} unreadCount={unreadCount} />
             ))}
           </nav>
 
@@ -839,6 +877,7 @@ const DeptTPONavbar = ({ onMenuClick, open = false, onClose }) => {
                           key={item.to}
                           item={item}
                           onClick={closeMobileNavigation}
+                          unreadCount={unreadCount}
                         />
                       );
                     }

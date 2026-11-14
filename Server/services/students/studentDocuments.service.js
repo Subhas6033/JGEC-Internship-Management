@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { asyncHandler, APIERR, APIRES } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
 import { StudentDocument } from "../../models/studentDocument.models.js";
@@ -9,14 +11,12 @@ import {
   uploadToCloudinary,
   cloudinary,
 } from "../../upload/uploadOnCloudinary.upload.js";
-
-// Helper Functions
+import { getNocPdfStream } from "../../utils/nocStorage.utils.js";
 
 const getStudentId = (req) => {
-  return req.user?._id || req.user?.id;
+  return req.user?._id || req.user?.id || req.userId;
 };
 
-// Validate the authenticated studetns
 const validateStudent = (studentId) => {
   if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
     throw new APIERR(
@@ -26,17 +26,17 @@ const validateStudent = (studentId) => {
   }
 };
 
-// Get the Student Documents
+const STUDENT_NOC_PDF_URL = "/student-documents/noc/pdf";
+
 export const getMyDocuments = asyncHandler(async (req, res) => {
   const studentId = getStudentId(req);
 
   validateStudent(studentId);
-  // Get Documents
+
   const documents = await StudentDocument.findOne({
     student: studentId,
   }).lean();
 
-  // Get Student Applications
   const applications = await StudentApplication.find({
     student: studentId,
   })
@@ -45,7 +45,7 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
       createdAt: -1,
     })
     .lean();
-  // Find the latest accepted Applications
+
   const acceptedApplication =
     applications.find(
       (application) =>
@@ -53,7 +53,6 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
         application.status === "noc_generated",
     ) || null;
 
-  // Get the latest generated NOC
   let noc = null;
 
   if (acceptedApplication) {
@@ -62,9 +61,9 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
       student: studentId,
     }).lean();
   }
-  // Prepare for documents uploads
+
   const uploadedDocuments = [];
-  // Resume
+
   if (documents?.resume?.url) {
     uploadedDocuments.push({
       _id: "resume",
@@ -76,7 +75,7 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
       category: "resume",
     });
   }
-  // Signatures
+
   if (documents?.signature?.url) {
     uploadedDocuments.push({
       _id: "signature",
@@ -88,7 +87,7 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
       category: "signature",
     });
   }
-  // Prepare NOC response
+
   const nocResponse = noc
     ? {
         _id: noc._id,
@@ -99,8 +98,7 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
         academicYear: noc.academicYear,
         department: noc.department,
         status: noc.status || "generated",
-        // PDF Generated Dynamically no need to store in Cloudinary
-        downloadUrl: `/applications/spoc/${acceptedApplication?._id}/noc/pdf`,
+        downloadUrl: STUDENT_NOC_PDF_URL,
       }
     : null;
 
@@ -123,22 +121,20 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
             }
           : null,
       },
-
       "Student documents fetched successfully",
     ),
   );
 });
 
-// Update Student Signatures
 export const updateStudentSignature = asyncHandler(async (req, res) => {
   const studentId = getStudentId(req);
 
   validateStudent(studentId);
-  // Validate the Files
+
   if (!req.file) {
     throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Signature file is required");
   }
-  // Allowed Signature formats
+
   const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
 
   if (!allowedTypes.includes(req.file.mimetype)) {
@@ -147,18 +143,17 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
       "Signature must be a PNG or JPG image",
     );
   }
-  // Get the existing documents
+
   const existing = await StudentDocument.findOne({
     student: studentId,
   });
 
-  // Delete the old documents from the Cloudinary
   if (existing?.signature?.publicId) {
     await cloudinary.uploader.destroy(existing.signature.publicId, {
       resource_type: "image",
     });
   }
-  // Upload the new Signature on CLoudinary
+
   const upload = await uploadToCloudinary(
     req.file.buffer,
     "image",
@@ -170,7 +165,7 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
       removeSignatureBackground: true,
     },
   );
-  // Validate the Cloudinary Response
+
   if (!upload?.secure_url || !upload?.public_id) {
     throw new APIERR(
       HTTP_STATUS.INTERNAL_SERVER_ERROR,
@@ -178,7 +173,6 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
     );
   }
 
-  // Prepare the Signature Object
   const signature = {
     url: upload.secure_url,
     publicId: upload.public_id,
@@ -187,7 +181,6 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
     uploadedAt: new Date(),
   };
 
-  // Update the Student Documents in DB
   const updatedStudentDocument = await StudentDocument.findOneAndUpdate(
     {
       student: studentId,
@@ -195,7 +188,6 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
     {
       $set: {
         student: studentId,
-
         signature,
       },
     },
@@ -205,7 +197,7 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
       setDefaultsOnInsert: true,
     },
   );
-  // Keep the Student Signature Syncronized so that from the next applications it will use the updated Signatures
+
   await Student.findByIdAndUpdate(
     studentId,
     {
@@ -214,7 +206,7 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
     },
   );
 
@@ -229,16 +221,15 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
   );
 });
 
-// Update the Student Resumes
 export const updateStudentResume = asyncHandler(async (req, res) => {
   const studentId = getStudentId(req);
 
   validateStudent(studentId);
-  // Validate the Files before storing
+
   if (!req.file) {
     throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Resume file is required");
   }
-  // Allowed Resume Formats
+
   const allowedTypes = [
     "application/pdf",
     "application/msword",
@@ -251,18 +242,17 @@ export const updateStudentResume = asyncHandler(async (req, res) => {
       "Resume must be PDF, DOC or DOCX",
     );
   }
-  // Get the existing Resumes
+
   const existing = await StudentDocument.findOne({
     student: studentId,
   });
-  // Delete the existing resume
+
   if (existing?.resume?.publicId) {
     await cloudinary.v2.uploader.destroy(existing.resume.publicId, {
       resource_type: "raw",
     });
   }
 
-  // Upload the new Resume
   const upload = await uploadToCloudinary(
     req.file.buffer,
     "raw",
@@ -270,12 +260,11 @@ export const updateStudentResume = asyncHandler(async (req, res) => {
       process.env.CLOUDINARY_FOLDER || "jgec-internship"
     }/students/${studentId}/resume`,
   );
-  // Validate the Cloudinary Response
+
   if (!upload?.secure_url || !upload?.public_id) {
     throw new APIERR(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Resume upload failed");
   }
 
-  // Prepare the Resume Object to store in DB
   const resume = {
     url: upload.secure_url,
     publicId: upload.public_id,
@@ -283,7 +272,7 @@ export const updateStudentResume = asyncHandler(async (req, res) => {
     fileType: req.file.mimetype,
     uploadedAt: new Date(),
   };
-  // Update the Document Details in DB
+
   const document = await StudentDocument.findOneAndUpdate(
     {
       student: studentId,
@@ -312,12 +301,11 @@ export const updateStudentResume = asyncHandler(async (req, res) => {
   );
 });
 
-// Get the Generated NOCs
 export const getMyNOC = asyncHandler(async (req, res) => {
   const studentId = getStudentId(req);
 
   validateStudent(studentId);
-  // Find the latest Applications with the Generated NOC Status
+
   const application = await StudentApplication.findOne({
     student: studentId,
     status: "noc_generated",
@@ -327,11 +315,11 @@ export const getMyNOC = asyncHandler(async (req, res) => {
       updatedAt: -1,
     })
     .lean();
-  // If no response found
+
   if (!application) {
     throw new APIERR(HTTP_STATUS.NOT_FOUND, "No generated NOC found");
   }
-  // if NOC found
+
   const noc = await NOC.findOne({
     application: application._id,
     student: studentId,
@@ -356,8 +344,7 @@ export const getMyNOC = asyncHandler(async (req, res) => {
           academicYear: noc.academicYear,
           department: noc.department,
           status: noc.status || "generated",
-          // Dynamic PDF Endpoint
-          downloadUrl: `/applications/spoc/${application._id}/noc/pdf`,
+          downloadUrl: STUDENT_NOC_PDF_URL,
         },
         applicationId: application._id,
         applicationStatus: application.status,
@@ -369,4 +356,91 @@ export const getMyNOC = asyncHandler(async (req, res) => {
       "NOC fetched successfully",
     ),
   );
+});
+
+export const downloadMyNOC = asyncHandler(async (req, res) => {
+  const studentId = getStudentId(req);
+
+  validateStudent(studentId);
+
+  const application = await StudentApplication.findOne({
+    student: studentId,
+    status: "noc_generated",
+  })
+    .sort({
+      updatedAt: -1,
+    })
+    .lean();
+
+  if (!application) {
+    throw new APIERR(
+      HTTP_STATUS.NOT_FOUND,
+      "No generated NOC found for this student",
+    );
+  }
+
+  const noc = await NOC.findOne({
+    application: application._id,
+    student: studentId,
+  }).lean();
+
+  if (!noc) {
+    throw new APIERR(HTTP_STATUS.NOT_FOUND, "NOC not found for this student");
+  }
+
+  if (noc.status !== "generated") {
+    throw new APIERR(HTTP_STATUS.NOT_FOUND, "NOC PDF is not available");
+  }
+
+  const fileName = path
+    .basename(noc.fileName || "NOC.pdf")
+    .replace(/["\r\n]/g, "_");
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+  res.setHeader("Cache-Control", "private, no-store");
+
+  if (noc.storageProvider === "google_drive" || noc.driveFileId) {
+    const driveFileId = noc.driveFileId || noc.filePath;
+
+    if (!driveFileId) {
+      throw new APIERR(
+        HTTP_STATUS.NOT_FOUND,
+        "Google Drive file ID not found for this NOC",
+      );
+    }
+
+    const pdfStream = await getNocPdfStream(driveFileId);
+
+    pdfStream.on("error", (error) => {
+      console.error("Google Drive student NOC streaming error:", error);
+
+      if (!res.headersSent) {
+        res.status(500).end("Failed to retrieve NOC PDF");
+      } else {
+        res.destroy(error);
+      }
+    });
+
+    return pdfStream.pipe(res);
+  }
+
+  if (!noc.filePath) {
+    throw new APIERR(HTTP_STATUS.NOT_FOUND, "NOC PDF file path not found");
+  }
+
+  const absoluteFilePath = path.isAbsolute(noc.filePath)
+    ? noc.filePath
+    : path.resolve(process.cwd(), noc.filePath);
+
+  try {
+    await fs.access(absoluteFilePath);
+  } catch {
+    throw new APIERR(
+      HTTP_STATUS.NOT_FOUND,
+      "NOC PDF file does not exist on the server",
+    );
+  }
+
+  return res.sendFile(absoluteFilePath);
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -10,7 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { Button, Card, Modal } from "../../../../Components";
+import { Button, Card, Modal, Toast } from "../../../../Components";
 import {
   useTpoApplication,
   useAcceptTpoApplication,
@@ -21,6 +21,8 @@ const CompanyApplicationDetails = () => {
   const { applicationId } = useParams();
   const [isSendBackModalOpen, setIsSendBackModalOpen] = useState(false);
   const [sendBackReason, setSendBackReason] = useState("");
+  const [actionError, setActionError] = useState("");
+  const closeToast = useCallback(() => setActionError(""), []);
   const [signatureOpen, setSignatureOpen] = useState(false);
   const { data, isLoading, isError, error, refetch } =
     useTpoApplication(applicationId);
@@ -121,11 +123,17 @@ const CompanyApplicationDetails = () => {
   };
 
   const handleAcceptApplication = async () => {
+    setActionError("");
     try {
       await acceptApplication(applicationId);
       await refetch();
     } catch (error) {
       console.error("Failed to accept application:", error);
+      setActionError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Could not accept the application. Try again.",
+      );
     }
   };
 
@@ -134,6 +142,7 @@ const CompanyApplicationDetails = () => {
     if (!reason) {
       return;
     }
+    setActionError("");
     try {
       await sendBackApplication({
         applicationId,
@@ -143,6 +152,11 @@ const CompanyApplicationDetails = () => {
       await refetch();
     } catch (error) {
       console.error("Failed to send application back:", error);
+      setActionError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Could not send the application back. Try again.",
+      );
     }
   };
 
@@ -423,6 +437,17 @@ const CompanyApplicationDetails = () => {
           </div>
         </div>
       </Modal>
+      {actionError && (
+        <div className="pointer-events-none fixed right-4 top-20 z-100 w-full max-w-sm px-4 sm:px-0">
+          <Toast
+            variant="error"
+            title="Something went wrong"
+            message={actionError}
+            onClose={closeToast}
+            duration={6000}
+          />
+        </div>
+      )}
     </>
   );
 };

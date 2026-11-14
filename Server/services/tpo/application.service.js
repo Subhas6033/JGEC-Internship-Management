@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { StudentApplication } from "../../models/studentApplication.models.js";
 import { Student } from "../../models/students.models.js";
+import { TPO } from "../../models/tpo.models.js";
 import { Organisation } from "../../models/organisation.models.js";
 import { APIERR } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
@@ -224,6 +225,21 @@ const acceptStudentApplication = async ({ applicationId, tpoId }) => {
 
   if (!mongoose.Types.ObjectId.isValid(tpoId)) {
     throw new APIERR(HTTP_STATUS.BAD_REQUEST, "Invalid TPO ID");
+  }
+
+  // Validate TPO signature before accepting the application
+  const tpo = await TPO.findById(tpoId).lean();
+
+  if (!tpo) {
+    throw new APIERR(HTTP_STATUS.NOT_FOUND, "TPO not found");
+  }
+
+  const tpoSignature = tpo.signature;
+  if (!tpoSignature) {
+    throw new APIERR(
+      404,
+      "Please provide your signature before accepting the applications",
+    );
   }
 
   const application = await StudentApplication.findById(applicationId);

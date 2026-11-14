@@ -86,23 +86,6 @@ const DeptTPODashboard = () => {
                 NOCs, and keep your department on track.
               </p>
             </div>
-
-            <Button
-              variant="outline"
-              size="md"
-              className="
-                hidden
-                shrink-0
-                border-border
-                bg-cream-soft
-                text-ink
-                hover:bg-cream-dark
-                sm:inline-flex
-              "
-            >
-              <Bell size={16} />
-              Notifications
-            </Button>
           </motion.div>
 
           <motion.div
@@ -115,20 +98,15 @@ const DeptTPODashboard = () => {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <ApplicationTrendChart trend={dashboard.trend} />
-
             <ApplicationStatusChart applications={dashboard.applications} />
           </div>
-
           <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
             <PendingApplications applications={dashboard.pendingApplications} />
-
             <DepartmentProgress progress={dashboard.progress} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            <UpcomingItems items={dashboard.upcoming} />
-
-            <RecentActivity items={dashboard.recentActivity} />
+          <div className="grid grid-cols-1 gap-4">
+            <RecentActivity items={dashboard?.recentActivity ?? []} />
           </div>
 
           <QuickActions />

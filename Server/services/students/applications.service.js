@@ -3,6 +3,11 @@ import { asyncHandler, APIERR, APIRES } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
 import { StudentApplication } from "../../models/studentApplication.models.js";
 import { Organisation } from "../../models/organisation.models.js";
+import { publishEvent } from "../../services/notification/notification.service.js";
+import {
+  NOTIFICATION_ROLES,
+  NOTIFICATION_TYPES,
+} from "../../config/notification.config.js";
 
 const buildApplicationTimeline = (application) => {
   const status = application.status || "submitted";
@@ -26,11 +31,16 @@ const buildApplicationTimeline = (application) => {
     "approved_by_tpo",
     "under_spoc_review",
     "approved_by_spoc",
+    "noc_generated",
     "update_required",
     "rejected",
   ].includes(status);
 
-  const decisionCompleted = ["approved_by_spoc", "rejected"].includes(status);
+  const decisionCompleted = [
+    "approved_by_spoc",
+    "noc_generated",
+    "rejected",
+  ].includes(status);
 
   return [
     {
@@ -46,7 +56,7 @@ const buildApplicationTimeline = (application) => {
       description:
         status === "update_required"
           ? "Your application requires changes before it can continue."
-          : "Your application is being reviewed by the concerned department.",
+          : "Your application has completed the review process.",
       completed: reviewStarted,
       current: [
         "under_tpo_review",
@@ -59,13 +69,15 @@ const buildApplicationTimeline = (application) => {
     {
       title: "Final decision",
       description:
-        status === "approved_by_spoc"
-          ? "Your internship application has been approved."
-          : status === "rejected"
-            ? "Your internship application has been rejected."
-            : status === "update_required"
-              ? "Please update your application and submit it again."
-              : "A final decision will appear here once the review is complete.",
+        status === "noc_generated"
+          ? "Your application has been approved and the No Objection Certificate has been generated."
+          : status === "approved_by_spoc"
+            ? "Your internship application has been approved."
+            : status === "rejected"
+              ? "Your internship application has been rejected."
+              : status === "update_required"
+                ? "Please update your application and submit it again."
+                : "A final decision will appear here once the review is complete.",
       completed: decisionCompleted,
       current: decisionCompleted,
       date: decisionCompleted ? formatDate(updatedDate) : null,
@@ -296,6 +308,18 @@ const submitStudentApplication = asyncHandler(async (req, res) => {
       path: "student",
     },
   ]);
+
+  // Publish the notifications to the TPOs
+  await publishEvent({
+    type: NOTIFICATION_TYPES.APPLICATION_SUBMITTED,
+    application: application._id,
+    actor: { id: studentId, role: NOTIFICATION_ROLES.STUDENT },
+    department: application.student?.department,
+    context: {
+      studentName: application.student?.fullName,
+      organisationName: application.organisation?.organisationName,
+    },
+  });
 
   return res
     .status(HTTP_STATUS.CREATED)
@@ -547,6 +571,7 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
                     "under_tpo_review",
                     "approved_by_tpo",
                     "under_spoc_review",
+                    "update_required",
                   ],
                 ],
               },
@@ -560,7 +585,7 @@ const getMyStudentApplications = asyncHandler(async (req, res) => {
           $sum: {
             $cond: [
               {
-                $eq: ["$status", "approved_by_spoc"],
+                $in: ["$status", ["approved_by_spoc", "noc_generated"]],
               },
               1,
               0,

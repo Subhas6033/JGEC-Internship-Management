@@ -7,6 +7,8 @@ import Modal from "./Common/Modal";
 import Select from "./Common/Select";
 import Toast from "./Common/Toast";
 import Loading from "./Loader/Loading";
+import Dialog from "./Common/Dialog";
+import Table from "./Common/Table";
 import ProtectedRoute from "./ProtectedRoute";
 import StepIndicator from "./StepIndicator";
 import { StepOneFields, StepTwoFields } from "./SignupFields";
@@ -21,6 +23,8 @@ export {
   Select,
   Toast,
   Loading,
+  Dialog,
+  Table,
   ProtectedRoute,
   StepIndicator,
   StepOneFields,

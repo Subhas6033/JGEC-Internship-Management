@@ -1,117 +1,149 @@
-import { ArrowLeft, Bell, Construction, Settings2 } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Settings2 } from "lucide-react";
+import { Toast } from "../../../../Components";
+import {
+  useUpdateTpoProfile,
+  useUpdateTpoSignature,
+} from "../../../../Services/Queries/tpoProfile.quires";
+import { selectUser, updateUser } from "../../../../Store/Slice/authSlice";
+import SettingsSection from "./Settingsection";
+import ProfileDetailsForm from "./ProfileDetailForm";
+import ProfileSummary from "./Profilesummary";
+import SettingsSkeleton from "./SettingSkeleton";
+import SignatureUploader from "./SignatureUploader";
 
-import { Button } from "../../../../Components";
+const getErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
 
 const Settings = () => {
+  const dispatch = useDispatch();
+
+  // Centralized auth: the signed-in user is the single source of truth.
+  const profile = useSelector(selectUser);
+
+  const { mutateAsync: updateProfile, isPending: isSavingProfile } =
+    useUpdateTpoProfile();
+  const { mutateAsync: updateSignature, isPending: isSavingSignature } =
+    useUpdateTpoSignature();
+
+  const [toast, setToast] = useState(null);
+  const closeToast = useCallback(() => setToast(null), []);
+
+  const showError = (message) =>
+    setToast({ variant: "error", title: "Something went wrong", message });
+
+  const showSuccess = (title, message) =>
+    setToast({ variant: "success", title, message });
+
+  const handleSaveProfile = async (values) => {
+    setToast(null);
+    try {
+      const updated = await updateProfile(values);
+      // Merges into the auth user, so the navbar name and email update too.
+      dispatch(updateUser(updated ?? values));
+      showSuccess("Details saved", "Your personal details are up to date.");
+    } catch (err) {
+      showError(
+        getErrorMessage(err, "Could not save your details. Try again."),
+      );
+    }
+  };
+
+  const handleUploadSignature = async (file) => {
+    setToast(null);
+    try {
+      const updated = await updateSignature(file);
+      if (updated?.signature) {
+        dispatch(updateUser({ signature: updated.signature }));
+      }
+      showSuccess("Signature saved", "Your new signature is now in use.");
+      return true;
+    } catch (err) {
+      showError(
+        getErrorMessage(err, "Could not upload your signature. Try again."),
+      );
+      return false;
+    }
+  };
+
   return (
     <>
-      <title>Settings | JGEC Internship Portal</title>
-
+      <title>Settings | Department TPO | Internship NOC</title>
       <meta
         name="description"
-        content="Manage your JGEC Internship Portal account, preferences, and notification settings."
+        content="Update your name, email, mobile number and signature for the Department TPO portal."
       />
-
       <meta name="robots" content="noindex, nofollow" />
 
-      <meta name="theme-color" content="#ffffff" />
+      <div className="w-full min-w-0 px-4 py-8 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="mx-auto w-full max-w-5xl space-y-8"
+        >
+          {/* Page header */}
+          <div className="flex items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-700 text-white shadow-sm">
+              <Settings2 className="h-5 w-5" strokeWidth={1.8} />
+            </span>
 
-      <meta property="og:title" content="Settings | JGEC Internship Portal" />
-
-      <meta
-        property="og:description"
-        content="Manage your account preferences and notification settings through the JGEC Internship Portal."
-      />
-
-      <meta property="og:type" content="website" />
-      <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-auto items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="w-full max-w-auto text-center"
-          >
-            {/* Icon */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.35 }}
-              className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary"
-            >
-              <Settings2 size={38} strokeWidth={1.7} />
-            </motion.div>
-
-            {/* Content */}
-            <div className="mt-6">
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
-                <Construction size={14} />
-                Under development
-              </div>
-
-              <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
                 Settings
               </h1>
-
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground sm:text-base">
-                We’re working on something useful for you. Settings and
-                personalization options will be available here soon.
+              <p className="mt-0.5 text-sm text-ink-muted">
+                Manage your personal details and signature.
               </p>
             </div>
+          </div>
 
-            {/* Feature preview */}
-            <div className="mx-auto mt-8 grid max-w-md gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-4 text-left">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Settings2 size={18} />
-                </div>
+          {!profile ? (
+            <SettingsSkeleton />
+          ) : (
+            <>
+              <ProfileSummary profile={profile} />
 
-                <p className="mt-3 text-sm font-medium text-foreground">
-                  Account settings
-                </p>
+              <SettingsSection
+                title="Personal details"
+                description="Your name, email address and mobile number."
+              >
+                <ProfileDetailsForm
+                  profile={profile}
+                  onSubmit={handleSaveProfile}
+                  isSaving={isSavingProfile}
+                />
+              </SettingsSection>
 
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Manage your portal preferences.
-                </p>
-              </div>
+              <SettingsSection
+                title="Signature"
+                description="Used on documents you approve."
+              >
+                <SignatureUploader
+                  signature={profile?.signature}
+                  onUpload={handleUploadSignature}
+                  onInvalidFile={showError}
+                  isUploading={isSavingSignature}
+                />
+              </SettingsSection>
+            </>
+          )}
+        </motion.div>
+      </div>
 
-              <div className="rounded-xl border border-border bg-card p-4 text-left">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Bell size={18} />
-                </div>
-
-                <p className="mt-3 text-sm font-medium text-foreground">
-                  Notification preferences
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Control how you receive updates.
-                </p>
-              </div>
-            </div>
-
-            {/* Back button */}
-            <div className="mt-8 flex justify-center">
-              <Button asChild variant="outline" className="p-0">
-                <Link
-                  to="/students/dashboard"
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap px-4 py-2"
-                >
-                  <ArrowLeft size={16} className="shrink-0" />
-                  <span>Back to Dashboard</span>
-                </Link>
-              </Button>
-            </div>
-
-            {/* Footer text */}
-            <p className="mt-6 text-xs text-muted-foreground">
-              Settings will be available in a future update.
-            </p>
-          </motion.div>
+      {toast && (
+        <div className="pointer-events-none fixed right-4 top-20 z-100 w-full max-w-sm px-4 sm:px-0">
+          <Toast
+            variant={toast.variant}
+            title={toast.title}
+            message={toast.message}
+            onClose={closeToast}
+            duration={toast.variant === "error" ? 6000 : 4000}
+          />
         </div>
-      </main>
+      )}
     </>
   );
 };

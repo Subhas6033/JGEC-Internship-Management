@@ -52,6 +52,11 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.status = "idle";
     },
+
+    updateUser: (state, action) => {
+      if (!state.user) return;
+      state.user = { ...state.user, ...action.payload };
+    },
   },
 });
 
@@ -63,6 +68,7 @@ export const {
   setAuthError,
   clearUser,
   logout,
+  updateUser,
 } = authSlice.actions;
 
 export const selectUser = (state) => state.auth.user;

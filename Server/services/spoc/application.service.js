@@ -107,9 +107,17 @@ const REVIEW_EVENTS = {
   },
 };
 
+// Notices sent to the TPOs when a SPOC acts on an application.
+const SPOC_NOTICE_EVENTS = {
+  approve: T.SPOC_APPROVED_NOTICE,
+  reject: T.SPOC_REJECTED_NOTICE,
+  send_back: T.SPOC_UPDATE_REQUIRED_NOTICE,
+};
+
 /**
  * Notifies the student about a review decision. A TPO approval also
- * forwards the application to the SPOCs of the student's department.
+ * forwards the application to the SPOCs of the student's department, and a
+ * SPOC decision is also reported to the TPOs of the student's department.
  */
 const notifyReviewOutcome = async ({
   application,
@@ -143,6 +151,14 @@ const notifyReviewOutcome = async ({
       department: getDepartmentCode(
         firstValue(student?.department, application.department),
       ),
+    });
+  }
+
+  if (role === NOTIFICATION_ROLES.SPOC) {
+    await publishEvent({
+      ...base,
+      type: SPOC_NOTICE_EVENTS[decision],
+      department: student?.department,
     });
   }
 };
@@ -182,6 +198,21 @@ const collectNocDelivery = (
         pdfBuffer,
       });
     }
+  });
+
+  // Tell the TPOs of the student's department: one notice per NOC, or one
+  // per bulk group so a large batch does not flood them.
+  postCommit.events.push({
+    type: T.NOC_GENERATED_NOTICE,
+    application: items.length === 1 ? items[0].application._id : undefined,
+    actor,
+    department: items[0].student?.department,
+    context: {
+      count: items.length,
+      studentName: studentNameOf(items[0].student),
+      organisationName: organisationNameOf(items[0].application),
+      referenceNumber,
+    },
   });
 
   if (summarize) {
@@ -693,13 +724,14 @@ export const resubmitApplication = async ({ applicationId, studentId }) => {
   await application.save();
 
   const student = await Student.findById(studentId)
-    .select("fullName name")
+    .select("fullName name department")
     .lean();
 
   await publishEvent({
     type: T.APPLICATION_SUBMITTED,
     application: application._id,
     actor: { id: studentId, role: NOTIFICATION_ROLES.STUDENT },
+    department: student?.department,
     context: { studentName: studentNameOf(student) },
   });
 

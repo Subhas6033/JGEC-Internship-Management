@@ -42,7 +42,7 @@ const RequiredDocuments = ({ documents = [] }) => {
           </div>
         ) : (
           documents.map((document) => {
-            const completed = document.status === "completed";
+            const completed = document.status === "uploaded";
 
             return (
               <div

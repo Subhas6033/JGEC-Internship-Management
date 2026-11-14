@@ -116,6 +116,46 @@ const EVENT_CONFIG = {
         " ",
       ),
   },
+  [T.SPOC_APPROVED_NOTICE]: {
+    role: R.TPO,
+    category: "verification",
+    title: "Application approved by SPOC",
+    message: ({ studentName }) =>
+      `The SPOC has approved the application of ${studentName || "a student"}.`,
+  },
+
+  [T.SPOC_REJECTED_NOTICE]: {
+    role: R.TPO,
+    category: "verification",
+    title: "Application rejected by SPOC",
+    message: ({ studentName, reason }) =>
+      withReason(
+        `The SPOC has rejected the application of ${studentName || "a student"}.`,
+        reason,
+      ),
+  },
+
+  [T.SPOC_UPDATE_REQUIRED_NOTICE]: {
+    role: R.TPO,
+    category: "verification",
+    title: "SPOC requested changes",
+    message: ({ studentName, reason }) =>
+      withReason(
+        `The SPOC has requested changes to the application of ${studentName || "a student"}.`,
+        reason,
+      ),
+  },
+
+  [T.NOC_GENERATED_NOTICE]: {
+    role: R.TPO,
+    category: "document",
+    title: "NOC generated",
+    message: (context) =>
+      (context.count > 1
+        ? `NOC ${context.referenceNumber || ""} was generated for ${context.count} students${atOrganisation(context)}.`
+        : `NOC ${context.referenceNumber || ""} was generated for ${context.studentName || "a student"}${atOrganisation(context)}.`
+      ).replace(/\s+/g, " "),
+  },
 };
 
 // Helpers functions
@@ -150,14 +190,18 @@ const normalizeActor = (actor) => {
 };
 
 /**
- * Explicit ids always win. Otherwise TPOs resolve to every active TPO and
- * SPOCs to the active SPOCs of `department`.
+ * Explicit ids always win. Otherwise SPOCs resolve to the active SPOCs of
+ * `department`, and TPOs to the active TPOs of `department` (or to every
+ * active TPO when no department is given).
  */
 const resolveRecipientIds = async ({ role, recipientIds, department }) => {
   if (recipientIds?.length) return uniqueValidIds(recipientIds);
 
   if (role === R.TPO) {
-    const tpos = await TPO.find({ isActive: true }).select("_id").lean();
+    const filter = { isActive: true };
+    if (department) filter.department = department;
+
+    const tpos = await TPO.find(filter).select("_id").lean();
     return tpos.map((tpo) => String(tpo._id));
   }
 
@@ -209,7 +253,7 @@ const insertNotifications = async ({
  * @param {string} [params.application] Related application id.
  * @param {{ id: string, role: string }} [params.actor]
  * @param {string[]} [params.recipientIds] Overrides audience resolution.
- * @param {string} [params.department]  Department code (SPOC audiences).
+ * @param {string} [params.department]  Department (SPOC and TPO audiences).
  * @param {object} [params.context]     Template data, stored as metadata.
  */
 export const publishEvent = async ({

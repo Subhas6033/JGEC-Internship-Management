@@ -70,6 +70,10 @@ const spocSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    signaturePublicId: {
+      type: String,
+      default: "",
+    },
     role: {
       type: String,
       enum: ["spoc"],

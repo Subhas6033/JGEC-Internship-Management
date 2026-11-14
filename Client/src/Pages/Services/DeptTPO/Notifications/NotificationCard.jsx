@@ -28,6 +28,22 @@ const notificationConfig = {
     iconClass: "bg-blue-100 text-blue-700",
   },
 
+  // Backend categories, styled with the same theme colours as above.
+  verification: {
+    icon: CheckCircle2,
+    iconClass: "bg-emerald-100 text-emerald-700",
+  },
+
+  document: {
+    icon: FileCheck2,
+    iconClass: "bg-blue-100 text-blue-700",
+  },
+
+  internship: {
+    icon: Clock3,
+    iconClass: "bg-amber-100 text-amber-700",
+  },
+
   system: {
     icon: Info,
     iconClass: "bg-cream-dark text-ink-muted",
@@ -117,7 +133,7 @@ const NotificationCard = ({ notification, onClick, onMarkAsRead }) => {
             <button
               type="button"
               onClick={() => onClick?.(notification)}
-              className="text-xs font-medium text-brand-700 transition hover:text-brand-800 hover:underline focus:outline-none"
+              className="text-xs font-medium text-brand-700 transition hover:text-brand-800 hover:underline focus:outline-none hover:cursor-pointer"
             >
               View details
             </button>

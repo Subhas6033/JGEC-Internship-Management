@@ -4,14 +4,14 @@ import { APIERR } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
 
 const getDeptTpoDashboard = async ({ user }) => {
-  // Reject dashboard access when authentication context is missing.
+  // Validate authentication.
   if (!user?._id) {
     throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Authenticated user not found");
   }
 
   const department = user?.department;
 
-  // Department scope is required to prevent cross-department dashboard data.
+  // Prevent access to another department's dashboard.
   if (!department) {
     throw new APIERR(
       HTTP_STATUS.BAD_REQUEST,
@@ -19,9 +19,33 @@ const getDeptTpoDashboard = async ({ user }) => {
     );
   }
 
+  // Department filter applied after joining student details.
   const departmentFilter = {
     "studentData.department": department,
   };
+
+  // Common student lookup.
+  const studentLookup = {
+    $lookup: {
+      from: "students",
+      localField: "student",
+      foreignField: "_id",
+      as: "studentData",
+    },
+  };
+
+  const departmentMatch = {
+    $match: departmentFilter,
+  };
+
+  // Common department-scoped aggregation stages.
+  const departmentStages = [
+    studentLookup,
+    {
+      $unwind: "$studentData",
+    },
+    departmentMatch,
+  ];
 
   const [
     totalStudents,
@@ -29,28 +53,17 @@ const getDeptTpoDashboard = async ({ user }) => {
     monthlyTrend,
     companyStats,
     pendingApplications,
+    recentActivityData,
+    placedStudentData,
   ] = await Promise.all([
-    // Total students belonging to the authenticated TPO department.
+    // Total students in the department.
     Student.countDocuments({
       department,
     }),
 
-    // Aggregate application counts by status for the department.
+    // Application counts grouped by status.
     StudentApplication.aggregate([
-      {
-        $lookup: {
-          from: "students",
-          localField: "student",
-          foreignField: "_id",
-          as: "studentData",
-        },
-      },
-      {
-        $unwind: "$studentData",
-      },
-      {
-        $match: departmentFilter,
-      },
+      ...departmentStages,
       {
         $group: {
           _id: "$status",
@@ -61,22 +74,9 @@ const getDeptTpoDashboard = async ({ user }) => {
       },
     ]),
 
-    // Build the monthly application trend for the department.
+    // Monthly application trend.
     StudentApplication.aggregate([
-      {
-        $lookup: {
-          from: "students",
-          localField: "student",
-          foreignField: "_id",
-          as: "studentData",
-        },
-      },
-      {
-        $unwind: "$studentData",
-      },
-      {
-        $match: departmentFilter,
-      },
+      ...departmentStages,
       {
         $group: {
           _id: {
@@ -90,11 +90,11 @@ const getDeptTpoDashboard = async ({ user }) => {
           applications: {
             $sum: 1,
           },
-          approvedByTpo: {
+          accepted: {
             $sum: {
               $cond: [
                 {
-                  $eq: ["$status", "approved_by_tpo"],
+                  $eq: ["$status", "noc_generated"],
                 },
                 1,
                 0,
@@ -109,38 +109,22 @@ const getDeptTpoDashboard = async ({ user }) => {
           "_id.month": 1,
         },
       },
-      {
-        $limit: 12,
-      },
     ]),
 
-    // Aggregate application distribution across organisations.
+    // Organisation-wise application distribution.
     StudentApplication.aggregate([
-      {
-        $lookup: {
-          from: "students",
-          localField: "student",
-          foreignField: "_id",
-          as: "studentData",
-        },
-      },
-      {
-        $unwind: "$studentData",
-      },
-      {
-        $match: departmentFilter,
-      },
+      ...departmentStages,
       {
         $group: {
           _id: "$organisation",
           applications: {
             $sum: 1,
           },
-          approvedByTpo: {
+          accepted: {
             $sum: {
               $cond: [
                 {
-                  $eq: ["$status", "approved_by_tpo"],
+                  $eq: ["$status", "noc_generated"],
                 },
                 1,
                 0,
@@ -176,27 +160,16 @@ const getDeptTpoDashboard = async ({ user }) => {
           _id: 1,
           name: "$organisationData.organisationName",
           applications: 1,
-          approvedByTpo: 1,
+          accepted: 1,
         },
       },
     ]),
 
-    // Return applications requiring TPO action, including update-required states.
+    // Applications requiring TPO action.
     StudentApplication.aggregate([
-      {
-        $lookup: {
-          from: "students",
-          localField: "student",
-          foreignField: "_id",
-          as: "studentData",
-        },
-      },
-      {
-        $unwind: "$studentData",
-      },
+      ...departmentStages,
       {
         $match: {
-          ...departmentFilter,
           status: {
             $in: ["submitted", "under_tpo_review", "update_required"],
           },
@@ -236,6 +209,7 @@ const getDeptTpoDashboard = async ({ user }) => {
           modeOfInternship: 1,
           internshipType: 1,
           createdAt: 1,
+
           student: {
             _id: "$studentData._id",
             fullName: "$studentData.fullName",
@@ -243,6 +217,7 @@ const getDeptTpoDashboard = async ({ user }) => {
             email: "$studentData.email",
             department: "$studentData.department",
           },
+
           organisation: {
             _id: "$organisationData._id",
             name: "$organisationData.organisationName",
@@ -250,59 +225,196 @@ const getDeptTpoDashboard = async ({ user }) => {
         },
       },
     ]),
+
+    // Recent application activity.
+    // Fetch the latest five applications belonging to this department.
+    StudentApplication.aggregate([
+      ...departmentStages,
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+      {
+        $limit: 5,
+      },
+      {
+        $lookup: {
+          from: "organisations",
+          localField: "organisation",
+          foreignField: "_id",
+          as: "organisationData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$organisationData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          status: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          designation: 1,
+
+          student: {
+            _id: "$studentData._id",
+            fullName: "$studentData.fullName",
+            rollNumber: "$studentData.rollNumber",
+          },
+
+          organisation: {
+            _id: "$organisationData._id",
+            name: {
+              $ifNull: [
+                "$organisationData.organisationName",
+                "Unknown organisation",
+              ],
+            },
+          },
+        },
+      },
+    ]),
+
+    // Count unique students with an NOC-generated application.
+    // This avoids counting the same student multiple times.
+    StudentApplication.aggregate([
+      ...departmentStages,
+      {
+        $match: {
+          status: "noc_generated",
+        },
+      },
+      {
+        $group: {
+          _id: "$student",
+        },
+      },
+      {
+        $count: "total",
+      },
+    ]),
   ]);
 
+  // Applications Status Counts
   const statusMap = applicationStats.reduce((result, item) => {
-    result[item._id] = item.count;
+    result[item._id] = item.count ?? 0;
     return result;
   }, {});
 
   const totalApplications = applicationStats.reduce(
-    (total, item) => total + item.count,
+    (total, item) => total + (item.count ?? 0),
     0,
   );
 
   const submitted = statusMap.submitted ?? 0;
   const underTpoReview = statusMap.under_tpo_review ?? 0;
   const updateRequired = statusMap.update_required ?? 0;
+
   const approvedByTpo = statusMap.approved_by_tpo ?? 0;
   const underSpocReview = statusMap.under_spoc_review ?? 0;
   const approvedBySpoc = statusMap.approved_by_spoc ?? 0;
+
   const rejected = statusMap.rejected ?? 0;
   const withdrawn = statusMap.withdrawn ?? 0;
+  const nocGenerated = statusMap.noc_generated ?? 0;
 
-  // All submitted, TPO-review, and update-required applications need attention.
+  // Applications currently requiring TPO action.
   const pendingApprovals = submitted + underTpoReview + updateRequired;
 
+  // Applications that have moved beyond TPO-pending stages.
+  const progressedApplications = Math.max(
+    0,
+    totalApplications - pendingApprovals,
+  );
+
+  // Placement Rate
+  // Unique students who have received an NOC.
+  const placedStudents = placedStudentData[0]?.total ?? 0;
+
+  // NOC-based placement rate.
+  // This is a proxy until actual joining/placement confirmation is tracked.
   const placementRate =
-    totalApplications > 0
-      ? Number(((approvedBySpoc / totalApplications) * 100).toFixed(1))
+    totalStudents > 0
+      ? Number(Math.min(100, (placedStudents / totalStudents) * 100).toFixed(1))
       : 0;
 
-  // Progress tracks applications that have reached a terminal or approval stage.
+  // Department Workflow Progress
   const applicationProgress =
     totalApplications > 0
+      ? Math.round((progressedApplications / totalApplications) * 100)
+      : 0;
+
+  const nocVerification =
+    totalApplications > 0
+      ? Math.round((nocGenerated / totalApplications) * 100)
+      : 0;
+
+  const companyVerification =
+    totalApplications > 0
       ? Math.round(
-          ((approvedByTpo + approvedBySpoc + rejected + withdrawn) /
+          ((underSpocReview + approvedBySpoc + nocGenerated) /
             totalApplications) *
             100,
         )
       : 0;
 
+  // Joining confirmation is not yet available in the current workflow.
+  const joiningConfirmation = 0;
+
+  // Monthly Applications Trend
   const trend = monthlyTrend.map((item) => ({
     year: item._id.year,
     month: item._id.month,
-    applications: item.applications,
-    accepted: item.approvedByTpo,
+    applications: item.applications ?? 0,
+    accepted: item.accepted ?? 0,
   }));
 
+  // Organisations Wise applications Distributions
   const companies = companyStats.map((item) => ({
     companyId: item._id,
     name: item.name || "Unknown organisation",
-    applications: item.applications,
-    accepted: item.approvedByTpo,
+    applications: item.applications ?? 0,
+    accepted: item.accepted ?? 0,
   }));
 
+  // Recent Activities
+  const activityLabels = {
+    submitted: "submitted an application",
+    under_tpo_review: "application is under TPO review",
+    update_required: "application requires an update",
+    approved_by_tpo: "application approved by TPO",
+    under_spoc_review: "application is under SPOC review",
+    approved_by_spoc: "application approved by SPOC",
+    noc_generated: "NOC generated for application",
+    rejected: "application rejected",
+    withdrawn: "application withdrawn",
+  };
+
+  const recentActivity = recentActivityData.map((item) => {
+    const studentName = item.student?.fullName || "A student";
+    const organisationName = item.organisation?.name || "an organisation";
+    const action = activityLabels[item.status] || "updated an application";
+
+    return {
+      _id: item._id,
+      title: `${studentName} ${action}`,
+      description: `${organisationName} · ${
+        item.designation || "Internship application"
+      }`,
+      status: item.status,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+
+      student: item.student,
+      organisation: item.organisation,
+    };
+  });
+
+  // Final Dashboard Responses
   return {
     stats: {
       totalStudents,
@@ -314,26 +426,27 @@ const getDeptTpoDashboard = async ({ user }) => {
     applications: {
       total: totalApplications,
       pending: pendingApprovals,
-      accepted: approvedByTpo,
+      accepted: nocGenerated,
       rejected,
       returned: updateRequired,
     },
 
     trend,
+
     companies,
 
     progress: {
       applications: applicationProgress,
-      nocVerification:
-        approvedByTpo > 0
-          ? Math.round((approvedBySpoc / approvedByTpo) * 100)
-          : 0,
-      companyVerification: approvedBySpoc > 0 ? 100 : 0,
-      joiningConfirmation: 0,
+      nocVerification,
+      companyVerification,
+      joiningConfirmation,
     },
 
     pendingApplications,
-    recentActivity: [],
+
+    recentActivity,
+
+    // Upcoming items remain empty until their data source is implemented.
     upcoming: [],
 
     analytics: {
@@ -343,6 +456,7 @@ const getDeptTpoDashboard = async ({ user }) => {
       approvedByTpo,
       underSpocReview,
       approvedBySpoc,
+      nocGenerated,
       rejected,
       withdrawn,
     },

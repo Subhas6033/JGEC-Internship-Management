@@ -2,22 +2,23 @@ import { Info } from "lucide-react";
 
 const ApplicationTooltip = ({ children, content }) => {
   return (
-    <span className="group relative inline-flex">
+    <span className="group relative z-20 inline-flex overflow-visible">
       {children}
 
+      {/* Tooltip */}
       <span
         role="tooltip"
         className="
           pointer-events-none
           absolute
-          bottom-full
-          left-1/2
-          z-50
-          mb-2
+          left-0
+          top-full
+          z-100
+          mt-2
           w-max
-          max-w-60
-          -translate-x-1/2
-          rounded-md
+          min-w-48
+          max-w-64
+          rounded-lg
           border
           border-border
           bg-ink
@@ -27,24 +28,29 @@ const ApplicationTooltip = ({ children, content }) => {
           leading-5
           text-cream
           opacity-0
+          invisible
           shadow-card-hover
-          transition-opacity
+          transition-all
           duration-150
+          group-hover:visible
           group-hover:opacity-100
+          group-focus-within:visible
           group-focus-within:opacity-100
+          whitespace-normal
+          break-all
         "
       >
         {content}
 
+        {/* Tooltip Arrow */}
         <span
           className="
             absolute
-            left-1/2
-            top-full
-            -translate-x-1/2
-            border-4
+            bottom-full
+            left-3
+            border-[5px]
             border-transparent
-            border-t-ink
+            border-b-ink
           "
           aria-hidden="true"
         />
@@ -63,6 +69,7 @@ export const InfoTooltip = ({ content }) => {
           focus-ring
           inline-flex
           size-5
+          shrink-0
           items-center
           justify-center
           rounded-full
