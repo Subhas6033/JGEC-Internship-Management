@@ -83,6 +83,9 @@ const CompanyApplicationDetails = lazy(
 const DeptTPOStats = lazy(
   () => import("./Pages/Services/DeptTPO/Stats/DeptTPOStatsOverview.jsx"),
 );
+const DeptManageOrganisations = lazy(
+  () => import("./Pages/Services/DeptTPO/Organisation/Otganisation.jsx"),
+);
 const DeptTPONotifications = lazy(
   () =>
     import("./Pages/Services/DeptTPO/Notifications/DeptTPONotifications.jsx"),
@@ -356,6 +359,10 @@ const router = createBrowserRouter([
           {
             path: "stats",
             element: <DeptTPOStats />,
+          },
+          {
+            path: "organisations",
+            element: <DeptManageOrganisations />,
           },
           {
             path: "notifications",

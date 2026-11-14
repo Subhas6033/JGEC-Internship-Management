@@ -136,7 +136,7 @@ const Dialog = forwardRef(
                   type="button"
                   onClick={onClose}
                   aria-label="Close dialog"
-                  className="rounded-md p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                  className="rounded-md p-2 text-gray-500 transition hover:bg-gray-100 hover:cursor-pointer hover:text-gray-900"
                 >
                   <X size={19} />
                 </button>

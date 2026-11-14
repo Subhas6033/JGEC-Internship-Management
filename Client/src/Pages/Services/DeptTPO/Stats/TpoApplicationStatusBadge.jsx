@@ -10,86 +10,71 @@ import {
 const statusConfig = {
   submitted: {
     label: "Submitted",
-    className: "border-blue-200 bg-blue-50 text-blue-800",
+    className: "bg-amber-50 text-amber-700 ring-amber-200",
     icon: Send,
   },
-
   under_tpo_review: {
     label: "Under TPO Review",
-    className: "border-yellow-200 bg-yellow-50 text-yellow-800",
+    className: "bg-amber-50 text-amber-700 ring-amber-200",
     icon: Clock3,
   },
-
   update_required: {
     label: "Update Required",
-    className: "border-yellow-200 bg-yellow-50 text-yellow-800",
+    className: "bg-orange-50 text-orange-700 ring-orange-200",
     icon: RotateCcw,
   },
-
   approved_by_tpo: {
     label: "Approved by TPO",
-    className: "border-green-200 bg-green-50 text-green-800",
+    className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     icon: CheckCircle2,
   },
-
   under_spoc_review: {
     label: "Under SPOC Review",
-    className: "border-blue-200 bg-blue-50 text-blue-800",
+    className: "bg-violet-50 text-violet-700 ring-violet-200",
     icon: Clock3,
   },
-
   approved_by_spoc: {
     label: "Approved by SPOC",
-    className: "border-green-200 bg-green-50 text-green-800",
+    className: "bg-blue-50 text-blue-700 ring-blue-200",
     icon: FileCheck2,
   },
-
   rejected: {
     label: "Rejected",
-    className: "border-red-200 bg-red-50 text-red-800",
+    className: "bg-red-50 text-red-700 ring-red-200",
     icon: XCircle,
   },
-
   withdrawn: {
     label: "Withdrawn",
-    className: "border-gray-200 bg-gray-50 text-gray-800",
+    className: "bg-cream-dark text-ink-muted ring-border",
     icon: XCircle,
   },
-
   draft: {
     label: "Draft",
-    className: "border-gray-200 bg-gray-50 text-gray-800",
+    className: "bg-cream-dark text-ink-muted ring-border",
     icon: FileCheck2,
   },
-
   noc_generated: {
     label: "NOC Generated",
-    className: "border-green-200 bg-green-50 text-green-800",
+    className: "bg-blue-50 text-blue-700 ring-blue-200",
     icon: FileCheck2,
   },
 };
 
 const TpoApplicationStatusBadge = ({ status }) => {
-  const config = statusConfig[status] ?? statusConfig.submitted;
+  const config = statusConfig[status] ?? {
+    label: String(status || "Unknown")
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
+    className: "bg-cream-dark text-ink-muted ring-border",
+    icon: FileCheck2,
+  };
   const Icon = config.icon;
 
   return (
     <span
-      className={`
-        inline-flex
-        items-center
-        gap-1.5
-        rounded-full
-        border
-        px-2.5
-        py-1
-        text-xs
-        font-medium
-        ${config.className}
-      `}
+      className={`inline-flex w-fit max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${config.className}`}
     >
-      <Icon className="h-3.5 w-3.5" />
-
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       {config.label}
     </span>
   );

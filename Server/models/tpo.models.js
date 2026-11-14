@@ -71,6 +71,10 @@ const tpoSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    signaturePublicId: {
+      type: String,
+      default: "",
+    },
     role: {
       type: String,
       enum: ["TPO"],

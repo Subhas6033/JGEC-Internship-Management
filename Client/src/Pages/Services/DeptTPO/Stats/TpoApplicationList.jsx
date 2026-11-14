@@ -1,21 +1,24 @@
 import {
   ArrowRight,
-  Building2,
   CalendarDays,
+  FileCheck2,
   GraduationCap,
-  User,
+  Building2,
 } from "lucide-react";
-import { Button, Card } from "../../../../Components";
+import { motion } from "framer-motion";
+import { Card } from "../../../../Components";
 import TpoApplicationStatusBadge from "./TpoApplicationStatusBadge";
+import {
+  sectionAnimation,
+  scaleIn,
+  viewportEarly,
+  useAnimationVariants,
+} from "../../../../Animations/animations";
 
 const formatDate = (value) => {
-  if (!value) {
-    return "N/A";
-  }
+  if (!value) return "N/A";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "N/A";
-  }
+  if (Number.isNaN(date.getTime())) return "N/A";
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -23,24 +26,36 @@ const formatDate = (value) => {
   });
 };
 
+const getInitials = (name) =>
+  String(name || "ST")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
 const TpoApplicationList = ({ applications = [] }) => {
+  const itemVariants = useAnimationVariants(sectionAnimation);
+  const emptyVariants = useAnimationVariants(scaleIn);
+
   if (!applications.length) {
     return (
-      <Card>
-        <div className="p-10 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-cream-soft">
-            <GraduationCap className="h-6 w-6 text-ink-muted" />
+      <motion.div variants={emptyVariants} initial="hidden" animate="visible">
+        <Card className="rounded-xl border border-dashed border-border bg-cream-soft p-0 shadow-sm">
+          <div className="p-6 text-center sm:p-10">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-cream">
+              <GraduationCap className="h-6 w-6 text-ink-muted" />
+            </div>
+            <h3 className="mt-4 text-base font-semibold text-ink">
+              No applications found
+            </h3>
+            <p className="mt-1 text-sm text-ink-muted">
+              Change the filters or reset them to see more applications.
+            </p>
           </div>
-
-          <h3 className="mt-4 text-base font-semibold text-ink">
-            No applications found
-          </h3>
-
-          <p className="mt-1 text-sm text-ink-muted">
-            No applications match the selected filters.
-          </p>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
     );
   }
 
@@ -64,170 +79,176 @@ const TpoApplicationList = ({ applications = [] }) => {
           application?.status === "noc_generated";
 
         return (
-          <Card key={application?._id}>
-            <div className="p-4 sm:p-6">
-              {/* Header */}
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cream-soft">
-                      <User className="h-5 w-5 text-ink-muted" />
-                    </div>
-
+          <motion.div
+            key={application?._id}
+            variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportEarly}
+          >
+            <Card className="overflow-hidden rounded-xl border border-border bg-cream-soft p-0 shadow-sm">
+              <div className="@container p-4 sm:p-5">
+                {/* Header */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                      {getInitials(studentName)}
+                    </span>
                     <div className="min-w-0">
-                      <h3 className="truncate text-base font-semibold text-ink sm:text-lg">
+                      <h3 className="truncate text-base font-semibold text-ink">
                         {studentName}
                       </h3>
-
-                      <p className="mt-0.5 text-sm text-ink-muted">
-                        Roll No: {rollNumber}
+                      <p className="mt-0.5 flex items-center gap-2 text-sm text-ink-muted">
+                        <span className="tabular-nums">{rollNumber}</span>
+                        <span
+                          className="h-3.5 w-px bg-border"
+                          aria-hidden="true"
+                        />
+                        <span className="truncate">{department}</span>
                       </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <TpoApplicationStatusBadge status={application?.status} />
-
-                  {isNocGenerated && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800">
-                      NOC Generated
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Details */}
-              <div className="mt-5 grid grid-cols-1 gap-4 border-t border-gray-200 pt-5 sm:grid-cols-2 xl:grid-cols-4">
-                <ApplicationDetail
-                  icon={GraduationCap}
-                  label="Department"
-                  value={department}
-                />
-
-                <ApplicationDetail
-                  icon={Building2}
-                  label="Organisation"
-                  value={organisationName}
-                />
-
-                <ApplicationDetail
-                  icon={CalendarDays}
-                  label="Semester"
-                  value={
-                    application?.semester
-                      ? `Semester ${application.semester}`
-                      : "N/A"
-                  }
-                />
-
-                <ApplicationDetail
-                  icon={CalendarDays}
-                  label="Application Date"
-                  value={formatDate(application?.createdAt)}
-                />
-              </div>
-
-              {/* Internship details */}
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-lg bg-cream-soft p-3">
-                  <p className="text-xs text-ink-muted">Internship</p>
-
-                  <p className="mt-1 text-sm font-medium capitalize text-ink">
-                    {application?.internshipType ?? "Not specified"}
-                  </p>
-                </div>
-
-                <div className="rounded-lg bg-cream-soft p-3">
-                  <p className="text-xs text-ink-muted">Mode</p>
-
-                  <p className="mt-1 text-sm font-medium capitalize text-ink">
-                    {application?.modeOfInternship ?? "Not specified"}
-                  </p>
-                </div>
-
-                <div className="rounded-lg bg-cream-soft p-3">
-                  <p className="text-xs text-ink-muted">Internship Period</p>
-
-                  <p className="mt-1 text-sm font-medium text-ink">
-                    {formatDate(application?.tentativeStartDate)} -{" "}
-                    {formatDate(application?.tentativeEndDate)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg bg-cream-soft p-3">
-                  <p className="text-xs text-ink-muted">Location</p>
-
-                  <p className="mt-1 text-sm font-medium text-ink">
-                    {application?.tentativeWorkLocations?.length
-                      ? application.tentativeWorkLocations.join(", ")
-                      : organisationLocation}
-                  </p>
-                </div>
-              </div>
-
-              {/* Update required reason */}
-              {application?.status === "update_required" &&
-                application?.updateRequiredReason && (
-                  <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                    <p className="text-xs font-medium text-yellow-800">
-                      Update Required Reason
-                    </p>
-
-                    <p className="mt-1 text-sm text-yellow-900">
-                      {application.updateRequiredReason}
-                    </p>
-
-                    {application?.updateRequiredBy && (
-                      <p className="mt-2 text-xs text-yellow-800">
-                        Requested by:{" "}
-                        <span className="font-medium capitalize">
-                          {application.updateRequiredBy}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <TpoApplicationStatusBadge status={application?.status} />
+                    {isNocGenerated &&
+                      application?.status !== "noc_generated" && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
+                          <FileCheck2
+                            className="h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          NOC generated
                         </span>
-                      </p>
-                    )}
+                      )}
                   </div>
-                )}
+                </div>
+
+                {/* Key details */}
+                <div className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-4 @md:grid-cols-2 @4xl:grid-cols-4">
+                  <ApplicationDetail
+                    icon={Building2}
+                    label="Organisation"
+                    value={organisationName}
+                  />
+                  <ApplicationDetail
+                    icon={GraduationCap}
+                    label="Semester"
+                    value={
+                      application?.semester
+                        ? `Semester ${application.semester}`
+                        : "N/A"
+                    }
+                  />
+                  <ApplicationDetail
+                    icon={CalendarDays}
+                    label="Applied on"
+                    value={formatDate(application?.createdAt)}
+                  />
+                  <ApplicationDetail
+                    icon={CalendarDays}
+                    label="Internship period"
+                    value={`${formatDate(application?.tentativeStartDate)} – ${formatDate(application?.tentativeEndDate)}`}
+                  />
+                </div>
+
+                {/* Internship facts */}
+                <dl className="mt-4 grid grid-cols-1 divide-border overflow-hidden rounded-lg border border-border bg-cream @lg:grid-cols-3 @lg:divide-x">
+                  <Fact
+                    label="Internship type"
+                    value={application?.internshipType ?? "Not specified"}
+                    capitalize
+                  />
+                  <Fact
+                    label="Mode"
+                    value={application?.modeOfInternship ?? "Not specified"}
+                    capitalize
+                  />
+                  <Fact
+                    label="Location"
+                    value={
+                      application?.tentativeWorkLocations?.length
+                        ? application.tentativeWorkLocations.join(", ")
+                        : organisationLocation
+                    }
+                  />
+                </dl>
+
+                {/* Update required reason */}
+                {application?.status === "update_required" &&
+                  application?.updateRequiredReason && (
+                    <div
+                      role="note"
+                      className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-4"
+                    >
+                      <p className="text-xs font-semibold text-orange-800">
+                        Update required
+                      </p>
+                      <p className="mt-1 wrap-break-word text-sm text-orange-900">
+                        {application.updateRequiredReason}
+                      </p>
+                      {application?.updateRequiredBy && (
+                        <p className="mt-2 text-xs text-orange-800">
+                          Requested by{" "}
+                          <span className="font-medium capitalize">
+                            {application.updateRequiredBy}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+              </div>
 
               {/* Footer */}
-              <div className="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-xs text-ink-muted">
-                  Application ID:{" "}
-                  <span className="font-medium text-ink">
+              <div className="flex flex-col gap-3 border-t border-border bg-cream px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <p className="min-w-0 break-all text-xs text-ink-muted">
+                  Application ID{" "}
+                  <span className="font-medium tabular-nums text-ink">
                     {application?._id ?? "N/A"}
                   </span>
-                </div>
+                </p>
 
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    window.location.href = `/depttpo/applications/${application?._id}`;
-                  }}
+                <a
+                  href={`/depttpo/applications/${application?._id}`}
+                  className="focus-ring inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-700 px-3.5 text-xs font-medium text-white transition-colors hover:bg-brand-700/90 sm:h-8 sm:w-fit"
                 >
-                  View Details
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                  View details
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </motion.div>
         );
       })}
     </div>
   );
 };
 
-const ApplicationDetail = ({ icon: Icon, label, value }) => {
-  return (
-    <div className="min-w-0">
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 shrink-0 text-ink-muted" />
-        <p className="text-xs text-ink-muted">{label}</p>
-      </div>
-      <p className="mt-1 truncate text-sm font-medium text-ink">{value}</p>
-    </div>
-  );
-};
+const ApplicationDetail = ({ icon: Icon, label, value }) => (
+  <div className="min-w-0">
+    <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {label}
+    </p>
+    <p
+      title={String(value)}
+      className="mt-1 line-clamp-2 wrap-break-word text-sm font-medium text-ink"
+    >
+      {value}
+    </p>
+  </div>
+);
+
+const Fact = ({ label, value, capitalize = false }) => (
+  <div className="min-w-0 border-b border-border px-4 py-3 last:border-b-0 @lg:border-b-0">
+    <dt className="text-xs text-ink-muted">{label}</dt>
+    <dd
+      title={String(value)}
+      className={`mt-1 wrap-break-word text-sm font-medium text-ink @lg:truncate ${capitalize ? "capitalize" : ""}`}
+    >
+      {value}
+    </dd>
+  </div>
+);
 
 export default TpoApplicationList;

@@ -3,6 +3,7 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  Clock,
   GraduationCap,
   IdCard,
   Mail,
@@ -455,6 +456,7 @@ const DeptTPOProfile = () => {
 
                         <ProfileField
                           icon={ShieldCheck}
+                          isUnderDevelopment={true}
                           label="Email verification"
                           value={profile.emailVerified}
                           valueClassName={
@@ -655,11 +657,10 @@ const DeptTPOProfile = () => {
                         grid
                         gap-3
                         sm:grid-cols-2
-                        lg:grid-cols-4
+                        lg:grid-cols-3
                       "
                     >
                       <AccessItem label="Review applications" />
-                      <AccessItem label="Set deadlines" />
                       <AccessItem label="Approve applications" />
                       <AccessItem label="Forward to central TPO" />
                     </motion.div>
@@ -760,35 +761,54 @@ const ProfileField = ({
   label,
   value,
   valueClassName = "text-ink",
+  isUnderDevelopment = false,
 }) => {
   return (
     <motion.div variants={fadeUp} className="min-w-0">
-      <div
-        className="
-          flex
-          items-center
-          gap-2
-          text-xs
-          font-medium
-          text-ink-muted
-        "
-      >
+      {/* Label */}
+      <div className="flex items-center gap-2 text-xs font-medium text-ink-muted">
         <Icon size={14} className="shrink-0" />
-
         <span>{label}</span>
       </div>
 
-      <p
-        className={`
-          mt-1.5
-          wrap-break-word
-          text-sm
-          font-medium
-          ${valueClassName}
-        `}
-      >
-        {value}
-      </p>
+      {/* Value + Development Status */}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <p
+          className={`
+            min-w-0
+            wrap-break-word
+            text-sm
+            font-semibold
+            ${valueClassName}
+          `}
+        >
+          {value ?? "—"}
+        </p>
+
+        {isUnderDevelopment && (
+          <span
+            className="
+      inline-flex
+      shrink-0
+      items-center
+      gap-1.5
+      rounded-full
+      border
+      bg-red-500
+      px-2.5
+      py-1
+      text-[10px]
+      font-semibold
+      tracking-wide
+      text-white
+    "
+            title="This feature is currently under development"
+          >
+            <Clock size={10} className="shrink-0" />
+            <span>Coming Soon</span>
+          </span>
+        )}
+      </div>
     </motion.div>
   );
 };

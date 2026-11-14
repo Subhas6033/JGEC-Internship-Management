@@ -6,125 +6,130 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-
 import { Card } from "../../../../Components";
+import { countByStatus, getOrganisationId } from "./applicationUtils";
 
-const PENDING_STATUSES = ["submitted", "under_tpo_review", "update_required"];
-
-const SPOC_STATUSES = [
-  "under_spoc_review",
-  "approved_by_spoc",
-  "noc_generated",
-];
-
-const ApplicationStats = ({ applications = [] }) => {
-  const safeApplications = Array.isArray(applications) ? applications : [];
-
-  // Count unique organisations without removing their applications
-  const organisations = new Set(
-    safeApplications
-      .map((application) => {
-        const organisation = application?.organisation;
-
-        return typeof organisation === "object"
-          ? organisation?._id
-          : organisation;
-      })
-      .filter(Boolean),
-  );
-
-  const pending = safeApplications.filter((application) =>
-    PENDING_STATUSES.includes(application?.status),
-  ).length;
-
-  const accepted = safeApplications.filter(
-    (application) => application?.status === "approved_by_tpo",
-  ).length;
-
-  const rejected = safeApplications.filter(
-    (application) => application?.status === "rejected",
-  ).length;
-
-  const sentToSpoc = safeApplications.filter((application) =>
-    SPOC_STATUSES.includes(application?.status),
-  ).length;
+// `activeGroup` / `onSelectGroup` are optional: cards become filters when provided.
+const ApplicationStats = ({
+  applications = [],
+  activeGroup = null,
+  onSelectGroup,
+}) => {
+  const list = Array.isArray(applications) ? applications : [];
+  const counts = countByStatus(list);
+  const organisationCount = new Set(list.map(getOrganisationId)).size;
 
   const stats = [
     {
+      key: null,
       label: "Organisations",
-      value: organisations.size,
-      description: "Unique organisations",
+      value: organisationCount,
+      hint: "With applications",
       icon: Building2,
-      iconStyle: "bg-blue-50 text-blue-700",
+      tone: "bg-blue-50 text-blue-700",
+      clickable: false,
     },
     {
+      key: "all",
       label: "Applications",
-      value: safeApplications.length,
-      description: "Total application records",
+      value: counts.total,
+      hint: "Student records",
       icon: Users,
-      iconStyle: "bg-violet-50 text-violet-700",
+      tone: "bg-cream-dark text-ink",
+      clickable: true,
     },
     {
-      label: "Pending Review",
-      value: pending,
-      description: "Requires TPO action",
+      key: "pending",
+      label: "Pending review",
+      value: counts.pending,
+      hint: "Needs attention",
       icon: Clock3,
-      iconStyle: "bg-amber-50 text-amber-700",
+      tone: "bg-amber-50 text-amber-700",
+      clickable: true,
     },
     {
+      key: "approved",
       label: "Approved by TPO",
-      value: accepted,
-      description: "Approved applications",
+      value: counts.approved,
+      hint: "Ready to forward",
       icon: CheckCircle2,
-      iconStyle: "bg-emerald-50 text-emerald-700",
+      tone: "bg-emerald-50 text-emerald-700",
+      clickable: true,
     },
     {
+      key: "rejected",
       label: "Rejected",
-      value: rejected,
-      description: "Rejected applications",
+      value: counts.rejected,
+      hint: "Closed",
       icon: XCircle,
-      iconStyle: "bg-red-50 text-red-700",
+      tone: "bg-red-50 text-red-700",
+      clickable: true,
     },
     {
-      label: "With SPOC",
-      value: sentToSpoc,
-      description: "Forwarded to company",
+      key: "spoc",
+      label: "Forwarded to SPOC",
+      value: counts.spoc,
+      hint: "With the organisation",
       icon: Send,
-      iconStyle: "bg-indigo-50 text-indigo-700",
+      tone: "bg-violet-50 text-violet-700",
+      clickable: true,
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
       {stats.map((stat) => {
         const Icon = stat.icon;
+        const interactive = stat.clickable && onSelectGroup;
+        const selected =
+          stat.key === "all"
+            ? !activeGroup
+            : stat.key && activeGroup === stat.key;
+
+        const body = (
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 text-left">
+              <p className="truncate text-xs font-medium text-ink-muted">
+                {stat.label}
+              </p>
+              <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-ink">
+                {stat.value}
+              </p>
+              <p className="mt-1 truncate text-[11px] text-ink-muted">
+                {stat.hint}
+              </p>
+            </div>
+            <span
+              className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${stat.tone}`}
+            >
+              <Icon size={17} strokeWidth={1.8} />
+            </span>
+          </div>
+        );
 
         return (
           <Card
             key={stat.label}
-            className="group rounded-xl border border-border bg-cream-soft p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            className={`rounded-xl border bg-cream-soft p-0 shadow-sm ${
+              selected && interactive
+                ? "border-brand-700 ring-1 ring-brand-700"
+                : "border-border"
+            }`}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-ink-muted">
-                  {stat.label}
-                </p>
-
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-                  {stat.value}
-                </p>
-
-                <p className="mt-1 text-[11px] text-ink-muted">
-                  {stat.description}
-                </p>
-              </div>
-
-              <span
-                className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${stat.iconStyle}`}
+            {interactive ? (
+              <button
+                type="button"
+                aria-pressed={Boolean(selected)}
+                onClick={() =>
+                  onSelectGroup(stat.key === "all" ? null : stat.key)
+                }
+                className="focus-ring w-full rounded-xl p-4 transition-colors hover:bg-cream-dark/50"
               >
-                <Icon size={18} strokeWidth={1.8} />
-              </span>
-            </div>
+                {body}
+              </button>
+            ) : (
+              <div className="p-4">{body}</div>
+            )}
           </Card>
         );
       })}

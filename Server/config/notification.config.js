@@ -41,4 +41,9 @@ export const NOTIFICATION_TYPES = Object.freeze({
   SPOC_UPDATE_REQUIRED: "spoc_update_required",
   NOC_GENERATED: "noc_generated",
   NOC_BATCH_GENERATED: "noc_batch_generated",
+  // Sent to the TPO when a SPOC acts on an application
+  SPOC_APPROVED_NOTICE: "spoc_approved_notice",
+  SPOC_REJECTED_NOTICE: "spoc_rejected_notice",
+  SPOC_UPDATE_REQUIRED_NOTICE: "spoc_update_required_notice",
+  NOC_GENERATED_NOTICE: "noc_generated_notice",
 });

@@ -86,23 +86,6 @@ const DeptTPODashboard = () => {
                 NOCs, and keep your department on track.
               </p>
             </div>
-
-            <Button
-              variant="outline"
-              size="md"
-              className="
-                hidden
-                shrink-0
-                border-border
-                bg-cream-soft
-                text-ink
-                hover:bg-cream-dark
-                sm:inline-flex
-              "
-            >
-              <Bell size={16} />
-              Notifications
-            </Button>
           </motion.div>
 
           <motion.div

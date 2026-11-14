@@ -3,6 +3,11 @@ import { asyncHandler, APIERR, APIRES } from "../../utils/helper.utils.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
 import { StudentApplication } from "../../models/studentApplication.models.js";
 import { Organisation } from "../../models/organisation.models.js";
+import { publishEvent } from "../../services/notification/notification.service.js";
+import {
+  NOTIFICATION_ROLES,
+  NOTIFICATION_TYPES,
+} from "../../config/notification.config.js";
 
 const buildApplicationTimeline = (application) => {
   const status = application.status || "submitted";
@@ -303,6 +308,18 @@ const submitStudentApplication = asyncHandler(async (req, res) => {
       path: "student",
     },
   ]);
+
+  // Publish the notifications to the TPOs
+  await publishEvent({
+    type: NOTIFICATION_TYPES.APPLICATION_SUBMITTED,
+    application: application._id,
+    actor: { id: studentId, role: NOTIFICATION_ROLES.STUDENT },
+    department: application.student?.department,
+    context: {
+      studentName: application.student?.fullName,
+      organisationName: application.organisation?.organisationName,
+    },
+  });
 
   return res
     .status(HTTP_STATUS.CREATED)

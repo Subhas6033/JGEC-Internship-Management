@@ -206,7 +206,7 @@ export const updateStudentSignature = asyncHandler(async (req, res) => {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
     },
   );
 
