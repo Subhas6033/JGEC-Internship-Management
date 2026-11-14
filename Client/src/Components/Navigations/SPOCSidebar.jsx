@@ -225,14 +225,14 @@ const SPOCSidebar = ({ open, onClose }) => {
             </p>
 
             <p className="mt-1 text-xs leading-5 text-brand-200">
-              Review company-wise applications after the department deadline and
-              generate NOCs after approval.
+              Review Organisation-wise applications after the department
+              deadline and generate NOCs after approval.
             </p>
 
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-brand-300">
+            {/* <div className="mt-3 flex items-center gap-2 text-[11px] text-brand-300">
               <BellRing size={13} />
               <span>Deadline-controlled review</span>
-            </div>
+            </div> */}
           </div>
         </div>
       </aside>
