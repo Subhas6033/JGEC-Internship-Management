@@ -1,16 +1,26 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getAllOrganisations,
   getOrganisationById,
   createOrganisation,
   updateOrganisation,
+  deleteOrganisation,
 } from "../Organisation/organisation.api";
 
-const useOrganisations = () => {
+// params: { page, limit, search, location, sortBy, order }
+const useOrganisations = (params = {}) => {
   return useQuery({
-    queryKey: ["organisations"],
-    queryFn: getAllOrganisations,
-    staleTime: 5 * 60 * 1000,
+    // Every distinct page/filter/sort combination is cached separately.
+    queryKey: ["organisations", params],
+    queryFn: () => getAllOrganisations(params),
+    // Keep the current page on screen while the next one loads.
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 1000,
   });
 };
 
@@ -28,6 +38,7 @@ const useCreateOrganisation = () => {
 
   return useMutation({
     mutationFn: createOrganisation,
+    // ["organisations"] matches every cached page/filter combination.
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["organisations"] }),
   });
@@ -48,9 +59,23 @@ const useUpdateOrganisation = () => {
   });
 };
 
+// Call with: mutateAsync(organisationId)
+const useDeleteOrganisation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteOrganisation,
+    onSuccess: (_data, organisationId) => {
+      queryClient.invalidateQueries({ queryKey: ["organisations"] });
+      queryClient.removeQueries({ queryKey: ["organisation", organisationId] });
+    },
+  });
+};
+
 export {
   useOrganisations,
   useOrganisation,
   useCreateOrganisation,
   useUpdateOrganisation,
+  useDeleteOrganisation,
 };

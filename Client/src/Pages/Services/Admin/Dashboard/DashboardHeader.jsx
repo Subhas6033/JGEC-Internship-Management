@@ -1,13 +1,29 @@
-import { CalendarDays, Download, Plus } from "lucide-react";
-import { Button, Select } from "../../../../Components/index";
+import { Select } from "../../../../Components/index";
+import { Reveal, Item } from "./MotionBlocks";
+import { heroContainer, heroItem } from "../../../../Animations/animations";
+import { ALL_SESSIONS, DATE_RANGES, getSessionSpan } from "./dashboard.utils";
 
-const DashboardHeader = () => {
+const pick = (fn) => (e) => fn(e?.target?.value ?? e);
+
+const DashboardHeader = ({
+  session = ALL_SESSIONS,
+  onSessionChange,
+  sessionOptions = [],
+  dateRange = "12-months",
+  onDateRangeChange,
+  coverageLabel = null,
+}) => {
+  const sessionActive = session !== ALL_SESSIONS;
+
   return (
-    <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-      <div>
+    <Reveal
+      variants={heroContainer}
+      className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"
+    >
+      <Item variants={heroItem} className="min-w-0">
         <div className="mb-2 flex items-center gap-2 text-xs text-ink-muted">
           <span>Administration</span>
-          <span>/</span>
+          <span aria-hidden="true">/</span>
           <span className="text-brand-700">Dashboard</span>
         </div>
 
@@ -18,36 +34,45 @@ const DashboardHeader = () => {
         <p className="mt-1 text-sm text-ink-muted">
           Monitor and manage internship activities across JGEC.
         </p>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="w-full sm:w-48">
+        <p className="mt-1 text-xs text-ink-muted" aria-live="polite">
+          {coverageLabel
+            ? `Data available: ${coverageLabel}`
+            : "No application data in this period"}
+        </p>
+      </Item>
+
+      <Item variants={heroItem} className="flex flex-wrap items-center gap-2">
+        <div className="w-full sm:w-44">
           <Select
-            options={[
-              { label: "2025–2026", value: "2025-2026" },
-              { label: "2026–2027", value: "2026-2027" },
-            ]}
-            defaultValue="2026-2027"
+            options={sessionOptions}
+            value={session}
+            onChange={pick(onSessionChange)}
             aria-label="Academic session"
+            className="hover:cursor-pointer"
           />
         </div>
 
-        <Button variant="outline" size="md">
-          <CalendarDays size={16} />
-          <span>Last 12 months</span>
-        </Button>
-
-        <Button variant="outline" size="md">
-          <Download size={16} />
-          <span>Export</span>
-        </Button>
-
-        <Button size="md">
-          <Plus size={17} />
-          <span>Quick Add</span>
-        </Button>
-      </div>
-    </div>
+        <div className="w-full sm:w-44">
+          {sessionActive ? (
+            <p
+              className="flex h-10 items-center justify-center rounded-lg border border-border bg-cream-soft/60 px-3 text-xs text-ink-muted"
+              title="The session covers a fixed July–June window"
+            >
+              {getSessionSpan(session)}
+            </p>
+          ) : (
+            <Select
+              options={DATE_RANGES}
+              value={dateRange}
+              onChange={pick(onDateRangeChange)}
+              aria-label="Date range"
+              className="hover:cursor-pointer"
+            />
+          )}
+        </div>
+      </Item>
+    </Reveal>
   );
 };
 

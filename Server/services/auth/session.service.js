@@ -16,7 +16,7 @@ const REFRESH_TOKEN_GRACE_SECONDS =
   Number(process.env.REFRESH_TOKEN_GRACE_SECONDS) || 10;
 const MIN_ROTATE_INTERVAL_MS =
   (Number(process.env.REFRESH_ROTATION_MIN_INTERVAL_SECONDS) || 0) * 1000;
-const SUPPORTED_USER_MODELS = new Set(["Student", "TPO", "SPOC"]);
+const SUPPORTED_USER_MODELS = new Set(["Student", "TPO", "SPOC", "Admin"]);
 
 const validateUserModel = (userModel) => {
   if (!SUPPORTED_USER_MODELS.has(userModel)) {

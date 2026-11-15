@@ -28,6 +28,8 @@ import { tpoApplicationRoutes } from "./routes/tpoApplication.routes.js";
 import { spocApplicationRoutes } from "./routes/spocApplication.routes.js";
 import { tpoNotificationsRoutes } from "./routes/tponotification.routes.js";
 import { profileRoutes } from "./routes/profile.routes.js";
+import { adminDashboardRoutes } from "./routes/adminDashboard.routes.js";
+import { adminStudentManagementRoutes } from "./routes/adminStudents.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/application", studentApplicationRoutes);
@@ -40,6 +42,8 @@ app.use("/api/v1/applications", tpoApplicationRoutes);
 app.use("/api/v1/applications", spocApplicationRoutes);
 app.use("/api/v1/tpo", tpoNotificationsRoutes);
 app.use("/api/v1/update/profile", profileRoutes);
+app.use("/api/v1/admin", adminDashboardRoutes);
+app.use("/api/v1/admin/student-management", adminStudentManagementRoutes);
 
 //Centralize err handlers
 app.use(errorMiddleware);

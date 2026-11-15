@@ -12,6 +12,10 @@ import {
   spocRegistration,
   spocLogin,
 } from "../services/auth/spoc.auth.controller.js";
+import {
+  adminLogin,
+  adminRegistration,
+} from "../services/auth/admin.auth.controller.js";
 import { authenticateUser } from "../middlewares/auth.middleware.js";
 import { refreshAccessToken } from "../services/auth/tokenRotation.service.js";
 import {
@@ -58,6 +62,10 @@ authRoutes
   // SPOC ROUTES
   .post("/spoc/register", spocRegistration)
   .post("/spoc/login", spocLogin)
+
+  // ADMIN ROUTES
+  .post("/admin/register", adminRegistration)
+  .post("/admin/login", adminLogin)
 
   // Centralize Token Rotations
   .post("/refresh-token", refreshAccessToken)
