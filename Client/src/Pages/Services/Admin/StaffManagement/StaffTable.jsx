@@ -60,7 +60,7 @@ const StaffTable = ({ staff, onView, onEdit, onToggleStatus }) => {
             type="button"
             title="View details"
             onClick={() => onView(row)}
-            className="rounded-lg p-2 text-ink-muted transition hover:bg-cream-soft hover:text-brand-600"
+            className="rounded-lg p-2 text-ink-muted transition hover:bg-cream-soft hover:text-brand-600 hover:cursor-pointer"
           >
             <Eye size={17} />
           </button>
@@ -69,7 +69,7 @@ const StaffTable = ({ staff, onView, onEdit, onToggleStatus }) => {
             type="button"
             title="Edit staff"
             onClick={() => onEdit(row)}
-            className="rounded-lg p-2 text-ink-muted transition hover:bg-cream-soft hover:text-brand-600"
+            className="rounded-lg p-2 text-ink-muted transition hover:bg-cream-soft hover:text-brand-600 hover:cursor-pointer"
           >
             <Pencil size={17} />
           </button>
@@ -82,7 +82,7 @@ const StaffTable = ({ staff, onView, onEdit, onToggleStatus }) => {
                 : "Activate account"
             }
             onClick={() => onToggleStatus(row._id)}
-            className={`rounded-lg p-2 transition ${
+            className={`rounded-lg p-2 transition hover:cursor-pointer ${
               row.status === "Active"
                 ? "text-ink-muted hover:bg-red-50 hover:text-red-600"
                 : "text-ink-muted hover:bg-green-50 hover:text-green-700"
@@ -106,6 +106,7 @@ const StaffTable = ({ staff, onView, onEdit, onToggleStatus }) => {
       getRowKey={(row) => row._id}
       emptyTitle="No staff members found"
       emptyDescription="Try changing your filters or add a new TPO or SPOC."
+      className="m-2"
     />
   );
 };
