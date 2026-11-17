@@ -595,6 +595,7 @@ export const generateNocPdf = async ({
   application: rawApplication,
   spoc: spocOverride,
   tpo: tpoOverride,
+  admin: adminOverride,
 }) => {
   const application = rawApplication?.data ?? rawApplication ?? {};
   const nocData = noc || application.noc || {};
@@ -711,10 +712,42 @@ export const generateNocPdf = async ({
     getPerson(application.tpo) ||
     byRole("tpo");
 
+  // FIX: resolve the admin the same way SPOC / TPO are resolved. Previously only
+  // `adminOverride` was used, so when the caller did not pass `admin` the name,
+  // contact details and signature were all silently empty.
+  const adminPerson =
+    getPerson(adminOverride) ||
+    getPerson(application.adminReviewedBy) ||
+    getPerson(application.admin) ||
+    byRole("admin");
+
+  // FIX: contact details (mobile | email) for the Head signatory.
+  const adminContact = [formatPhone(adminPerson?.mobile), adminPerson?.email]
+    .filter(Boolean)
+    .join(" | ");
+
   const HEAD_TNP = {
-    name: "Dr. Samir Das",
+    name: adminPerson?.name,
     lines: ["Head, Training & Placement Cell", COLLEGE_NAME],
+    boldContact: adminContact,
   };
+
+  if (!adminPerson) {
+    console.warn("NOC PDF: Admin (Head TNP) not resolved.");
+  }
+
+  // Store admin signature for rendering in PDF
+  let adminSignature = null;
+  if (adminPerson?.signature) {
+    try {
+      adminSignature = await downloadImage(
+        adminPerson.signature,
+        "Admin/Head TNP signature",
+      );
+    } catch (error) {
+      console.warn("Unable to load admin signature:", error.message);
+    }
+  }
 
   const tpoContact = [formatPhone(tpo?.mobile), tpo?.email]
     .filter(Boolean)
@@ -1236,6 +1269,8 @@ export const generateNocPdf = async ({
         align: "center",
         name: HEAD_TNP.name,
         lines: HEAD_TNP.lines,
+        boldContact: HEAD_TNP.boldContact,
+        signature: adminSignature,
       });
 
       y = headEnd + 20;
@@ -1267,6 +1302,7 @@ export const resolveNocSignatories = async ({
   SPOC,
   TPO,
   User,
+  Admin, // FIX: pass the Admin model so the Head TNP can be resolved too
 }) => {
   const application = rawApplication?.data ?? rawApplication ?? {};
   const nocData = noc || application.noc || {};
@@ -1334,6 +1370,29 @@ export const resolveNocSignatories = async ({
     }).lean();
   }
 
+  /* ------------------------------ ADMIN ------------------------------ */
+
+  let admin = [application.adminReviewedBy, application.admin].find(isPerson);
+
+  if (!admin && Admin) {
+    const ids = [
+      idOf(application.adminReviewedBy),
+      idOf(nocData.generatedBy),
+    ].filter(Boolean);
+
+    for (const id of ids) {
+      admin = await findById(Admin, id);
+
+      if (admin) break;
+    }
+  }
+
+  if (!admin && Admin) {
+    admin = await Admin.findOne({
+      isActive: true,
+    }).lean();
+  }
+
   if (!spoc) {
     console.warn("resolveNocSignatories: SPOC not found");
   }
@@ -1342,9 +1401,14 @@ export const resolveNocSignatories = async ({
     console.warn("resolveNocSignatories: TPO not found");
   }
 
+  if (!admin) {
+    console.warn("resolveNocSignatories: Admin not found");
+  }
+
   return {
     spoc,
     tpo,
+    admin,
   };
 };
 

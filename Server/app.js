@@ -32,6 +32,7 @@ import { adminDashboardRoutes } from "./routes/adminDashboard.routes.js";
 import { adminStudentManagementRoutes } from "./routes/adminStudents.routes.js";
 import { adminStaffManagementRoutes } from "./routes/adminStaff.routes.js";
 import { admindDepartmentManagementRoutes } from "./routes/admin.department.routes.js";
+import { adminAnalyticsRoutes } from "./routes/admin.analytics.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/application", studentApplicationRoutes);
@@ -51,6 +52,7 @@ app.use(
   "/api/v1/admin/department-management",
   admindDepartmentManagementRoutes,
 );
+app.use("/api/v1/admin/analytics", adminAnalyticsRoutes);
 
 //Centralize err handlers
 app.use(errorMiddleware);

@@ -71,9 +71,22 @@ const StudentApplicationPage = () => {
   } = useOrganisations();
 
   const { mutateAsync: submitApplication } = useSubmitStudentApplication();
+
+  // FIX: `organisationsResponse?.data || []` returns a non-array when the API
+  // wraps the list in another object (e.g. { data: { organisations: [...] } }),
+  // which breaks .find() and .map(). Normalize every known shape to an array.
   const organisations = useMemo(() => {
-    return organisationsResponse?.data || [];
+    const candidates = [
+      organisationsResponse,
+      organisationsResponse?.data,
+      organisationsResponse?.data?.data,
+      organisationsResponse?.data?.organisations,
+      organisationsResponse?.organisations,
+    ];
+
+    return candidates.find((candidate) => Array.isArray(candidate)) || [];
   }, [organisationsResponse]);
+
   const selectedOrganisationId = watch("organisation");
   const selectedOrganisation = useMemo(() => {
     if (!selectedOrganisationId) {
