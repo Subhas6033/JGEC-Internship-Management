@@ -1,20 +1,32 @@
-import { Eye, Pencil, Power } from "lucide-react";
+import { Eye } from "lucide-react";
 
 import { Table, Button } from "../../../../Components/index";
-import DepartmentStatus from "./DepartmentStatus";
 
-const DepartmentTable = ({
-  departments,
-  loading,
-  onView,
-  onEdit,
-  onToggleStatus,
-}) => {
+const PeopleCell = ({ people }) => {
+  if (!people?.length) {
+    return <p className="text-sm text-ink-muted">Not assigned</p>;
+  }
+
+  const [first, ...rest] = people;
+
+  return (
+    <div className="min-w-40">
+      <p className="text-sm font-medium text-ink">{first.name}</p>
+
+      <p className="mt-0.5 text-xs text-ink-muted">
+        {first.email}
+        {rest.length > 0 && ` · +${rest.length} more`}
+      </p>
+    </div>
+  );
+};
+
+const DepartmentTableLive = ({ departments, onView }) => {
   const columns = [
     {
       key: "department",
       header: "Department",
-      width: "260px",
+      width: "280px",
       render: (department) => (
         <div className="flex min-w-55 items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-cream-soft font-semibold text-brand-600">
@@ -32,36 +44,16 @@ const DepartmentTable = ({
       ),
     },
     {
-      key: "hodName",
-      header: "HOD",
-      width: "190px",
-      render: (department) => (
-        <div className="min-w-40">
-          <p className="text-sm font-medium text-ink">
-            {department.hodName || "Not assigned"}
-          </p>
-
-          <p className="mt-0.5 text-xs text-ink-muted">
-            {department.hodEmail || "—"}
-          </p>
-        </div>
-      ),
+      key: "tpos",
+      header: "Departmental TPO",
+      width: "220px",
+      render: (department) => <PeopleCell people={department.tpos} />,
     },
     {
-      key: "tpoName",
-      header: "Departmental TPO",
-      width: "190px",
-      render: (department) => (
-        <div className="min-w-40">
-          <p className="text-sm font-medium text-ink">
-            {department.tpoName || "Not assigned"}
-          </p>
-
-          <p className="mt-0.5 text-xs text-ink-muted">
-            {department.tpoEmail || "—"}
-          </p>
-        </div>
-      ),
+      key: "spocs",
+      header: "Departmental SPOC",
+      width: "220px",
+      render: (department) => <PeopleCell people={department.spocs} />,
     },
     {
       key: "studentCount",
@@ -74,18 +66,12 @@ const DepartmentTable = ({
       ),
     },
     {
-      key: "status",
-      header: "Status",
-      width: "110px",
-      render: (department) => <DepartmentStatus status={department.status} />,
-    },
-    {
       key: "actions",
       header: "Actions",
-      width: "130px",
+      width: "90px",
       align: "right",
       render: (department) => (
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-end">
           <Button
             variant="ghost"
             size="sm"
@@ -93,35 +79,6 @@ const DepartmentTable = ({
             title="View department"
           >
             <Eye size={17} />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(department)}
-            title="Edit department"
-          >
-            <Pencil size={17} />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onToggleStatus(department)}
-            title={
-              department.status === "Active"
-                ? "Deactivate department"
-                : "Activate department"
-            }
-          >
-            <Power
-              size={17}
-              className={
-                department.status === "Active"
-                  ? "text-red-600"
-                  : "text-green-600"
-              }
-            />
           </Button>
         </div>
       ),
@@ -134,10 +91,9 @@ const DepartmentTable = ({
         <Table
           columns={columns}
           data={departments}
-          loading={loading}
           getRowKey={(department) => department._id}
           emptyTitle="No departments found"
-          emptyDescription="Try changing your search or filter criteria."
+          emptyDescription="Try changing your search."
           className="w-full"
           tableClassName="w-full"
         />
@@ -146,4 +102,4 @@ const DepartmentTable = ({
   );
 };
 
-export default DepartmentTable;
+export default DepartmentTableLive;

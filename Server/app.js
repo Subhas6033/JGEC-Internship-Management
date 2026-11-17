@@ -31,6 +31,7 @@ import { profileRoutes } from "./routes/profile.routes.js";
 import { adminDashboardRoutes } from "./routes/adminDashboard.routes.js";
 import { adminStudentManagementRoutes } from "./routes/adminStudents.routes.js";
 import { adminStaffManagementRoutes } from "./routes/adminStaff.routes.js";
+import { admindDepartmentManagementRoutes } from "./routes/admin.department.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/application", studentApplicationRoutes);
@@ -46,6 +47,10 @@ app.use("/api/v1/update/profile", profileRoutes);
 app.use("/api/v1/admin", adminDashboardRoutes);
 app.use("/api/v1/admin/student-management", adminStudentManagementRoutes);
 app.use("/api/v1/admin/staff-management", adminStaffManagementRoutes);
+app.use(
+  "/api/v1/admin/department-management",
+  admindDepartmentManagementRoutes,
+);
 
 //Centralize err handlers
 app.use(errorMiddleware);

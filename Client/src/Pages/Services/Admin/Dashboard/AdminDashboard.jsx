@@ -40,11 +40,11 @@ import { useAdminDashboard } from "../../../../Services/Queries/adminDashboard.q
 // Config Routes
 const ROUTES = {
   nocs: "/admin/nocs",
-  organisations: "/admin/organisations",
+  organisations: "/admin/org",
   quickActions: {
-    company: "/admin/organisations/new",
-    student: "/admin/students/new",
-    tpo: "/admin/tpos/new",
+    company: "/admin/org",
+    student: "/admin/students",
+    tpo: "/admin/staff-management",
     opportunity: "/admin/opportunities/new",
   },
 };
