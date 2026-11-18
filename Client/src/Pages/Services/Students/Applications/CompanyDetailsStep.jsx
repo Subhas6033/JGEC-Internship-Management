@@ -19,7 +19,18 @@ const CompanyDetailsStep = ({
   setValue,
 }) => {
   const organisationOptions = useMemo(() => {
-    return organisations.map((organisation) => ({
+    // FIX: the default value of [] only applies when the prop is undefined.
+    // If the parent passes null, an object like { data: [...] }, or an API
+    // response wrapper, .map() throws. Normalize everything to an array first.
+    const list = Array.isArray(organisations)
+      ? organisations
+      : Array.isArray(organisations?.data)
+        ? organisations.data
+        : Array.isArray(organisations?.organisations)
+          ? organisations.organisations
+          : [];
+
+    return list.map((organisation) => ({
       label: organisation.organisationName,
       value: organisation._id,
     }));

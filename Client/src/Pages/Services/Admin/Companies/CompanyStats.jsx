@@ -1,62 +1,99 @@
-import React from "react";
-import { Building2, CheckCircle2, Clock3, Ban } from "lucide-react";
+import { Building2, CalendarPlus, MapPin, Clock3 } from "lucide-react";
 import { Card } from "../../../../Components/index";
+import { Reveal, Item } from "./MotionBlocks";
+import {
+  staggerFast,
+  fadeUp,
+  hoverLiftSmall,
+} from "../../../../Animations/animations";
+import { formatDate } from "./organisations.utils";
 
-const CompanyStats = ({ companies }) => {
-  const stats = [
+// `stats` comes from the API, so the numbers cover every organisation,
+// not just the page currently on screen.
+const CompanyStats = ({ stats = null, loading = false }) => {
+  const now = new Date();
+  const latest = stats?.latest;
+
+  const cards = [
     {
-      title: "Total Organisation",
-      value: companies.length,
+      title: "Total organisations",
+      value: stats?.total ?? 0,
+      note: "Registered in the portal",
       icon: Building2,
-      color: "bg-blue-50 text-blue-600",
+      color: "bg-brand-50 text-brand-700",
     },
     {
-      title: "Active Organisation",
-      value: companies.filter((company) => company.status === "Active").length,
-      icon: CheckCircle2,
-      color: "bg-green-50 text-green-600",
+      title: "Added this month",
+      value: stats?.addedThisMonth ?? 0,
+      note: now.toLocaleString("en-IN", { month: "long", year: "numeric" }),
+      icon: CalendarPlus,
+      color: "bg-green-50 text-green-700",
     },
     {
-      title: "Pending Approval",
-      value: companies.filter((company) => company.status === "Pending").length,
+      title: "Locations",
+      value: stats?.locations ?? 0,
+      note: "Unique cities / regions",
+      icon: MapPin,
+      color: "bg-indigo-50 text-indigo-700",
+    },
+    {
+      title: "Last registered",
+      value: latest
+        ? formatDate(latest.createdAt, { day: "2-digit", month: "short" })
+        : "—",
+      note: latest?.organisationName || "No organisations yet",
       icon: Clock3,
-      color: "bg-amber-50 text-amber-600",
-    },
-    {
-      title: "Inactive Organisation",
-      value: companies.filter((company) => company.status === "Inactive")
-        .length,
-      icon: Ban,
-      color: "bg-gray-100 text-gray-600",
+      color: "bg-amber-50 text-amber-700",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-
-        return (
-          <Card key={stat.title}>
-            <Card.Content className="p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-3">
+    <Reveal
+      variants={staggerFast}
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+    >
+      {cards.map(({ title, value, note, icon: Icon, color }) => (
+        <Item
+          key={title}
+          variants={fadeUp}
+          whileHover={hoverLiftSmall}
+          className="min-w-0"
+        >
+          <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm text-gray-500">{stat.title}</p>
-
-                  <h3 className="mt-2 text-2xl font-bold text-gray-900">
-                    {stat.value}
-                  </h3>
+                  <p className="text-sm font-medium text-ink-muted">{title}</p>
+                  {loading ? (
+                    <div
+                      aria-hidden="true"
+                      className="mt-3 h-8 w-16 animate-pulse rounded-md bg-brand-100 motion-reduce:animate-none"
+                    />
+                  ) : (
+                    <h3 className="mt-3 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+                      {value}
+                    </h3>
+                  )}
                 </div>
 
-                <div className={`rounded-xl p-3 ${stat.color}`}>
-                  <Icon size={22} />
+                <div
+                  className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${color}`}
+                >
+                  <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
                 </div>
               </div>
-            </Card.Content>
+
+              <p
+                className="mt-4 truncate text-xs text-ink-muted"
+                title={typeof note === "string" ? note : undefined}
+              >
+                {loading ? "Loading…" : note}
+              </p>
+            </div>
           </Card>
-        );
-      })}
-    </div>
+        </Item>
+      ))}
+    </Reveal>
   );
 };
 

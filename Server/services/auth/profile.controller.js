@@ -153,7 +153,7 @@ const updateUserSignature = asyncHandler(async (req, res) => {
   }
 
   //  Identify user model using authenticated role
-  const role = normalizeRole(req.user.role);
+  const role = String(req.user.role).trim().toUpperCase();
   const UserModel = USER_MODELS[role];
 
   if (!UserModel) {

@@ -28,6 +28,12 @@ import { tpoApplicationRoutes } from "./routes/tpoApplication.routes.js";
 import { spocApplicationRoutes } from "./routes/spocApplication.routes.js";
 import { tpoNotificationsRoutes } from "./routes/tponotification.routes.js";
 import { profileRoutes } from "./routes/profile.routes.js";
+import { adminDashboardRoutes } from "./routes/adminDashboard.routes.js";
+import { adminStudentManagementRoutes } from "./routes/adminStudents.routes.js";
+import { adminStaffManagementRoutes } from "./routes/adminStaff.routes.js";
+import { admindDepartmentManagementRoutes } from "./routes/admin.department.routes.js";
+import { adminAnalyticsRoutes } from "./routes/admin.analytics.routes.js";
+import { adminNocRoutes } from "./routes/admin.noc.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/application", studentApplicationRoutes);
@@ -40,6 +46,15 @@ app.use("/api/v1/applications", tpoApplicationRoutes);
 app.use("/api/v1/applications", spocApplicationRoutes);
 app.use("/api/v1/tpo", tpoNotificationsRoutes);
 app.use("/api/v1/update/profile", profileRoutes);
+app.use("/api/v1/admin", adminDashboardRoutes);
+app.use("/api/v1/admin/student-management", adminStudentManagementRoutes);
+app.use("/api/v1/admin/staff-management", adminStaffManagementRoutes);
+app.use(
+  "/api/v1/admin/department-management",
+  admindDepartmentManagementRoutes,
+);
+app.use("/api/v1/admin/analytics", adminAnalyticsRoutes);
+app.use("/api/v1/admin/noc-management", adminNocRoutes);
 
 //Centralize err handlers
 app.use(errorMiddleware);

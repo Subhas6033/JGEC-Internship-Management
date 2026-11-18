@@ -16,29 +16,29 @@ const AdminLayout = () => {
         onToggleCollapse={() => setCollapsed((prev) => !prev)}
       />
 
+      {/* Must match the sidebar: w-65 expanded, w-19 collapsed */}
       <div
-        className={`
-          min-h-screen min-w-0 transition-all duration-300
-          ${collapsed ? "lg:pl-19" : "lg:pl-67.5"}
-        `}
+        className={`min-h-screen min-w-0 transition-[padding] duration-300 ease-in-out ${
+          collapsed ? "lg:pl-19" : "lg:pl-65"
+        }`}
       >
         <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-white/95 px-4 backdrop-blur sm:px-6 lg:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open sidebar"
             className="rounded-lg p-2 text-ink hover:bg-cream-soft"
           >
             <Menu size={22} />
           </button>
-
           <span className="ml-3 font-display font-semibold text-ink">
             JGEC Admin Portal
           </span>
         </header>
 
-        <div className="min-w-0">
+        <main className="min-w-0">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );

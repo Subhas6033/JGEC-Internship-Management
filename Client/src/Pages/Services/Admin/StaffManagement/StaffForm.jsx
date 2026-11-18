@@ -1,5 +1,4 @@
 import { Button, Input, Select } from "../../../../Components/index";
-
 import { departmentOptions } from "./adminStaff.data";
 
 const roleOptions = [
@@ -63,7 +62,9 @@ const StaffForm = ({ form, setForm, onSubmit, onCancel, editing }) => {
         <Select
           label="Department"
           value={form.department}
-          onChange={(value) => updateField("department", value)}
+          onChange={(value) =>
+            updateField("department", value?.target?.value ?? value)
+          }
           options={departmentOptions}
           placeholder="Select department"
           required

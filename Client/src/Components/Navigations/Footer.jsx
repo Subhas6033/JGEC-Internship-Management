@@ -115,7 +115,7 @@ const Footer = () => {
               </Link>
 
               <Link
-                to="/auth/login"
+                to="/auth/admin/login"
                 className="
                   focus-ring rounded-md
                   text-xs text-cream/65
@@ -123,7 +123,7 @@ const Footer = () => {
                   hover:text-cream
                 "
               >
-                Login
+                Admin Login
               </Link>
 
               <a

@@ -101,8 +101,28 @@ export const initialWorkActivity = [
 
 export const settingsTabs = [
   { id: "profile", label: "Profile", icon: "UserRound" },
-  { id: "security", label: "Security", icon: "ShieldCheck" },
-  { id: "preferences", label: "Preferences", icon: "SlidersHorizontal" },
-  { id: "login", label: "Login Activity", icon: "Monitor" },
-  { id: "activity", label: "Work Activity", icon: "History" },
+  {
+    id: "security",
+    label: "Security",
+    icon: "ShieldCheck",
+    comingSoon: true,
+  },
+  {
+    id: "preferences",
+    label: "Preferences",
+    icon: "SlidersHorizontal",
+    comingSoon: true,
+  },
+  {
+    id: "login",
+    label: "Login Activity",
+    icon: "Monitor",
+    comingSoon: true,
+  },
+  {
+    id: "activity",
+    label: "Work Activity",
+    icon: "History",
+    comingSoon: true,
+  },
 ];

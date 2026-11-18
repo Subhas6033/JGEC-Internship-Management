@@ -1,29 +1,30 @@
-import { Eye, Pencil, UserRoundX, UserRoundCheck } from "lucide-react";
-
+import { motion } from "framer-motion";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { Table, Button } from "../../../../Components/index";
-import StudentStatus from "./StudentStatus";
 
 const StudentTable = ({
-  students,
-  loading,
+  students = [],
+  loading = false,
   onView,
   onEdit,
-  onToggleStatus,
+  onDelete,
+  deletingId,
 }) => {
   const columns = [
     {
       key: "student",
       header: "Student",
-      width: "230px",
+      width: "250px",
       render: (student) => (
-        <div className="flex min-w-52.5 items-center gap-3">
+        <div className="flex min-w-52 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-soft font-semibold text-brand-600">
-            {student.name?.charAt(0)?.toUpperCase() || "S"}
+            {student.fullName?.charAt(0)?.toUpperCase() || "S"}
           </div>
 
           <div className="min-w-0">
-            <p className="truncate font-semibold text-ink">{student.name}</p>
-
+            <p className="truncate font-semibold text-ink">
+              {student.fullName}
+            </p>
             <p className="mt-0.5 truncate text-xs text-ink-muted">
               {student.email}
             </p>
@@ -44,28 +45,28 @@ const StudentTable = ({
     {
       key: "department",
       header: "Department",
-      width: "260px",
-      render: (student) => (
-        <span className="block max-w-65 text-sm leading-5 text-ink-muted">
-          {student.department}
-        </span>
-      ),
-    },
-    {
-      key: "academicYear",
-      header: "Year",
-      width: "110px",
-      render: (student) => (
-        <span className="whitespace-nowrap text-sm text-ink">
-          {student.academicYear}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
       width: "120px",
-      render: (student) => <StudentStatus status={student.status} />,
+      render: (student) => (
+        <span className="text-sm text-ink-muted">{student.department}</span>
+      ),
+    },
+    {
+      key: "mobileNumber",
+      header: "Mobile",
+      width: "150px",
+      render: (student) => (
+        <span className="whitespace-nowrap text-sm text-ink-muted">
+          {student.mobileNumber}
+        </span>
+      ),
+    },
+    {
+      key: "guardianName",
+      header: "Guardian",
+      width: "180px",
+      render: (student) => (
+        <span className="text-sm text-ink-muted">{student.guardianName}</span>
+      ),
     },
     {
       key: "actions",
@@ -95,18 +96,11 @@ const StudentTable = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onToggleStatus(student)}
-            title={
-              student.status === "Active"
-                ? "Deactivate student"
-                : "Activate student"
-            }
+            disabled={deletingId === student._id}
+            onClick={() => onDelete(student)}
+            title="Delete student"
           >
-            {student.status === "Active" ? (
-              <UserRoundX size={17} className="text-red-600" />
-            ) : (
-              <UserRoundCheck size={17} className="text-green-600" />
-            )}
+            <Trash2 size={17} className="text-red-600" />
           </Button>
         </div>
       ),
@@ -114,20 +108,25 @@ const StudentTable = ({
   ];
 
   return (
-    <div className="w-full min-w-0 overflow-x-auto">
-      <div className="min-w-237.5">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
+      className="w-full min-w-0 overflow-x-auto"
+    >
+      <div className="min-w-225">
         <Table
           columns={columns}
           data={students}
           loading={loading}
           getRowKey={(student) => student._id}
           emptyTitle="No students found"
-          emptyDescription="Try changing your search or filter criteria."
+          emptyDescription="Try changing your search or department filter."
           className="w-full"
           tableClassName="w-full"
         />
       </div>
-    </div>
+    </motion.div>
   );
 };
 

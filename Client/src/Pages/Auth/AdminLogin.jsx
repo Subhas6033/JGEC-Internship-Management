@@ -2,9 +2,11 @@ import { useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Input } from "../../Components/index";
+import { useAdminLogin } from "../../Services/Queries/adminAuth.queries";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const loginMutation = useAdminLogin();
 
   const [form, setForm] = useState({
     email: "",
@@ -13,7 +15,8 @@ const AdminLogin = () => {
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isSubmitting = loginMutation.isPending;
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -23,10 +26,11 @@ const AdminLogin = () => {
       [name]: value,
     }));
 
-    if (errors[name]) {
+    if (errors[name] || errors.general) {
       setErrors((previous) => ({
         ...previous,
         [name]: "",
+        general: "",
       }));
     }
   };
@@ -58,15 +62,21 @@ const AdminLogin = () => {
     }
 
     setErrors({});
-    setIsSubmitting(true);
 
     try {
-      // Connect admin login API here.
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await loginMutation.mutateAsync({
+        email: form.email.trim(),
+        password: form.password,
+      });
 
       navigate("/admin/dashboard");
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      setErrors({
+        general:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unable to sign in. Please check your credentials and try again.",
+      });
     }
   };
 
@@ -125,17 +135,12 @@ const AdminLogin = () => {
               >
                 {/* Email */}
                 <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-1.5 block text-sm font-medium text-ink"
-                  >
-                    Admin email
-                  </label>
-
                   <Input
                     id="email"
                     name="email"
                     type="email"
+                    label="Email"
+                    required
                     value={form.email}
                     onChange={handleChange}
                     placeholder="admin@college.edu"
@@ -152,26 +157,12 @@ const AdminLogin = () => {
 
                 {/* Password */}
                 <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label
-                      htmlFor="password"
-                      className="text-sm font-medium text-ink"
-                    >
-                      Password
-                    </label>
-
-                    <Link
-                      to="/auth/forgot-password"
-                      className="text-xs font-medium text-brand-700 hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-
                   <div className="relative">
                     <Input
                       id="password"
                       name="password"
+                      label="Password"
+                      required
                       type={showPassword ? "text" : "password"}
                       value={form.password}
                       onChange={handleChange}
@@ -203,6 +194,27 @@ const AdminLogin = () => {
                     </p>
                   )}
                 </div>
+
+                <div className="flex items-center justify-between gap-3 my-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-muted">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border accent-brand-600"
+                    />
+                    Remember me
+                  </label>
+
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-sm font-medium text-brand-700 hover:text-brand-900"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
+                {errors.general && (
+                  <p className="text-sm text-red-600">{errors.general}</p>
+                )}
 
                 <Button
                   type="submit"

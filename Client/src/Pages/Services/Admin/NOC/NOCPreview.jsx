@@ -5,10 +5,16 @@ import {
   GraduationCap,
   Mail,
   FileText,
+  Download,
+  ExternalLink,
+  RefreshCw,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 import { Button } from "../../../../Components/index";
 import NOCStatus from "./NOCStatus";
+import { useNocDocument } from "../../../../Services/Queries/adminNOCDocument.quires";
 
 const DetailItem = ({ icon: Icon, label, value }) => {
   return (
@@ -28,100 +34,192 @@ const DetailItem = ({ icon: Icon, label, value }) => {
   );
 };
 
+const linkButtonClass =
+  "inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-cream-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600";
+
+const DocumentMessage = ({ icon: Icon, title, text, children, tone }) => (
+  <div
+    role={tone === "error" ? "alert" : "status"}
+    className={`flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center ${
+      tone === "error"
+        ? "border-red-200 bg-red-50"
+        : "border-border bg-cream-soft/50"
+    }`}
+  >
+    <Icon
+      size={34}
+      className={tone === "error" ? "text-red-500" : "text-ink-muted"}
+    />
+
+    <p className="mt-3 text-sm font-medium text-ink">{title}</p>
+
+    {text && <p className="mt-1 max-w-sm text-xs text-ink-muted">{text}</p>}
+
+    {children && <div className="mt-4">{children}</div>}
+  </div>
+);
+
 const NOCPreview = ({ noc, onClose, onSend }) => {
+  // The document is fetched by application id, so it works for private files.
+  const doc = useNocDocument(noc?._id);
+
   if (!noc) return null;
 
+  const fileName = `NOC-${noc.referenceNumber || noc.rollNumber || "certificate"}.pdf`;
+
   return (
-    <div className="space-y-5">
-      {/* Student and NOC Information */}
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <h2 className="text-lg font-semibold text-ink">{noc.studentName}</h2>
+    <div className="flex max-h-[calc(100dvh-11rem)] flex-col">
+      {/* Scrollable body */}
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+        {/* Student and NOC Information */}
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div className="min-w-0">
+            <h2 className="wrap-break-word text-lg font-semibold text-ink">
+              {noc.studentName}
+            </h2>
 
-          <p className="mt-1 text-sm text-ink-muted">
-            Roll Number: {noc.rollNumber}
-          </p>
+            <p className="mt-1 text-sm text-ink-muted">
+              Roll Number: {noc.rollNumber}
+            </p>
+
+            {noc.referenceNumber && (
+              <p className="mt-1 text-xs text-ink-muted">
+                Reference: {noc.referenceNumber}
+              </p>
+            )}
+          </div>
+
+          <NOCStatus status={noc.status} />
         </div>
 
-        <NOCStatus status={noc.status} />
-      </div>
+        <div className="grid grid-cols-1 gap-4 rounded-xl border border-border p-4 sm:grid-cols-2">
+          <DetailItem
+            icon={UserRound}
+            label="Student"
+            value={noc.studentName}
+          />
 
-      <div className="grid grid-cols-1 gap-4 rounded-xl border border-border p-4 sm:grid-cols-2">
-        <DetailItem icon={UserRound} label="Student" value={noc.studentName} />
+          <DetailItem
+            icon={GraduationCap}
+            label="Department"
+            value={noc.department}
+          />
 
-        <DetailItem
-          icon={GraduationCap}
-          label="Department"
-          value={noc.department}
-        />
+          <DetailItem icon={Mail} label="Student Email" value={noc.email} />
 
-        <DetailItem icon={Mail} label="Student Email" value={noc.email} />
+          <DetailItem icon={Building2} label="Company" value={noc.company} />
 
-        <DetailItem icon={Building2} label="Company" value={noc.company} />
+          <DetailItem
+            icon={FileText}
+            label="Internship Role"
+            value={noc.internshipRole}
+          />
 
-        <DetailItem
-          icon={FileText}
-          label="Internship Role"
-          value={noc.internshipRole}
-        />
+          <DetailItem
+            icon={CalendarDays}
+            label="Generated On"
+            value={noc.generatedAt}
+          />
 
-        <DetailItem
-          icon={CalendarDays}
-          label="Generated On"
-          value={noc.generatedAt}
-        />
+          <DetailItem
+            icon={CalendarDays}
+            label="Internship Start"
+            value={noc.startDate}
+          />
 
-        <DetailItem
-          icon={CalendarDays}
-          label="Internship Start"
-          value={noc.startDate}
-        />
-
-        <DetailItem
-          icon={CalendarDays}
-          label="Internship End"
-          value={noc.endDate}
-        />
-      </div>
-
-      {/* Generated NOC Document */}
-      <div className="space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-ink">
-            Generated NOC Document
-          </h3>
-
-          <p className="mt-1 text-xs text-ink-muted">
-            Preview the document generated by the department SPOC.
-          </p>
+          <DetailItem
+            icon={CalendarDays}
+            label="Internship End"
+            value={noc.endDate}
+          />
         </div>
 
-        {noc.documentUrl ? (
-          <div className="overflow-hidden rounded-xl border border-border">
-            <iframe
-              src={noc.documentUrl}
-              title={`NOC for ${noc.studentName}`}
-              className="h-125 w-full"
+        {/* Generated NOC Document */}
+        <div className="space-y-3">
+          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">
+                Generated NOC Document
+              </h3>
+
+              <p className="mt-1 text-xs text-ink-muted">
+                Preview the document generated by the department SPOC.
+              </p>
+            </div>
+
+            {doc.status === "ready" && (
+              <div className="flex gap-2">
+                <a
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkButtonClass}
+                >
+                  <ExternalLink size={14} />
+                  Open
+                </a>
+
+                <a
+                  href={doc.url}
+                  download={fileName}
+                  className={linkButtonClass}
+                >
+                  <Download size={14} />
+                  Download
+                </a>
+              </div>
+            )}
+          </div>
+
+          {(doc.status === "loading" || doc.status === "idle") && (
+            <DocumentMessage
+              icon={Loader2}
+              title="Loading NOC document..."
+              text="This only takes a moment."
             />
-          </div>
-        ) : (
-          <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-cream-soft/50 p-6 text-center">
-            <FileText size={34} className="text-ink-muted" />
+          )}
 
-            <p className="mt-3 text-sm font-medium text-ink">
-              NOC document preview unavailable
-            </p>
+          {doc.status === "ready" && (
+            <div className="overflow-hidden rounded-xl border border-border bg-white">
+              <iframe
+                src={`${doc.url}#toolbar=0&navpanes=0&view=FitH`}
+                title={`NOC for ${noc.studentName}`}
+                className="h-[55vh] min-h-80 w-full"
+              />
+            </div>
+          )}
 
-            <p className="mt-1 max-w-sm text-xs text-ink-muted">
-              Connect the generated NOC PDF URL from your backend to display the
-              document here.
-            </p>
-          </div>
-        )}
+          {doc.status === "missing" && (
+            <DocumentMessage
+              icon={FileText}
+              title="NOC document preview unavailable"
+              text={doc.message}
+            />
+          )}
+
+          {doc.status === "error" && (
+            <DocumentMessage
+              icon={AlertCircle}
+              tone="error"
+              title="Could not load the document"
+              text={doc.message}
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={doc.reload}
+              >
+                <RefreshCw size={14} className="mr-2" />
+                Try again
+              </Button>
+            </DocumentMessage>
+          )}
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-col-reverse justify-end gap-3 border-t border-border pt-4 sm:flex-row">
+      {/* Actions stay visible while the content scrolls */}
+      <div className="mt-4 flex flex-col-reverse justify-end gap-3 border-t border-border pt-4 sm:flex-row">
         <Button type="button" variant="outline" onClick={onClose}>
           Close
         </Button>

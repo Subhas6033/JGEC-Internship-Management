@@ -1,68 +1,60 @@
-import React from "react";
-import { Search, Plus, X } from "lucide-react";
-import { Button, Input, Select } from "../../../../Components/index";
-import { industryOptions, statusOptions } from "./companies.data";
+import { Search, X } from "lucide-react";
+import { Input, Select } from "../../../../Components/index";
+import { SORT_OPTIONS } from "./organisations.utils";
 
 const CompanyToolbar = ({
   search,
-  setSearch,
-  industry,
-  setIndustry,
-  status,
-  setStatus,
-  onAddCompany,
+  onSearchChange,
+  location,
+  onLocationChange,
+  locationOptions = [],
+  sort,
+  onSortChange,
+  onClear,
 }) => {
-  const clearFilters = () => {
-    setSearch("");
-    setIndustry("");
-    setStatus("all");
-  };
-
-  const hasFilters = search || industry || status !== "all";
+  const hasFilters = Boolean(search || location);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="w-full flex-1">
           <Input
-            placeholder="Search organisation name..."
+            placeholder="Search by name, email, website or location…"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => onSearchChange(event.target.value)}
             startIcon={<Search size={18} />}
             animate={false}
             containerClassName="w-full"
+            aria-label="Search organisations"
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-95">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-136">
           <Select
-            value={industry}
-            onChange={(event) => setIndustry(event.target.value)}
-            placeholder="All Industries"
-            options={industryOptions}
+            value={location}
+            onChange={(event) => onLocationChange(event.target.value)}
+            placeholder="All locations"
+            options={locationOptions.map((value) => ({ label: value, value }))}
+            aria-label="Filter by location"
           />
 
           <Select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            options={statusOptions}
+            value={sort}
+            onChange={(event) => onSortChange(event.target.value)}
+            options={SORT_OPTIONS}
+            aria-label="Sort organisations"
           />
         </div>
-
-        <Button onClick={onAddCompany} className="shrink-0">
-          <Plus size={18} />
-          Add Organisation
-        </Button>
       </div>
 
       {hasFilters && (
         <div>
           <button
             type="button"
-            onClick={clearFilters}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+            onClick={onClear}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
           >
-            <X size={15} />
+            <X size={15} aria-hidden="true" />
             Clear filters
           </button>
         </div>

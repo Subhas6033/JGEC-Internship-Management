@@ -1,87 +1,119 @@
-import React from "react";
-import { Eye, Pencil, Power, Building2, ExternalLink } from "lucide-react";
-import {Table} from "../../../../Components/index";
-import CompanyStatusBadge from "./CompanyStatusBadge";
+import { Eye, Pencil, Trash2, Building2, ExternalLink } from "lucide-react";
+import { Table } from "../../../../Components/index";
+import { formatDate, getHostname, toAbsoluteUrl } from "./organisations.utils";
 
-const CompanyTable = ({ companies, onView, onEdit, onToggleStatus }) => {
+const iconButton =
+  "rounded-md p-2 text-ink-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700";
+
+const CompanyTable = ({ companies, onView, onEdit, onDelete }) => {
   const columns = [
     {
-      key: "company",
-      header: "Company",
-      width: "260px",
-      render: (company) => (
+      key: "organisation",
+      header: "Organisation",
+      width: "300px",
+      render: (c) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-            <Building2 size={20} />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+            <Building2 size={20} aria-hidden="true" />
           </div>
 
           <div className="min-w-0">
-            <p className="font-semibold text-gray-900">{company.name}</p>
-            <p className="text-xs text-gray-500">{company.shortName}</p>
+            <p className="truncate font-semibold text-ink">
+              {c.organisationName}
+            </p>
+            {c.organisationSite && (
+              <a
+                href={toAbsoluteUrl(c.organisationSite)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex max-w-full items-center gap-1 text-xs text-brand-700 hover:underline"
+              >
+                <span className="truncate">
+                  {getHostname(c.organisationSite)}
+                </span>
+                <ExternalLink
+                  size={11}
+                  aria-hidden="true"
+                  className="shrink-0"
+                />
+              </a>
+            )}
           </div>
         </div>
       ),
     },
     {
-      key: "industry",
-      header: "Industry",
-      render: (company) => (
-        <span className="text-gray-700">{company.industry}</span>
+      key: "organisationLocation",
+      header: "Location",
+      render: (c) => (
+        <span className="text-ink">{c.organisationLocation || "—"}</span>
       ),
     },
     {
-      key: "location",
-      header: "Location",
+      key: "organisationMail",
+      header: "Contact",
+      render: (c) =>
+        c.organisationMail ? (
+          <a
+            href={`mailto:${c.organisationMail}`}
+            className="block max-w-56 truncate text-ink-muted hover:text-brand-700"
+          >
+            {c.organisationMail}
+          </a>
+        ) : (
+          "—"
+        ),
     },
     {
-      key: "email",
-      header: "Contact",
-      render: (company) => (
-        <span className="block max-w-47.5 truncate text-gray-600">
-          {company.email}
+      key: "createdAt",
+      header: "Registered",
+      render: (c) => (
+        <span className="whitespace-nowrap text-ink-muted">
+          {formatDate(c.createdAt)}
         </span>
       ),
     },
     {
-      key: "status",
-      header: "Status",
-      render: (company) => <CompanyStatusBadge status={company.status} />,
+      key: "updatedAt",
+      header: "Updated",
+      render: (c) => (
+        <span className="whitespace-nowrap text-ink-muted">
+          {formatDate(c.updatedAt)}
+        </span>
+      ),
     },
     {
       key: "actions",
       header: "Actions",
       align: "right",
-      render: (company) => (
+      render: (c) => (
         <div className="flex items-center justify-end gap-1">
           <button
             type="button"
-            onClick={() => onView(company)}
-            title="View company"
-            className="rounded-md p-2 text-gray-500 hover:bg-blue-50 hover:text-blue-600"
+            onClick={() => onView(c)}
+            aria-label={`View ${c.organisationName}`}
+            title="View"
+            className={`${iconButton} hover:bg-cream-soft hover:text-ink hover:cursor-pointer`}
           >
-            <Eye size={17} />
+            <Eye size={17} aria-hidden="true" />
           </button>
-
           <button
             type="button"
-            onClick={() => onEdit(company)}
-            title="Edit company"
-            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            onClick={() => onEdit(c)}
+            aria-label={`Edit ${c.organisationName}`}
+            title="Edit"
+            className={`${iconButton} hover:bg-cream-soft hover:text-ink hover:cursor-pointer`}
           >
-            <Pencil size={17} />
+            <Pencil size={17} aria-hidden="true" />
           </button>
-
           <button
             type="button"
-            onClick={() => onToggleStatus(company)}
-            title={
-              company.status === "Active"
-                ? "Deactivate company"
-                : "Activate company"
-            }
-            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            onClick={() => onDelete(c)}
+            aria-label={`Delete ${c.organisationName}`}
+            title="Delete"
+            className={`${iconButton} hover:bg-red-50 hover:text-red-600 hover:cursor-pointer`}
           >
-            <Power size={17} />
+            <Trash2 size={17} aria-hidden="true" />
           </button>
         </div>
       ),
@@ -92,9 +124,9 @@ const CompanyTable = ({ companies, onView, onEdit, onToggleStatus }) => {
     <Table
       columns={columns}
       data={companies}
-      getRowKey={(company) => company._id}
-      emptyTitle="No companies found"
-      emptyDescription="Try changing your filters or add a new company."
+      getRowKey={(c) => c._id}
+      emptyTitle="No organisations found"
+      emptyDescription="Try changing your search or filters, or add a new organisation."
     />
   );
 };

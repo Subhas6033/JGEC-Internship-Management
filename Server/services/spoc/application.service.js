@@ -93,6 +93,18 @@ const organisationNameOf = (application) =>
     application?.organisation?.name,
   );
 
+/**
+ * FIX: single place that loads the Head of T&P Cell (Admin) used for the
+ * NOC name, contact details and signature. Previously only generateNoc()
+ * loaded the admin, so bulk generation and regeneration printed the Head
+ * signatory block without a name, contact details or signature.
+ */
+const getHeadAdmin = async () => {
+  const { Admin } = await import("../../models/admin.model.js");
+
+  return Admin.findOne({ isActive: true }).sort({ createdAt: 1 }).lean();
+};
+
 // NOTIFICATIONS & NOC MAILS
 const REVIEW_EVENTS = {
   [NOTIFICATION_ROLES.TPO]: {
@@ -342,6 +354,7 @@ const buildNocPdfBuffer = async ({
   academicYear,
   department,
   spocIds = [],
+  admin,
 }) => {
   const applicationData =
     typeof application.toObject === "function"
@@ -374,6 +387,8 @@ const buildNocPdfBuffer = async ({
     spoc,
 
     tpo,
+
+    admin,
   });
 };
 
@@ -393,6 +408,7 @@ const buildBulkNocPdfBuffer = async ({
   academicYear,
   department,
   spocIds = [],
+  admin,
 }) => {
   const applicationsData = items.map(({ application, student }) => {
     const applicationData =
@@ -432,6 +448,7 @@ const buildBulkNocPdfBuffer = async ({
     application: primary,
     spoc,
     tpo,
+    admin,
   });
 };
 
@@ -748,6 +765,9 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
 
   let generatedNoc = null;
 
+  // Fetch the active admin for the NOC signature and name (Head of T&P Cell)
+  const adminUser = await getHeadAdmin();
+
   /*
    * A transaction callback can be retried.
    * Retain every uploaded Drive ID so abandoned uploads can be cleaned up.
@@ -853,6 +873,7 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         academicYear,
         department,
         spocIds: [generatedBy],
+        admin: adminUser,
       });
 
       if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
@@ -920,12 +941,12 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         { session },
       );
 
-      // Update the application exactly as before.
+      // Update the application to pending_admin_approval (don't send to student yet)
       await StudentApplication.updateOne(
         { _id: application._id },
         {
           $set: {
-            status: "noc_generated",
+            status: "pending_admin_approval",
             noc: noc._id,
             nocGeneratedAt: generatedAt,
           },
@@ -933,15 +954,7 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         { session },
       );
 
-      // Preserve the existing post-commit notification workflow.
-      collectNocDelivery(postCommit, {
-        items: [{ application, student }],
-        referenceNumber,
-        generatedBy,
-        pdfBuffer,
-        fileName: savedFile.fileName,
-        summarize: false,
-      });
+      // Do NOT send email to student yet - waiting for admin approval
 
       generatedNoc = noc;
     });
@@ -1005,6 +1018,10 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
   );
 
   const session = await mongoose.startSession();
+
+  // FIX: fetch the Head of T&P Cell (Admin) so the bulk PDF prints the
+  // name, contact details and signature, same as a single NOC.
+  const adminUser = await getHeadAdmin();
 
   // Store Drive IDs, not filesystem paths.
   // Do not clear this set when MongoDB retries its transaction callback.
@@ -1174,6 +1191,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           academicYear,
           department: group.department,
           spocIds: [generatedBy],
+          admin: adminUser,
         });
 
         if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
@@ -1241,14 +1259,14 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           },
         );
 
-        // Update application status and NOC reference.
+        // Update application status to pending_admin_approval (don't send to student yet)
         await StudentApplication.bulkWrite(
           nocDocs.map((noc) => ({
             updateOne: {
               filter: { _id: noc.application },
               update: {
                 $set: {
-                  status: "noc_generated",
+                  status: "pending_admin_approval",
                   noc: noc._id,
                   nocGeneratedAt: generatedAt,
                 },
@@ -1258,15 +1276,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           { session },
         );
 
-        // Preserve the existing post-commit notification workflow.
-        collectNocDelivery(postCommit, {
-          items: group.items,
-          referenceNumber,
-          generatedBy,
-          pdfBuffer,
-          fileName: savedFile.fileName,
-          summarize: true,
-        });
+        // Do NOT send email to student yet - waiting for admin approval
 
         groupsResult.push({
           referenceNumber,
@@ -1350,6 +1360,9 @@ export const regenerateNoc = async ({ applicationId, generatedBy }) => {
     );
   }
 
+  // FIX: regenerated NOCs also need the Head of T&P Cell (Admin).
+  const adminUser = await getHeadAdmin();
+
   const pdfBuffer = await buildNocPdfBuffer({
     application,
     student,
@@ -1358,6 +1371,7 @@ export const regenerateNoc = async ({ applicationId, generatedBy }) => {
     academicYear: noc.academicYear,
     department,
     spocIds: [noc.generatedBy, generatedBy].filter(Boolean),
+    admin: adminUser,
   });
 
   if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {

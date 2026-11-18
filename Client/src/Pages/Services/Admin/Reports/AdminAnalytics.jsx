@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3,
@@ -20,14 +20,7 @@ import DepartmentDistributionChart from "./DepartmentDistributionChart";
 import DrivePerformanceChart from "./DrivePerformanceChart";
 import RecentActivityTable from "./RecentActivityTable";
 
-import {
-  analyticsSummary,
-  applicationTrendData,
-  applicationStatusData,
-  departmentDistributionData,
-  drivePerformanceData,
-  recentActivities,
-} from "./analytics.data";
+import { useAdminAnalytics } from "../../../../Services/Queries/adminAnalytics.queries";
 
 import { exportCSV } from "./analytics.utils";
 
@@ -40,11 +33,52 @@ import {
 const AdminAnalytics = () => {
   const [period, setPeriod] = useState("12m");
 
+  const { data: analytics, isLoading, error } = useAdminAnalytics(period);
+
   const pageVariants = useAnimationVariants(pageAnimation);
   const staggerVariants = useAnimationVariants(staggerContainer);
 
-  const summary = analyticsSummary[period];
-  const trendData = applicationTrendData[period];
+  // FIX: normalize whatever AnalyticsFilters sends (string, event, option element,
+  // or { value } object) into a plain string so the React Query key stays serializable.
+  const handlePeriodChange = (value) => {
+    const next =
+      typeof value === "string"
+        ? value
+        : (value?.target?.value ?? value?.value);
+
+    if (typeof next === "string") setPeriod(next);
+  };
+
+  const summary = analytics?.summary || {
+    totalStudents: 0,
+    applications: 0,
+    placementRate: 0,
+    activeDrives: 0,
+    studentChange: "+0%",
+    applicationChange: "+0%",
+    placementChange: "+0%",
+    driveChange: "+0",
+  };
+
+  const trendData = analytics?.applicationTrend || {
+    labels: [],
+    applications: [],
+    approved: [],
+  };
+  const applicationStatusData = analytics?.applicationStatus || {
+    labels: [],
+    values: [],
+  };
+  const departmentDistributionData = analytics?.departmentDistribution || {
+    labels: [],
+    values: [],
+  };
+  const drivePerformanceData = analytics?.drivePerformance || {
+    labels: [],
+    applications: [],
+    selected: [],
+  };
+  const recentActivities = analytics?.recentActivities || [];
 
   const stats = useMemo(
     () => [
@@ -82,6 +116,8 @@ const AdminAnalytics = () => {
   );
 
   const handleExport = () => {
+    if (!analytics) return;
+
     const rows = [
       ...stats.map((stat) => ({
         Metric: stat.title,
@@ -120,6 +156,76 @@ const AdminAnalytics = () => {
     exportCSV(`jgec-analytics-${period}.csv`, rows);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <motion.div
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="min-h-screen space-y-6 bg-cream-soft/40 p-4 sm:p-6 lg:p-8"
+      >
+        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="shrink-0 rounded-xl bg-brand-600/10 p-3 text-brand-600">
+              <BarChart3 size={25} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+                Analytics & Reports
+              </h1>
+              <p className="mt-1 text-sm leading-6 text-ink-muted">
+                Monitor student applications, internship drives, and department
+                performance.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-32 animate-pulse rounded-xl bg-gray-200"
+            />
+          ))}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <motion.div
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+        className="min-h-screen space-y-6 bg-cream-soft/40 p-4 sm:p-6 lg:p-8"
+      >
+        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="shrink-0 rounded-xl bg-brand-600/10 p-3 text-brand-600">
+              <BarChart3 size={25} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+                Analytics & Reports
+              </h1>
+              <p className="mt-1 text-sm leading-6 text-ink-muted">
+                Monitor student applications, internship drives, and department
+                performance.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-600">
+          Failed to load analytics data. Please try again.
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       variants={pageVariants}
@@ -150,7 +256,7 @@ const AdminAnalytics = () => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <AnalyticsFilters
             period={period}
-            onPeriodChange={setPeriod}
+            onPeriodChange={handlePeriodChange}
             onExport={handleExport}
           />
         </div>

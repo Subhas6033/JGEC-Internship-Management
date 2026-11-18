@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Input } from "../../Components/index";
+import { useAdminRegistration } from "../../Services/Queries/adminAuth.queries";
 
 const initialForm = {
   name: "",
@@ -23,13 +24,15 @@ const initialForm = {
 
 const AdminSignup = () => {
   const navigate = useNavigate();
+  const registrationMutation = useAdminRegistration();
 
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showAdminKey, setShowAdminKey] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isSubmitting = registrationMutation.isPending;
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -39,10 +42,11 @@ const AdminSignup = () => {
       [name]: value,
     }));
 
-    if (errors[name]) {
+    if (errors[name] || errors.general) {
       setErrors((previous) => ({
         ...previous,
         [name]: "",
+        general: "",
       }));
     }
   };
@@ -98,15 +102,24 @@ const AdminSignup = () => {
     }
 
     setErrors({});
-    setIsSubmitting(true);
 
     try {
-      // Connect admin signup API here.
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await registrationMutation.mutateAsync({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        mobile: form.mobile.trim(),
+        adminKey: form.adminKey.trim(),
+        password: form.password,
+      });
 
       navigate("/auth/admin/login");
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      setErrors({
+        general:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unable to create your administrator account. Please try again.",
+      });
     }
   };
 
@@ -165,17 +178,12 @@ const AdminSignup = () => {
               >
                 {/* Full name */}
                 <div>
-                  <label
-                    htmlFor="name"
-                    className="mb-1.5 block text-sm font-medium text-ink"
-                  >
-                    Full name
-                  </label>
-
                   <Input
                     id="name"
                     name="name"
                     type="text"
+                    label="Full Name"
+                    required
                     value={form.name}
                     onChange={handleChange}
                     placeholder="Enter your full name"
@@ -191,17 +199,12 @@ const AdminSignup = () => {
                 {/* Email + Mobile */}
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="email"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      Admin email
-                    </label>
-
                     <Input
                       id="email"
                       name="email"
                       type="email"
+                      label="Email"
+                      required
                       value={form.email}
                       onChange={handleChange}
                       placeholder="admin@college.edu"
@@ -217,17 +220,12 @@ const AdminSignup = () => {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="mobile"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      Mobile number
-                    </label>
-
                     <Input
                       id="mobile"
                       name="mobile"
                       type="tel"
+                      label="Mobile Number"
+                      required
                       inputMode="numeric"
                       maxLength={10}
                       value={form.mobile}
@@ -247,16 +245,11 @@ const AdminSignup = () => {
 
                 {/* Admin authorization key */}
                 <div>
-                  <label
-                    htmlFor="adminKey"
-                    className="mb-1.5 block text-sm font-medium text-ink"
-                  >
-                    Administrator authorization key
-                  </label>
-
                   <Input
                     id="adminKey"
                     name="adminKey"
+                    label="Administrator authorization key"
+                    required
                     type={showAdminKey ? "text" : "password"}
                     value={form.adminKey}
                     onChange={handleChange}
@@ -293,16 +286,11 @@ const AdminSignup = () => {
                 {/* Passwords */}
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="password"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      Password
-                    </label>
-
                     <Input
                       id="password"
                       name="password"
+                      label="Password"
+                      required
                       type={showPassword ? "text" : "password"}
                       value={form.password}
                       onChange={handleChange}
@@ -335,16 +323,11 @@ const AdminSignup = () => {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="confirmPassword"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      Confirm password
-                    </label>
-
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
+                      label="Confirm Password"
+                      required
                       type={showConfirmPassword ? "text" : "password"}
                       value={form.confirmPassword}
                       onChange={handleChange}
@@ -380,6 +363,10 @@ const AdminSignup = () => {
                     )}
                   </div>
                 </div>
+
+                {errors.general && (
+                  <p className="text-sm text-red-600">{errors.general}</p>
+                )}
 
                 <Button
                   type="submit"
