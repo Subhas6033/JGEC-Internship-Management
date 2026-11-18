@@ -84,6 +84,7 @@ const studentApplicationSchema = new mongoose.Schema(
         "approved_by_tpo",
         "under_spoc_review",
         "approved_by_spoc",
+        "pending_admin_approval",
         "rejected",
         "withdrawn",
         "noc_generated",

@@ -941,12 +941,12 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         { session },
       );
 
-      // Update the application exactly as before.
+      // Update the application to pending_admin_approval (don't send to student yet)
       await StudentApplication.updateOne(
         { _id: application._id },
         {
           $set: {
-            status: "noc_generated",
+            status: "pending_admin_approval",
             noc: noc._id,
             nocGeneratedAt: generatedAt,
           },
@@ -954,15 +954,7 @@ export const generateNoc = async ({ applicationId, generatedBy }) => {
         { session },
       );
 
-      // Preserve the existing post-commit notification workflow.
-      collectNocDelivery(postCommit, {
-        items: [{ application, student }],
-        referenceNumber,
-        generatedBy,
-        pdfBuffer,
-        fileName: savedFile.fileName,
-        summarize: false,
-      });
+      // Do NOT send email to student yet - waiting for admin approval
 
       generatedNoc = noc;
     });
@@ -1267,14 +1259,14 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           },
         );
 
-        // Update application status and NOC reference.
+        // Update application status to pending_admin_approval (don't send to student yet)
         await StudentApplication.bulkWrite(
           nocDocs.map((noc) => ({
             updateOne: {
               filter: { _id: noc.application },
               update: {
                 $set: {
-                  status: "noc_generated",
+                  status: "pending_admin_approval",
                   noc: noc._id,
                   nocGeneratedAt: generatedAt,
                 },
@@ -1284,15 +1276,7 @@ export const generateBulkNoc = async ({ applicationIds, generatedBy }) => {
           { session },
         );
 
-        // Preserve the existing post-commit notification workflow.
-        collectNocDelivery(postCommit, {
-          items: group.items,
-          referenceNumber,
-          generatedBy,
-          pdfBuffer,
-          fileName: savedFile.fileName,
-          summarize: true,
-        });
+        // Do NOT send email to student yet - waiting for admin approval
 
         groupsResult.push({
           referenceNumber,

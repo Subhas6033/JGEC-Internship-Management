@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import {
   FileCheck2,
@@ -21,12 +22,46 @@ import {
 import NOCStatCard from "./NOCStatCard";
 import NOCTable from "./NOCTable";
 import NOCPreview from "./NOCPreview";
+import { NOCStatsSkeleton, NOCTableSkeleton } from "./NOCSkeleton";
 
-import { initialNocs, nocStatusOptions } from "./adminNoc.data";
+import { nocStatusOptions } from "./adminNoc.utils";
+
+import {
+  extractNocList,
+  extractTotal,
+  mergeNoc,
+  normalizeNoc,
+  normalizeStats,
+} from "./adminNoc.utils";
+
+import {
+  useAdminNocDetails,
+  useAdminNocStats,
+  useAdminNocs,
+  useApproveAndSendNoc,
+} from "../../../../Services/Queries/adminNOC.quires";
+
+import {
+  fadeIn,
+  fadeUp,
+  pageAnimation,
+  staggerContainer,
+  useAnimationVariants,
+} from "../../../../Animations/animations";
+
+// Waits until the person stops typing before the search hits the API.
+const useDebouncedValue = (value, delay = 400) => {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
+};
 
 const AdminNOCManagement = ({ onSendNoc }) => {
-  const [nocs, setNocs] = useState(initialNocs);
-
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
@@ -36,17 +71,86 @@ const AdminNOCManagement = ({ onSendNoc }) => {
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // Applications whose dispatch failed in this session.
+  const [failedIds, setFailedIds] = useState(() => new Set());
+
+  // -----------------------------------------------
+  // Animations
+  // -----------------------------------------------
+
+  const pageVariants = useAnimationVariants(pageAnimation);
+  const staggerVariants = useAnimationVariants(staggerContainer);
+  const itemVariants = useAnimationVariants(fadeUp);
+  const fadeVariants = useAnimationVariants(fadeIn);
+
+  // -----------------------------------------------
+  // Data
+  // -----------------------------------------------
+
+  const debouncedSearch = useDebouncedValue(search);
+
+  // FIX: status is now sent to the API as well, so the server can return
+  // the right records (e.g. "sent" NOCs) instead of only one kind.
+  const listParams = useMemo(
+    () => ({
+      page: 1,
+      limit: 100,
+      search: debouncedSearch.trim() || undefined,
+      status: statusFilter === "All" ? undefined : statusFilter.toLowerCase(),
+    }),
+    [debouncedSearch, statusFilter],
+  );
+
+  const {
+    data: nocsPayload,
+    isLoading: nocsLoading,
+    isError: nocsError,
+    refetch: refetchNocs,
+  } = useAdminNocs(listParams);
+
+  const {
+    data: statsPayload,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+  } = useAdminNocStats();
+
+  const sendNoc = useApproveAndSendNoc();
+
+  const nocs = useMemo(() => {
+    return extractNocList(nocsPayload)
+      .map(normalizeNoc)
+      .filter((noc) => noc && noc._id)
+      .map((noc) =>
+        failedIds.has(noc._id) ? { ...noc, status: "Failed" } : noc,
+      );
+  }, [nocsPayload, failedIds]);
+
   // -----------------------------------------------
   // Statistics
   // -----------------------------------------------
 
-  const totalNocs = nocs.length;
+  const stats = useMemo(
+    () => normalizeStats(statsPayload, nocs),
+    [statsPayload, nocs],
+  );
 
-  const pendingNocs = nocs.filter((noc) => noc.status === "Pending").length;
+  const totalNocs = Math.max(stats.total, nocs.length);
 
-  const sentNocs = nocs.filter((noc) => noc.status === "Sent").length;
+  const pendingNocs = stats.pending;
 
-  const failedNocs = nocs.filter((noc) => noc.status === "Failed").length;
+  const sentNocs = stats.sent;
+
+  const failedNocs = Math.max(
+    stats.failed,
+    nocs.filter((noc) => noc.status === "Failed").length,
+  );
+
+  const totalCount = Math.max(
+    extractTotal(nocsPayload, nocs.length),
+    nocs.length,
+  );
+
+  const showStatsSkeleton = nocsLoading && statsLoading;
 
   // -----------------------------------------------
   // Search and Filter
@@ -73,6 +177,17 @@ const AdminNOCManagement = ({ onSendNoc }) => {
   // Preview NOC
   // -----------------------------------------------
 
+  // Loads the full NOC (document URL, dates) while the preview is open.
+  const { data: detailsPayload } = useAdminNocDetails(viewingNoc?._id, {
+    enabled: Boolean(viewingNoc?._id),
+  });
+
+  const previewNoc = useMemo(() => {
+    if (!viewingNoc) return null;
+
+    return mergeNoc(viewingNoc, normalizeNoc(detailsPayload));
+  }, [viewingNoc, detailsPayload]);
+
   const handleViewNoc = (noc) => {
     setViewingNoc(noc);
   };
@@ -93,36 +208,31 @@ const AdminNOCManagement = ({ onSendNoc }) => {
   const handleSendNoc = async () => {
     if (!confirmNoc) return;
 
-    if (typeof onSendNoc !== "function") {
-      setToast({
-        title: "Email service not connected",
-        message:
-          "Connect the NOC email API through the onSendNoc prop before dispatching documents.",
-        variant: "warning",
-      });
-
-      setConfirmNoc(null);
-      return;
-    }
+    const usesCustomSender = typeof onSendNoc === "function";
 
     try {
       setSending(true);
 
-      // The parent should call your backend API here.
-      // Resolve this promise only after the backend confirms dispatch.
-      await onSendNoc(confirmNoc);
+      // Uses the onSendNoc prop when the parent provides one, otherwise calls
+      // POST /admin/noc/:applicationId/approve. Resolves only after the
+      // backend confirms dispatch.
+      if (usesCustomSender) {
+        await onSendNoc(confirmNoc);
+      } else {
+        await sendNoc.mutateAsync(confirmNoc._id);
+      }
 
-      setNocs((prev) =>
-        prev.map((noc) =>
-          noc._id === confirmNoc._id
-            ? {
-                ...noc,
-                status: "Sent",
-                sentAt: new Date().toISOString(),
-              }
-            : noc,
-        ),
-      );
+      setFailedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(confirmNoc._id);
+        return next;
+      });
+
+      // The mutation already refreshes the data; a custom sender does not.
+      if (usesCustomSender) {
+        refetchNocs();
+        refetchStats();
+      }
 
       setToast({
         title: "NOC Sent Successfully",
@@ -132,15 +242,14 @@ const AdminNOCManagement = ({ onSendNoc }) => {
 
       setConfirmNoc(null);
     } catch (error) {
-      setNocs((prev) =>
-        prev.map((noc) =>
-          noc._id === confirmNoc._id ? { ...noc, status: "Failed" } : noc,
-        ),
-      );
+      setFailedIds((prev) => new Set(prev).add(confirmNoc._id));
 
       setToast({
         title: "NOC Dispatch Failed",
-        message: error?.message || "Unable to send the NOC. Please try again.",
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unable to send the NOC. Please try again.",
         variant: "error",
       });
 
@@ -155,9 +264,15 @@ const AdminNOCManagement = ({ onSendNoc }) => {
   // -----------------------------------------------
 
   return (
-    <div className="min-h-screen space-y-6 bg-cream-soft/40 p-4 sm:p-6 lg:p-8">
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="min-h-screen space-y-6 bg-cream-soft/40 p-4 sm:p-6 lg:p-8"
+    >
       {/* Page Header */}
-      <div>
+      <motion.div variants={itemVariants} initial="hidden" animate="visible">
         <div className="mb-2 flex items-center gap-2 text-sm text-ink-muted">
           <FileCheck2 size={16} />
           <span>Admin</span>
@@ -173,88 +288,164 @@ const AdminNOCManagement = ({ onSendNoc }) => {
           Review generated No Objection Certificates and dispatch them to
           students.
         </p>
-      </div>
+      </motion.div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <NOCStatCard
-          title="Total NOCs"
-          value={totalNocs}
-          description="All generated certificates"
-          icon={FileText}
-        />
+      <motion.div
+        key={showStatsSkeleton ? "stats-loading" : "stats-ready"}
+        variants={staggerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {showStatsSkeleton ? (
+          <NOCStatsSkeleton />
+        ) : (
+          <>
+            <motion.div variants={itemVariants}>
+              <NOCStatCard
+                title="Total NOCs"
+                value={totalNocs}
+                description="All generated certificates"
+                icon={FileText}
+              />
+            </motion.div>
 
-        <NOCStatCard
-          title="Pending Dispatch"
-          value={pendingNocs}
-          description="Waiting to be sent"
-          icon={Clock3}
-        />
+            <motion.div variants={itemVariants}>
+              <NOCStatCard
+                title="Pending Dispatch"
+                value={pendingNocs}
+                description="Waiting to be sent"
+                icon={Clock3}
+              />
+            </motion.div>
 
-        <NOCStatCard
-          title="Successfully Sent"
-          value={sentNocs}
-          description="Dispatched to students"
-          icon={MailCheck}
-        />
+            <motion.div variants={itemVariants}>
+              <NOCStatCard
+                title="Successfully Sent"
+                value={sentNocs}
+                description="Dispatched to students"
+                icon={MailCheck}
+              />
+            </motion.div>
 
-        <NOCStatCard
-          title="Failed Dispatch"
-          value={failedNocs}
-          description="Require another attempt"
-          icon={Send}
-        />
-      </div>
+            <motion.div variants={itemVariants}>
+              <NOCStatCard
+                title="Failed Dispatch"
+                value={failedNocs}
+                description="Require another attempt"
+                icon={Send}
+              />
+            </motion.div>
+          </>
+        )}
+      </motion.div>
 
       {/* NOC Table */}
-      <Card className="overflow-hidden border-border bg-white shadow-sm">
-        <Card.Header className="border-b border-border p-5">
-          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-            <div>
-              <Card.Title className="text-lg font-semibold text-ink">
-                Generated NOCs
-              </Card.Title>
+      <motion.div variants={itemVariants} initial="hidden" animate="visible">
+        <Card className="overflow-hidden border-border bg-white shadow-sm">
+          <Card.Header className="border-b border-border p-5">
+            <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+              <div>
+                <Card.Title className="text-lg font-semibold text-ink">
+                  Generated NOCs
+                </Card.Title>
 
-              <Card.Description className="mt-1 text-sm text-ink-muted">
-                NOCs generated by department SPOCs, ready for dispatch.
-              </Card.Description>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="w-full sm:w-64">
-                <Input
-                  placeholder="Search student or company..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  startIcon={<Search size={17} />}
-                />
+                <Card.Description className="mt-1 text-sm text-ink-muted">
+                  NOCs generated by department SPOCs, ready for dispatch.
+                </Card.Description>
               </div>
 
-              <div className="w-full sm:w-40">
-                <Select
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={nocStatusOptions}
-                />
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="w-full sm:w-64">
+                  <Input
+                    placeholder="Search student or company..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    startIcon={<Search size={17} />}
+                  />
+                </div>
+
+                <div className="w-full sm:w-40">
+                  {/* FIX: accepts either a plain value or a change event */}
+                  <Select
+                    value={statusFilter}
+                    onChange={(next) =>
+                      setStatusFilter(next?.target ? next.target.value : next)
+                    }
+                    options={nocStatusOptions}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </Card.Header>
+          </Card.Header>
 
-        <Card.Content className="p-0">
-          <NOCTable
-            nocs={filteredNocs}
-            onView={handleViewNoc}
-            onSend={handleRequestSend}
-          />
-        </Card.Content>
+          <Card.Content className="p-0">
+            <AnimatePresence mode="wait" initial={false}>
+              {nocsLoading ? (
+                <motion.div
+                  key="table-loading"
+                  variants={fadeVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <NOCTableSkeleton />
+                </motion.div>
+              ) : nocsError ? (
+                <motion.div
+                  key="table-error"
+                  variants={fadeVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="p-5"
+                >
+                  <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-600 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm">
+                      Failed to load generated NOCs. Please try again.
+                    </p>
 
-        <Card.Footer className="flex flex-col justify-between gap-2 border-t border-border px-5 py-3 sm:flex-row sm:items-center">
-          <p className="text-xs text-ink-muted">
-            Showing {filteredNocs.length} of {nocs.length} NOCs
-          </p>
-        </Card.Footer>
-      </Card>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetchNocs()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="table-ready"
+                  variants={fadeVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  {/* FIX: margin around the table */}
+                  <div className="p-4 sm:p-5">
+                    <NOCTable
+                      nocs={filteredNocs}
+                      onView={handleViewNoc}
+                      onSend={handleRequestSend}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Card.Content>
+
+          <Card.Footer className="flex flex-col justify-between gap-2 border-t border-border px-5 py-3 sm:flex-row sm:items-center">
+            <p className="text-xs text-ink-muted">
+              {nocsLoading
+                ? "Loading NOCs..."
+                : `Showing ${filteredNocs.length} of ${totalCount} NOCs`}
+            </p>
+          </Card.Footer>
+        </Card>
+      </motion.div>
 
       {/* NOC Preview Modal */}
       <Modal
@@ -265,7 +456,7 @@ const AdminNOCManagement = ({ onSendNoc }) => {
         size="xl"
       >
         <NOCPreview
-          noc={viewingNoc}
+          noc={previewNoc}
           onClose={() => setViewingNoc(null)}
           onSend={handleRequestSend}
         />
@@ -340,7 +531,7 @@ const AdminNOCManagement = ({ onSendNoc }) => {
           onClose={() => setToast(null)}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 

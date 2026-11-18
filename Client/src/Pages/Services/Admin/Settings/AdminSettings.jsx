@@ -12,7 +12,6 @@ import LoginActivity from "./LoginActivity";
 import WorkActivity from "./WorkActivity";
 
 import {
-  initialAdminProfile,
   initialPreferences,
   initialLoginActivity,
   initialWorkActivity,
@@ -25,10 +24,35 @@ import {
   useAnimationVariants,
 } from "../../../../Animations/animations";
 
+import {
+  useAdminProfile,
+  useUpdateAdminProfile,
+  useUpdateAdminSignature,
+} from "../../../../Services/Queries/adminProfile.quires";
+
+// Stable reference so ProfileSettings' useEffect doesn't re-run every render
+const EMPTY_PROFILE = {
+  name: "",
+  email: "",
+  phone: "",
+  designation: "",
+  department: "",
+  employeeId: "",
+  signature: "",
+};
+
+const getErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
+
 const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState("profile");
 
-  const [profile, setProfile] = useState(initialAdminProfile);
+  // Profile now comes from the API
+  const { data: profile = EMPTY_PROFILE, isLoading: profileLoading } =
+    useAdminProfile();
+  const updateProfile = useUpdateAdminProfile();
+  const updateSignature = useUpdateAdminSignature();
+
   const [preferences, setPreferences] = useState(initialPreferences);
 
   const [loginActivity, setLoginActivity] = useState(initialLoginActivity);
@@ -38,9 +62,26 @@ const AdminSettings = () => {
   const pageVariants = useAnimationVariants(pageAnimation);
   const sectionVariants = useAnimationVariants(sectionAnimation);
 
-  const handleProfileSave = (updatedProfile) => {
-    setProfile(updatedProfile);
-    window.alert("Profile updated successfully.");
+  const handleProfileSave = async (updatedProfile) => {
+    try {
+      await updateProfile.mutateAsync({
+        fullName: updatedProfile.name,
+        email: updatedProfile.email,
+        mobileNumber: updatedProfile.phone,
+      });
+      window.alert("Profile updated successfully.");
+    } catch (error) {
+      window.alert(getErrorMessage(error, "Failed to update profile."));
+    }
+  };
+
+  const handleSignatureUpload = async (file) => {
+    try {
+      await updateSignature.mutateAsync(file);
+      window.alert("Signature updated successfully.");
+    } catch (error) {
+      window.alert(getErrorMessage(error, "Failed to update signature."));
+    }
   };
 
   const handlePreferencesSave = (updatedPreferences) => {
@@ -65,7 +106,16 @@ const AdminSettings = () => {
   const renderActiveSection = () => {
     switch (activeTab) {
       case "profile":
-        return <ProfileSettings profile={profile} onSave={handleProfileSave} />;
+        return (
+          <ProfileSettings
+            profile={profile}
+            loading={profileLoading}
+            saving={updateProfile.isPending}
+            uploadingSignature={updateSignature.isPending}
+            onSave={handleProfileSave}
+            onSignatureUpload={handleSignatureUpload}
+          />
+        );
 
       case "security":
         return (
@@ -143,7 +193,13 @@ const AdminSettings = () => {
               </p>
 
               <p className="mt-1 text-xs text-ink-muted">
-                {profile.designation} · {profile.employeeId}
+                {(profile.designation || profile.employeeId) && (
+                  <p className="mt-1 text-xs text-ink-muted">
+                    {[profile.designation, profile.employeeId]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
               </p>
             </div>
           </div>

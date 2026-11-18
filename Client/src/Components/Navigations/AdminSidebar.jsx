@@ -1,18 +1,15 @@
 import { NavLink, useNavigate } from "react-router-dom";
-
+import { useAuthLogout } from "../../Services/Queries/adminAuth.queries";
 import {
   LayoutDashboard,
   Building2,
   GraduationCap,
   Users,
-  BriefcaseBusiness,
   FileCheck2,
-  ClipboardList,
   ChartNoAxesCombined,
   Settings,
   LogOut,
   X,
-  UserRound,
   BookOpen,
   ShieldCheck,
   PanelLeftClose,
@@ -40,11 +37,11 @@ const navigationGroups = [
         path: "/admin/org",
         icon: Building2,
       },
-      {
-        label: "Internship Drives",
-        path: "/admin/internship-drives",
-        icon: BriefcaseBusiness,
-      },
+      // {
+      //   label: "Internship Drives",
+      //   path: "/admin/internship-drives",
+      //   icon: BriefcaseBusiness,
+      // },
       {
         label: "NOC Management",
         path: "/admin/nocs",
@@ -103,13 +100,23 @@ const AdminSidebar = ({
 }) => {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const logoutMutation = useAuthLogout();
+
+  const handleLogout = async () => {
+    // Keep the optional override from the parent
     if (onLogout) {
       onLogout();
       return;
     }
 
-    navigate("/auth/admin/login");
+    try {
+      await logoutMutation.mutateAsync();
+    } catch (error) {
+      // Ignore: the hook's onSettled still clears local auth state
+      console.error("Logout request failed:", error);
+    } finally {
+      navigate("/auth/admin/login", { replace: true });
+    }
   };
 
   return (
