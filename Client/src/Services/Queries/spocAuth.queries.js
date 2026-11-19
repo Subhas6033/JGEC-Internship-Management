@@ -6,44 +6,43 @@ import {
   getCurrentSpoc,
   logoutSpoc,
 } from "../Auth/spocAuth.api";
-import { setAuth, clearUser } from "../../Store/Slice/authSlice";
+import { clearUser } from "../../Store/Slice/authSlice";
 
 const SPOC_AUTH_KEYS = {
   currentUser: ["auth", "me"],
 };
 
-// SPOC register
+// Extract APIRES data.
+const getResponseData = (response) => {
+  return response?.data ?? response;
+};
+
+// SPOC registration.
 const useSpocRegistration = () => {
   return useMutation({
     mutationFn: registerSpoc,
   });
 };
 
-// SPOC login
+// SPOC login: password validation and OTP initiation.
 const useSpocLogin = () => {
-  const dispatch = useDispatch();
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (credentials) => {
       const response = await loginSpoc(credentials);
-      const spoc = response?.spoc;
-      const accessToken = response?.accessToken;
-      if (!spoc?._id || !accessToken) {
-        throw new Error("Invalid SPOC login response");
+
+      const data = getResponseData(response);
+      const otp = data?.otp;
+
+      if (!otp?.challengeId) {
+        throw new Error("Invalid SPOC login response: OTP challenge missing.");
       }
-      dispatch(
-        setAuth({
-          user: spoc,
-          accessToken,
-        }),
-      );
-      queryClient.setQueryData(SPOC_AUTH_KEYS.currentUser, spoc);
-      return response;
+
+      return otp;
     },
   });
 };
 
-// Get current SPOC
+// Get current SPOC.
 const useCurrentSpoc = (enabled = true) => {
   return useQuery({
     queryKey: SPOC_AUTH_KEYS.currentUser,
@@ -54,14 +53,17 @@ const useCurrentSpoc = (enabled = true) => {
   });
 };
 
-// SPOC logout
+// SPOC logout.
 const useSpocLogout = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: logoutSpoc,
+
     onSuccess: () => {
       dispatch(clearUser());
+
       queryClient.removeQueries({
         queryKey: SPOC_AUTH_KEYS.currentUser,
       });

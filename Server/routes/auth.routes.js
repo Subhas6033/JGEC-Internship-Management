@@ -16,6 +16,12 @@ import {
   adminLogin,
   adminRegistration,
 } from "../services/auth/admin.auth.controller.js";
+import {
+  studentOTP,
+  tpoOTP,
+  spocOTP,
+  adminOTP,
+} from "../services/auth/otp.controller.js";
 import { authenticateUser } from "../middlewares/auth.middleware.js";
 import { refreshAccessToken } from "../services/auth/tokenRotation.service.js";
 import {
@@ -24,12 +30,13 @@ import {
 } from "../services/auth/current-user.service.js";
 
 const authRoutes = Router();
+// Multer Configurations for File uploads
 const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
   limits: {
-    // Max. Signature file Size
+    // Maximum signature file size: 100 KB
     fileSize: 100 * 1024,
   },
   fileFilter: (req, file, cb) => {
@@ -51,29 +58,37 @@ const upload = multer({
   },
 });
 
+// Students Auth Routes
 authRoutes
-  // STUDENTS ROUTES
   .post("/students/register", upload.single("signature"), registerStudents)
   .post("/students/login", loginStudents)
-  // TPO ROUTES
+  .post("/students/otp/verify", studentOTP.verifyOTP)
+  .post("/students/otp/resend", studentOTP.resendOTP)
+  // TPO Auth Routes
   .post("/tpo/register", tpoRegistrations)
   .post("/tpo/login", tpoLogin)
-
-  // SPOC ROUTES
+  .post("/tpo/otp/verify", tpoOTP.verifyOTP)
+  .post("/tpo/otp/resend", tpoOTP.resendOTP)
+  // SPOC Auth Routes
   .post("/spoc/register", spocRegistration)
   .post("/spoc/login", spocLogin)
-
-  // ADMIN ROUTES
+  .post("/spoc/otp/verify", spocOTP.verifyOTP)
+  .post("/spoc/otp/resend", spocOTP.resendOTP)
+  // Admin Auth Routes
   .post("/admin/register", adminRegistration)
   .post("/admin/login", adminLogin)
+  .post("/admin/otp/verify", adminOTP.verifyOTP)
+  .post("/admin/otp/resend", adminOTP.resendOTP)
 
-  // Centralize Token Rotations
+  /*
+  Centralize Routes for Token Rotations, logout and get the Current Users
+  */
+
+  // Refresh token rotation
   .post("/refresh-token", refreshAccessToken)
-
-  // Centralize get users
+  // Get currently authenticated user
   .get("/me", authenticateUser, getCurrentUser)
-
-  // Centralize logout users
+  // Centralized logout
   .post("/logout", logoutUser);
 
 export { authRoutes };

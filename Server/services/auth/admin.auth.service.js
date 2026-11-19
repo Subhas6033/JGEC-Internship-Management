@@ -4,13 +4,10 @@ import { HTTP_STATUS } from "../../config/httpConfig.config.js";
 import {
   findAdminByEmail,
   createAdmin,
-  updateAdminLastLogin,
 } from "../queries/auth/admin.auth.queries.js";
-import { createUserSession, revokeUserSession } from "./session.service.js";
-import { getRefreshCookieName } from "../../config/cookieConfig.config.js";
+import { createLoginOTP } from "./otp.service.js";
 
 const USER_MODEL = "Admin";
-const REFRESH_COOKIE_NAME = getRefreshCookieName(USER_MODEL);
 
 const badRequest = (message) => new APIERR(HTTP_STATUS.BAD_REQUEST, message);
 
@@ -103,7 +100,7 @@ const registerAdmin = async (payload = {}) => {
   };
 };
 
-const loginAdmin = async ({ email, password } = {}, req) => {
+const loginAdmin = async ({ email, password } = {}) => {
   if (
     typeof email !== "string" ||
     !email.trim() ||
@@ -114,11 +111,12 @@ const loginAdmin = async ({ email, password } = {}, req) => {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
+
   const admin = await findAdminByEmail(normalizedEmail, true);
 
   // Do not reveal whether the email exists.
   if (!admin || !(await admin.comparePassword(password))) {
-    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Invalid email or password");
+    throw new APIERR(HTTP_STATUS.UNAUTHORIZE, "Invalid email or password");
   }
 
   if (!admin.isActive) {
@@ -128,26 +126,14 @@ const loginAdmin = async ({ email, password } = {}, req) => {
     );
   }
 
-  // Replace only an existing Admin session cookie.
-  await revokeUserSession(
-    req.cookies?.[REFRESH_COOKIE_NAME],
-    "replaced_by_new_login",
-  );
-
-  // Shared centralized session creation.
-  const { accessToken, refreshToken } = await createUserSession(
-    admin,
-    USER_MODEL,
-    req,
-  );
-
-  const safeAdmin = await updateAdminLastLogin(admin._id);
+  // Generate an OTP challenge instead of creating a session.
+  const otpChallenge = await createLoginOTP({
+    user: admin,
+    userModel: USER_MODEL,
+  });
 
   return {
-    admin: safeAdmin,
-    accessToken,
-    refreshToken,
-    refreshCookieName: REFRESH_COOKIE_NAME,
+    otp: otpChallenge,
   };
 };
 

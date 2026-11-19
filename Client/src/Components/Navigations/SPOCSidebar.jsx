@@ -1,5 +1,4 @@
 import {
-  BellRing,
   BriefcaseBusiness,
   ClipboardCheck,
   FileCheck2,
@@ -41,56 +40,33 @@ const SPOCSidebar = ({ open, onClose }) => {
           type="button"
           aria-label="Close navigation"
           onClick={onClose}
-          className="
-            fixed inset-0 z-40
-            bg-ink/30
-            lg:hidden
-          "
+          className="fixed inset-0 z-40 bg-ink/30 lg:hidden"
         />
       )}
 
+      {/* Fixed Sidebar */}
       <aside
         className={[
           "fixed inset-y-0 left-0 z-50",
-          "flex w-65 flex-col",
+          "flex h-dvh w-65 flex-col",
+          "overflow-hidden",
           "border-r border-border",
           "bg-cream-soft",
           "transition-transform duration-200 ease-out",
           open ? "translate-x-0" : "-translate-x-full",
-          "lg:static lg:z-auto lg:translate-x-0",
+          "lg:translate-x-0",
         ].join(" ")}
       >
         {/* Brand */}
-        <div className="border-b border-border">
+        <div className="shrink-0 border-b border-border">
           <div className="flex min-h-16 items-center justify-between px-4 sm:px-5">
             <Link
               to="/"
               onClick={onClose}
               aria-label="Internship NOC - JGEC SPOC"
-              className="
-                focus-ring group
-                flex min-w-0
-                items-center gap-2.5
-                rounded-lg
-              "
+              className="focus-ring group flex min-w-0 items-center gap-2.5 rounded-lg"
             >
-              {/* Logo */}
-              <span
-                className="
-                  flex size-9 shrink-0
-                  items-center justify-center
-                  overflow-hidden
-                  rounded-full
-                  border border-border
-                  bg-cream-soft
-                  p-1
-                  transition-all duration-200
-                  group-hover:border-brand-500
-                  group-hover:shadow-sm
-                  sm:size-10
-                  sm:p-1.5
-                "
-              >
+              <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-cream-soft p-1 transition-all duration-200 group-hover:border-brand-500 group-hover:shadow-sm sm:size-10 sm:p-1.5">
                 <img
                   src="/jgecLogo.png"
                   alt=""
@@ -103,30 +79,12 @@ const SPOCSidebar = ({ open, onClose }) => {
                 />
               </span>
 
-              {/* Brand */}
               <span className="flex min-w-0 flex-col">
-                <span
-                  className="
-                    truncate
-                    text-[13px] font-semibold
-                    leading-tight tracking-[-0.01em]
-                    text-ink
-                    sm:text-sm
-                  "
-                >
+                <span className="truncate text-[13px] font-semibold leading-tight tracking-[-0.01em] text-ink sm:text-sm">
                   Internship NOC
                 </span>
 
-                <span
-                  className="
-                    mt-0.5
-                    truncate
-                    text-[9px] font-medium
-                    uppercase tracking-[0.04em]
-                    leading-tight
-                    text-ink-muted
-                  "
-                >
+                <span className="mt-0.5 truncate text-[9px] font-medium uppercase leading-tight tracking-[0.04em] text-ink-muted">
                   JGEC · SPOC Portal
                 </span>
               </span>
@@ -137,15 +95,7 @@ const SPOCSidebar = ({ open, onClose }) => {
               type="button"
               onClick={onClose}
               aria-label="Close navigation"
-              className="
-                focus-ring
-                rounded-lg p-2
-                text-ink-muted
-                transition-colors duration-200
-                hover:bg-cream-dark
-                hover:text-ink
-                lg:hidden
-              "
+              className="focus-ring rounded-lg p-2 text-ink-muted transition-colors duration-200 hover:bg-cream-dark hover:text-ink lg:hidden"
             >
               <X size={18} />
             </button>
@@ -155,16 +105,9 @@ const SPOCSidebar = ({ open, onClose }) => {
         {/* Navigation */}
         <nav
           aria-label="SPOC navigation"
-          className="flex-1 overflow-y-auto px-3 py-5"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5"
         >
-          <p
-            className="
-              mb-2 px-3
-              text-[10px] font-semibold
-              uppercase tracking-[0.08em]
-              text-ink-muted
-            "
-          >
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
             Workspace
           </p>
 
@@ -185,14 +128,8 @@ const SPOCSidebar = ({ open, onClose }) => {
                       "text-sm font-medium",
                       "transition-all duration-200",
                       isActive
-                        ? ["bg-brand-100", "text-brand-700", "shadow-sm"].join(
-                            " ",
-                          )
-                        : [
-                            "text-ink-muted",
-                            "hover:bg-cream-dark",
-                            "hover:text-ink",
-                          ].join(" "),
+                        ? "bg-brand-100 text-brand-700 shadow-sm"
+                        : "text-ink-muted hover:bg-cream-dark hover:text-ink",
                     ].join(" ")
                   }
                 >
@@ -213,8 +150,8 @@ const SPOCSidebar = ({ open, onClose }) => {
           </div>
         </nav>
 
-        {/* SPOC information */}
-        <div className="border-t border-border p-3">
+        {/* SPOC Information */}
+        <div className="shrink-0 border-t border-border p-3">
           <div className="rounded-xl bg-brand-900 p-4">
             <div className="flex size-9 items-center justify-center rounded-lg bg-brand-800">
               <BriefcaseBusiness size={18} className="text-brand-200" />
@@ -228,11 +165,6 @@ const SPOCSidebar = ({ open, onClose }) => {
               Review Organisation-wise applications after the department
               deadline and generate NOCs after approval.
             </p>
-
-            {/* <div className="mt-3 flex items-center gap-2 text-[11px] text-brand-300">
-              <BellRing size={13} />
-              <span>Deadline-controlled review</span>
-            </div> */}
           </div>
         </div>
       </aside>

@@ -3,6 +3,8 @@ import { useDispatch } from "react-redux";
 import {
   registerAdmin,
   loginAdmin,
+  verifyAdminOTP,
+  resendAdminOTP,
   getCurrentUser,
   logoutUser,
 } from "../Auth/adminAuth.api";
@@ -12,28 +14,35 @@ const AUTH_QUERY_KEYS = {
   currentUser: ["auth", "me"],
 };
 
-// Admin registration: account creation only.
-// The existing UI redirects to the login page after success.
+// Admin registration.
 const useAdminRegistration = () => {
   return useMutation({
     mutationFn: registerAdmin,
   });
 };
 
-// Admin login: one shared Redux authentication state.
+// Admin password login.
+// This only sends the OTP; it does not authenticate the user yet.
 const useAdminLogin = () => {
+  return useMutation({
+    mutationFn: loginAdmin,
+  });
+};
+
+// Verify Admin OTP and establish Redux authentication.
+const useVerifyAdminOTP = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: loginAdmin,
+    mutationFn: verifyAdminOTP,
 
     onSuccess: (data) => {
       const admin = data?.admin;
       const accessToken = data?.accessToken;
 
       if (!admin?._id || !accessToken) {
-        throw new Error("Invalid Admin login response");
+        throw new Error("Invalid Admin OTP verification response");
       }
 
       dispatch(
@@ -48,7 +57,14 @@ const useAdminLogin = () => {
   });
 };
 
-// One centralized current-user query.
+// Resend Admin OTP.
+const useResendAdminOTP = () => {
+  return useMutation({
+    mutationFn: resendAdminOTP,
+  });
+};
+
+// Shared current-user query.
 const useCurrentUser = (enabled = true) => {
   return useQuery({
     queryKey: AUTH_QUERY_KEYS.currentUser,
@@ -77,4 +93,11 @@ const useAuthLogout = () => {
   });
 };
 
-export { useAdminRegistration, useAdminLogin, useCurrentUser, useAuthLogout };
+export {
+  useAdminRegistration,
+  useAdminLogin,
+  useVerifyAdminOTP,
+  useResendAdminOTP,
+  useCurrentUser,
+  useAuthLogout,
+};

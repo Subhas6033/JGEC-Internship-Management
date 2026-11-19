@@ -12,11 +12,12 @@ import {
   rotateUserSession,
   revokeUserSession,
 } from "../../services/auth/session.service.js";
+import { createLoginOTP } from "./otp.service.js";
 
 const USER_MODEL = "Student";
 const REFRESH_COOKIE_NAME = getRefreshCookieName(USER_MODEL);
 
-// Register a Students
+// Register a Student
 const registerStudents = asyncHandler(async (req, res) => {
   const {
     fullName,
@@ -81,6 +82,7 @@ const registerStudents = asyncHandler(async (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedRollNumber = rollNumber.trim();
+
   const existingStudent = await Student.findOne({
     $or: [
       {
@@ -122,7 +124,9 @@ const registerStudents = asyncHandler(async (req, res) => {
     );
   } catch (error) {
     console.error("Signature upload failed:", error);
+
     if (error instanceof APIERR) throw error;
+
     throw new APIERR(
       HTTP_STATUS.INTERNAL_SERVER_ERROR,
       "Failed to upload signature. Please try again.",
@@ -140,12 +144,12 @@ const registerStudents = asyncHandler(async (req, res) => {
     guardianName: guardianName.trim(),
     guardianMobile: guardianMobile.trim(),
   });
-  // Replace existing browsers sessions
+
   await revokeUserSession(
     req.cookies?.[REFRESH_COOKIE_NAME],
     "replaced_by_new_login",
   );
-  // Create centralize authentications
+
   const { accessToken, refreshToken } = await createUserSession(
     student,
     USER_MODEL,
@@ -171,7 +175,7 @@ const registerStudents = asyncHandler(async (req, res) => {
     );
 });
 
-// Login a Students
+// Login Student and send OTP
 const loginStudents = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -183,6 +187,7 @@ const loginStudents = asyncHandler(async (req, res) => {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
+
   const student = await Student.findOne({
     email: normalizedEmail,
   }).select("+password");
@@ -198,35 +203,26 @@ const loginStudents = asyncHandler(async (req, res) => {
 
   if (!isPasswordCorrect) {
     throw new APIERR(
-      HTTP_STATUS.UNAUTHORIZED,
+      HTTP_STATUS.UNAUTHORIZE,
       "Wrong password. Please provide the right password",
     );
   }
 
-  // Replace current browsers sessions
-  await revokeUserSession(
-    req.cookies?.[REFRESH_COOKIE_NAME],
-    "replaced_by_new_login",
-  );
+  const otpChallenge = await createLoginOTP({
+    user: student,
+    userModel: USER_MODEL,
+  });
 
-  const { accessToken, refreshToken } = await createUserSession(
-    student,
-    USER_MODEL,
-    req,
-  );
-  const safeStudent = student.toObject();
-  delete safeStudent.password;
   return res
     .status(HTTP_STATUS.SUCCESS)
-    .cookie(REFRESH_COOKIE_NAME, refreshToken, cookieConfig)
+    .set("Cache-Control", "no-store")
     .json(
       new APIRES(
         HTTP_STATUS.SUCCESS,
         {
-          student: safeStudent,
-          accessToken,
+          otp: otpChallenge,
         },
-        "Successfully logged in",
+        "Verification code sent to your registered email",
       ),
     );
 });
@@ -234,14 +230,16 @@ const loginStudents = asyncHandler(async (req, res) => {
 // Logout
 const logoutStudent = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+
   await revokeUserSession(refreshToken, "logout");
+
   return res
     .status(HTTP_STATUS.SUCCESS)
     .clearCookie(REFRESH_COOKIE_NAME, clearCookieConfig)
     .json(new APIRES(HTTP_STATUS.SUCCESS, null, "Logged out successfully"));
 });
 
-// Refresh accessToken
+// Refresh access token
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const refreshCookies = [
     {
@@ -256,6 +254,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       userModel: "SPOC",
       cookieName: getRefreshCookieName("SPOC"),
     },
+    {
+      userModel: "Admin",
+      cookieName: getRefreshCookieName("Admin"),
+    },
   ];
 
   const matchedCookie = refreshCookies.find(({ cookieName }) =>
@@ -263,11 +265,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   );
 
   if (!matchedCookie) {
-    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Refresh token is required");
+    throw new APIERR(HTTP_STATUS.UNAUTHORIZE, "Refresh token is required");
   }
 
   const { userModel, cookieName } = matchedCookie;
-
   const incomingRefreshToken = req.cookies[cookieName];
 
   let result;
@@ -277,7 +278,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   } catch (error) {
     const status = error?.statusCode ?? error?.status;
 
-    if (status === HTTP_STATUS.UNAUTHORIZED) {
+    if (status === HTTP_STATUS.UNAUTHORIZE) {
       res.clearCookie(cookieName, clearCookieConfig);
     }
 
@@ -295,7 +296,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       HTTP_STATUS.SUCCESS,
       {
         accessToken: result.accessToken,
-
         userModel,
       },
       "Access token refreshed successfully",
@@ -303,14 +303,14 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   );
 });
 
-// Get the current users
+// Get current Student
 const getCurrentStudent = asyncHandler(async (req, res) => {
   const student = await Student.findById(req.user?._id).select(
     "-__v -password",
   );
 
   if (!student) {
-    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Student not found");
+    throw new APIERR(HTTP_STATUS.UNAUTHORIZE, "Student not found");
   }
 
   res.set("Cache-Control", "no-store");
