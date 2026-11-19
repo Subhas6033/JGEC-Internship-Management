@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAdminDepartments } from "../admin/adminDepartments.api";
 
-export const adminDepartmentKeys = {
+const adminDepartmentKeys = {
   all: ["admin-departments"],
   list: () => [...adminDepartmentKeys.all, "list"],
 };

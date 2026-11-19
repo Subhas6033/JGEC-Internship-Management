@@ -1,11 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-// Same axios instance used by tpoApplication.quires.js
 import { apiClient as api } from "../api/apiClient";
 
 const PROFILE_URL = "/update/profile";
 const ME_URL = "/auth/me";
 
-export const ADMIN_PROFILE_KEY = ["admin", "profile"];
+const ADMIN_PROFILE_KEY = ["admin", "profile"];
 
 const unwrap = (response) => {
   const payload = response?.data?.data ?? response?.data ?? null;
@@ -13,24 +12,20 @@ const unwrap = (response) => {
 };
 
 // Maps the backend document to the shape the settings UI uses.
-export const normalizeAdmin = (user) => ({
+const normalizeAdmin = (user) => ({
   name: user?.fullName ?? "",
   email: user?.email ?? "",
   phone: user?.mobile ?? user?.mobileNumber ?? "",
-  designation: user?.designation ?? "",
-  department: user?.department ?? "",
-  employeeId: user?.employeeId ?? "",
   signature: user?.signature ?? "",
 });
 
-export const useAdminProfile = () =>
+const useAdminProfile = () =>
   useQuery({
     queryKey: ADMIN_PROFILE_KEY,
     queryFn: async () => normalizeAdmin(unwrap(await api.get(ME_URL))),
   });
 
-// payload: { fullName, email, mobileNumber }
-export const useUpdateAdminProfile = () => {
+const useUpdateAdminProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -41,17 +36,13 @@ export const useUpdateAdminProfile = () => {
         ...old,
         ...normalizeAdmin(user),
         // keep fields the update endpoint doesn't return
-        designation: user?.designation ?? old?.designation ?? "",
-        department: user?.department ?? old?.department ?? "",
-        employeeId: user?.employeeId ?? old?.employeeId ?? "",
         signature: user?.signature ?? old?.signature ?? "",
       }));
     },
   });
 };
 
-// file: File object, sent as multipart/form-data under "signature"
-export const useUpdateAdminSignature = () => {
+const useUpdateAdminSignature = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -72,4 +63,11 @@ export const useUpdateAdminSignature = () => {
       }));
     },
   });
+};
+
+export {
+  normalizeAdmin,
+  useAdminProfile,
+  useUpdateAdminProfile,
+  useUpdateAdminSignature,
 };

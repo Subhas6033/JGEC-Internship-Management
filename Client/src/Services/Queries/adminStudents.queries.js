@@ -5,13 +5,13 @@ import {
   deleteAdminStudent,
 } from "../admin/adminStudents.api";
 
-export const adminStudentKeys = {
+const adminStudentKeys = {
   all: ["admin-students"],
   lists: () => [...adminStudentKeys.all, "list"],
   list: (params) => [...adminStudentKeys.lists(), params],
 };
 
-export const useAdminStudents = (params = {}) => {
+const useAdminStudents = (params = {}) => {
   return useQuery({
     queryKey: adminStudentKeys.list(params),
     queryFn: () => getAdminStudents(params),
@@ -20,7 +20,7 @@ export const useAdminStudents = (params = {}) => {
   });
 };
 
-export const useUpdateAdminStudent = () => {
+const useUpdateAdminStudent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -33,7 +33,7 @@ export const useUpdateAdminStudent = () => {
   });
 };
 
-export const useDeleteAdminStudent = () => {
+const useDeleteAdminStudent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -45,3 +45,5 @@ export const useDeleteAdminStudent = () => {
     },
   });
 };
+
+export { useAdminStudents, useUpdateAdminStudent, useDeleteAdminStudent };

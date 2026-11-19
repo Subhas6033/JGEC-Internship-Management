@@ -1,8 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-// Use the same axios instance that tpoApplication.quires.js uses.
 import { apiClient as api } from "../api/apiClient";
 
-// Update endpoints (to be added on the backend).
 const PROFILE_URL = "/update/profile";
 
 // Handles { data: { user } }, { data: {...} } and a bare object.
@@ -12,7 +10,7 @@ const unwrapUser = (response) => {
 };
 
 // payload: { fullName, email, mobileNumber }
-export const useUpdateTpoProfile = () =>
+const useUpdateTpoProfile = () =>
   useMutation({
     mutationFn: async (payload) =>
       unwrapUser(await api.patch(PROFILE_URL, payload)),
@@ -20,7 +18,7 @@ export const useUpdateTpoProfile = () =>
 
 // file: a File object, sent as multipart/form-data under "signature",
 // the same field name the student registration route uses.
-export const useUpdateTpoSignature = () =>
+const useUpdateTpoSignature = () =>
   useMutation({
     mutationFn: async (file) => {
       const formData = new FormData();
@@ -33,3 +31,5 @@ export const useUpdateTpoSignature = () =>
       );
     },
   });
+
+export { useUpdateTpoProfile, useUpdateTpoSignature };

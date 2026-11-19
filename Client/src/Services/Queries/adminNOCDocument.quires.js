@@ -1,17 +1,13 @@
-// Pages/Services/Admin/NOC/useNocDocument.js
-//
-// Loads the NOC PDF through the authenticated API as a Blob and exposes it as
-// an object URL, so the preview works even when the file is private, served
-// from another origin, or blocked from iframes by X-Frame-Options.
-
 import { useCallback, useEffect, useState } from "react";
-
-// CHANGE THIS IMPORT to your shared axios instance (the one that already adds
-// the auth token / credentials and the base URL).
 import { apiClient } from "../api/apiClient";
 
 const initialState = { status: "idle", url: "", message: "" };
 
+/*
+Loads the NOC PDF through the authenticated API as a Blob and exposes it as
+an object URL, so the preview works even when the file is private, served
+from another origin, or blocked from iframes by X-Frame-Options.
+*/
 export const useNocDocument = (applicationId) => {
   const [state, setState] = useState(initialState);
   const [attempt, setAttempt] = useState(0);

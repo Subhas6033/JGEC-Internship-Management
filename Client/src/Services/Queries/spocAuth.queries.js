@@ -7,6 +7,7 @@ import {
   logoutSpoc,
 } from "../Auth/spocAuth.api";
 import { setAuth, clearUser } from "../../Store/Slice/authSlice";
+
 const SPOC_AUTH_KEYS = {
   currentUser: ["auth", "me"],
 };

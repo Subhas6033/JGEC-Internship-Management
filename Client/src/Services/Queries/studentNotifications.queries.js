@@ -7,9 +7,9 @@ import {
   getUnreadStudentNotificationCount,
 } from "../Notifications/studentNotifications.api";
 
-export const studentNotificationsQueryKey = ["student-notifications"];
+const studentNotificationsQueryKey = ["student-notifications"];
 
-export const useStudentNotifications = ({
+const useStudentNotifications = ({
   category = "all",
   status = "all",
   search = "",
@@ -32,7 +32,7 @@ export const useStudentNotifications = ({
   });
 };
 
-export const useMarkStudentNotificationRead = () => {
+const useMarkStudentNotificationRead = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: markStudentNotificationRead,
@@ -44,7 +44,7 @@ export const useMarkStudentNotificationRead = () => {
   });
 };
 
-export const useMarkAllStudentNotificationsRead = () => {
+const useMarkAllStudentNotificationsRead = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: markAllStudentNotificationsRead,
@@ -56,7 +56,7 @@ export const useMarkAllStudentNotificationsRead = () => {
   });
 };
 
-export const useDeleteStudentNotification = () => {
+const useDeleteStudentNotification = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteStudentNotification,
@@ -68,9 +68,17 @@ export const useDeleteStudentNotification = () => {
   });
 };
 
-export const useUnreadStudentNotificationCount = () => {
+const useUnreadStudentNotificationCount = () => {
   return useQuery({
     queryKey: [...studentNotificationsQueryKey, "unread-count"],
     queryFn: getUnreadStudentNotificationCount,
   });
+};
+
+export {
+  useStudentNotifications,
+  useMarkStudentNotificationRead,
+  useMarkAllStudentNotificationsRead,
+  useDeleteStudentNotification,
+  useUnreadStudentNotificationCount,
 };
