@@ -75,4 +75,5 @@ export {
   useAdminNocStats,
   useApproveAndSendNoc,
   useBulkApproveAndSendNocs,
+  useAdminNocDetails,
 };
