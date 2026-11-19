@@ -104,14 +104,16 @@ const SPOCDashboard = lazy(
   () => import("./Pages/Services/SPOC/Dashboard/SPOCDashboard.jsx"),
 );
 const SPOCApplications = lazy(
-  () => import("./Pages/Services/SPOC/SPOCApplications.jsx"),
+  () =>
+    import("./Pages/Services/SPOC/Application/Overview/SPOCApplications.jsx"),
 );
-const SPOCNOC = lazy(() => import("./Pages/Services/SPOC/SPOCNOC.jsx"));
+const SPOCNOC = lazy(() => import("./Pages/Services/SPOC/NOC/SPOCNOC.jsx"));
 const SPOCProfile = lazy(
   () => import("./Pages/Services/SPOC/Profile/SPOCProfile.jsx"),
 );
 const SPOCApplicationDetails = lazy(
-  () => import("./Pages/Services/SPOC/Application/SPOCApplicationDetails.jsx"),
+  () =>
+    import("./Pages/Services/SPOC/Application/Details/SPOCApplicationDetails.jsx"),
 );
 const SPOCSettings = lazy(
   () => import("./Pages/Services/SPOC/Settings/SPOCSettings.jsx"),

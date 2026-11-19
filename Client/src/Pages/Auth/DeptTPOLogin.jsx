@@ -1,247 +1,153 @@
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button, Input } from "../../Components/index";
-import { useLoginTPO } from "../../Hooks/Auth/useTPOAuth";
+import { useNavigate } from "react-router-dom";
+import { LoginForm } from "../../Components/Auth/Login/LoginForm";
+import {
+  useLoginTPO,
+  useVerifyTPOOTP,
+  useResendTPOOTP,
+} from "../../Services/Queries/tpoAuth.quires";
 
 const DeptTPOLogin = () => {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
+  const loginMutation = useLoginTPO();
+  const verifyMutation = useVerifyTPOOTP();
+  const resendMutation = useResendTPOOTP();
+
+  const [otp, setOtp] = useState({
+    open: false,
     email: "",
-    password: "",
+    challengeId: "",
+    role: "Department TPO",
+    error: "",
   });
 
-  const [errors, setErrors] = useState({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Verify credentials and initiate OTP.
+  const handleLogin = async (data) => {
+    const response = await loginMutation.mutateAsync({
+      email: data.email.trim().toLowerCase(),
+      password: data.password,
+    });
 
-  const loginMutation = useLoginTPO();
+    const otpChallenge = response?.otp;
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-
-    if (errors[name]) {
-      setErrors((previous) => ({
-        ...previous,
-        [name]: "",
-      }));
+    if (!otpChallenge?.challengeId) {
+      throw new Error("OTP challenge was not returned by the server");
     }
+
+    setOtp({
+      open: true,
+      email: otpChallenge.email || data.email,
+      challengeId: otpChallenge.challengeId,
+      role: "Department TPO",
+      error: "",
+    });
   };
 
-  const validate = () => {
-    const nextErrors = {};
-
-    if (!form.email.trim()) {
-      nextErrors.email = "College email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      nextErrors.email = "Enter a valid college email.";
-    }
-
-    if (!form.password) {
-      nextErrors.password = "Password is required.";
-    }
-
-    return nextErrors;
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const nextErrors = validate();
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
-      return;
-    }
-    setErrors({});
-    setIsSubmitting(true);
+  // Verify OTP and authenticate TPO.
+  const handleVerifyOTP = async (otpValue) => {
     try {
-      await loginMutation.mutateAsync({
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
+      await verifyMutation.mutateAsync({
+        challengeId: otp.challengeId,
+        otp: otpValue,
       });
+
+      setOtp((previous) => ({
+        ...previous,
+        open: false,
+        error: "",
+      }));
+
       navigate("/depttpo/dashboard", {
         replace: true,
       });
     } catch (error) {
-      const message =
-        error?.data?.message ||
-        error?.message ||
-        "Unable to sign in. Please try again.";
-      setErrors({
-        submit: message,
-      });
-    } finally {
-      setIsSubmitting(false);
+      setOtp((previous) => ({
+        ...previous,
+        error:
+          error?.response?.data?.message ||
+          error?.message ||
+          "OTP verification failed. Please try again.",
+      }));
+
+      throw error;
     }
   };
 
+  // Resend OTP.
+  const handleResendOTP = async () => {
+    try {
+      const response = await resendMutation.mutateAsync({
+        challengeId: otp.challengeId,
+      });
+
+      setOtp((previous) => ({
+        ...previous,
+        error: "",
+        email: response?.email || previous.email,
+      }));
+
+      return response;
+    } catch (error) {
+      setOtp((previous) => ({
+        ...previous,
+        error:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unable to resend OTP. Please try again.",
+      }));
+
+      throw error;
+    }
+  };
+
+  // Close OTP modal.
+  const handleCloseOTP = () => {
+    setOtp({
+      open: false,
+      email: "",
+      challengeId: "",
+      role: "Department TPO",
+      error: "",
+    });
+  };
+
   return (
-    <main className="min-h-screen bg-cream px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-2xl border border-border bg-white shadow-card lg:grid-cols-[1fr_1.05fr]">
-          <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
-            <div>
-              <div className="flex size-11 items-center justify-center rounded-full bg-white">
-                <img src="/jgecLogo.png" alt="college logo" />
-              </div>
-
-              <p className="mt-8 text-xs font-medium uppercase tracking-[0.16em] text-white/70">
-                Internship Management Portal
-              </p>
-
-              <h1 className="mt-3 max-w-md text-3xl font-semibold leading-tight">
-                Department TPO Portal
-              </h1>
-
-              <p className="mt-4 max-w-md text-sm leading-6 text-white/75">
-                Sign in to review student applications, manage internship
-                deadlines, and forward approved applications to the central TPO.
-              </p>
-            </div>
-
-            <div className="mt-10 border-t border-white/10 pt-5">
-              <p className="text-xs leading-5 text-white/65">
-                Access is restricted to registered Department TPO coordinators.
-              </p>
-            </div>
-          </section>
-
-          <section className="flex items-center p-5 sm:p-8 xl:p-10">
-            <div className="mx-auto w-full max-w-md">
-              <div>
-                <p className="eyebrow">Department TPO</p>
-
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-                  Welcome back
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-ink-muted">
-                  Sign in with your college email to continue.
-                </p>
-              </div>
-
-              {errors.submit && (
-                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {errors.submit}
-                </div>
-              )}
-
-              <form
-                onSubmit={handleSubmit}
-                className="mt-8 space-y-5"
-                noValidate
-              >
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-1.5 block text-sm font-medium text-ink"
-                  >
-                    College email
-                  </label>
-
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="name@college.edu"
-                    autoComplete="email"
-                    startIcon={<Mail size={17} strokeWidth={1.8} />}
-                  />
-
-                  {errors.email && (
-                    <p className="mt-1.5 text-xs text-red-600">
-                      {errors.email}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label
-                      htmlFor="password"
-                      className="text-sm font-medium text-ink"
-                    >
-                      Password
-                    </label>
-
-                    <Link
-                      to="/auth/forgot-password"
-                      className="text-xs font-medium text-brand-700 hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
-                    endIcon={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((value) => !value)}
-                        className="text-ink-muted transition hover:text-ink focus:outline-none"
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
-                      >
-                        {showPassword ? (
-                          <EyeOff size={17} strokeWidth={1.8} />
-                        ) : (
-                          <Eye size={17} strokeWidth={1.8} />
-                        )}
-                      </button>
-                    }
-                  />
-
-                  {errors.password && (
-                    <p className="mt-1.5 text-xs text-red-600">
-                      {errors.password}
-                    </p>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  disabled={isSubmitting || loginMutation.isPending}
-                  className="w-full justify-center"
-                >
-                  {isSubmitting ? "Signing in..." : "Sign in"}
-
-                  {!isSubmitting && <ArrowRight size={16} strokeWidth={1.8} />}
-                </Button>
-              </form>
-
-              <div className="mt-7 border-t border-border pt-5 text-center">
-                <p className="text-sm text-ink-muted">
-                  Don't have an account?{" "}
-                  <Link
-                    to="/auth/depttpo/signup"
-                    className="font-medium text-brand-700 hover:underline"
-                  >
-                    Create account
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </main>
+    <LoginForm
+      role="Department TPO"
+      portalName="JGEC"
+      portalSubtitle="Internship Management Portal"
+      portalDescription="Sign in to review student applications, manage internship deadlines, and forward approved applications to the central TPO."
+      title="Welcome back"
+      subtitle="Sign in with your college email to continue."
+      emailLabel="College email"
+      emailPlaceholder="name@college.edu"
+      passwordLabel="Password"
+      passwordPlaceholder="Enter your password"
+      forgotPasswordLink="/auth/forgot-password"
+      showRememberMe={false}
+      signup={{
+        text: "Don't have an account?",
+        label: "Create account",
+        to: "/auth/depttpo/signup",
+      }}
+      pageTitle="Department TPO Login | JGEC"
+      metaDescription="Sign in to the JGEC Department TPO Portal."
+      onSubmit={handleLogin}
+      otp={{
+        open: otp.open,
+        email: otp.email,
+        challengeId: otp.challengeId,
+        role: otp.role,
+        onClose: handleCloseOTP,
+        onVerify: handleVerifyOTP,
+        onResend: handleResendOTP,
+        isVerifying: verifyMutation.isPending,
+        isResending: resendMutation.isPending,
+        error: otp.error,
+        resendDelay: 30,
+      }}
+    />
   );
 };
 

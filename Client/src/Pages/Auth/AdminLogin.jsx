@@ -1,250 +1,155 @@
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button, Input } from "../../Components/index";
-import { useAdminLogin } from "../../Services/Queries/adminAuth.queries";
+import { useNavigate } from "react-router-dom";
+import { LoginForm } from "../../Components/Auth/Login/LoginForm";
+import {
+  useAdminLogin,
+  useVerifyAdminOTP,
+  useResendAdminOTP,
+} from "../../Services/Queries/adminAuth.queries";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const loginMutation = useAdminLogin();
 
-  const [form, setForm] = useState({
+  const loginMutation = useAdminLogin();
+  const verifyMutation = useVerifyAdminOTP();
+  const resendMutation = useResendAdminOTP();
+
+  const [otp, setOtp] = useState({
+    open: false,
     email: "",
-    password: "",
+    challengeId: "",
+    role: "Administrator",
+    error: "",
   });
 
-  const [errors, setErrors] = useState({});
-  const [showPassword, setShowPassword] = useState(false);
+  // Initiate admin login and request OTP
+  const handleLogin = async (data) => {
+    const response = await loginMutation.mutateAsync({
+      email: data.email.trim().toLowerCase(),
+      password: data.password,
+    });
 
-  const isSubmitting = loginMutation.isPending;
+    const otpChallenge = response?.otp;
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-
-    if (errors[name] || errors.general) {
-      setErrors((previous) => ({
-        ...previous,
-        [name]: "",
-        general: "",
-      }));
+    if (!otpChallenge?.challengeId) {
+      throw new Error("OTP challenge was not returned by the server.");
     }
+
+    setOtp({
+      open: true,
+      email: otpChallenge.email || data.email,
+      challengeId: otpChallenge.challengeId,
+      role: "Administrator",
+      error: "",
+    });
   };
 
-  const validate = () => {
-    const nextErrors = {};
-
-    if (!form.email.trim()) {
-      nextErrors.email = "Admin email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      nextErrors.email = "Enter a valid email address.";
-    }
-
-    if (!form.password) {
-      nextErrors.password = "Password is required.";
-    }
-
-    return nextErrors;
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const nextErrors = validate();
-
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
-      return;
-    }
-
-    setErrors({});
-
+  // Verify OTP and complete admin authentication
+  const handleVerifyOTP = async (otpValue) => {
     try {
-      await loginMutation.mutateAsync({
-        email: form.email.trim(),
-        password: form.password,
+      await verifyMutation.mutateAsync({
+        challengeId: otp.challengeId,
+        otp: otpValue,
       });
 
-      navigate("/admin/dashboard");
+      setOtp((previous) => ({
+        ...previous,
+        open: false,
+        error: "",
+      }));
+
+      navigate("/admin/dashboard", {
+        replace: true,
+      });
     } catch (error) {
-      setErrors({
-        general:
+      setOtp((previous) => ({
+        ...previous,
+        error:
           error?.response?.data?.message ||
           error?.message ||
-          "Unable to sign in. Please check your credentials and try again.",
-      });
+          "OTP verification failed. Please try again.",
+      }));
+
+      throw error;
     }
+  };
+
+  // Resend OTP
+  const handleResendOTP = async () => {
+    try {
+      const response = await resendMutation.mutateAsync({
+        challengeId: otp.challengeId,
+      });
+
+      setOtp((previous) => ({
+        ...previous,
+        email: response?.email || previous.email,
+        error: "",
+      }));
+
+      return response;
+    } catch (error) {
+      setOtp((previous) => ({
+        ...previous,
+        error:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unable to resend OTP. Please try again.",
+      }));
+
+      throw error;
+    }
+  };
+
+  // Close OTP modal
+  const handleCloseOTP = () => {
+    setOtp({
+      open: false,
+      email: "",
+      challengeId: "",
+      role: "Administrator",
+      error: "",
+    });
   };
 
   return (
-    <main className="min-h-screen bg-cream px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-2xl border border-border bg-white shadow-card lg:grid-cols-[1fr_1.05fr]">
-          {/* Branding panel */}
-          <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
-            <div>
-              <div className="flex size-11 items-center justify-center rounded-full bg-white">
-                <img src="/jgecLogo.png" alt="JGEC logo" />
-              </div>
+    <LoginForm
+      role="Administrator"
+      portalName="JGEC"
+      portalSubtitle="Internship Management Portal"
+      portalDescription="Manage users, departments, internship activities, and portal operations from one centralized administration workspace."
+      title="Welcome back"
+      subtitle="Sign in with your administrator credentials to continue."
+      emailLabel="Admin email"
+      emailPlaceholder="admin@college.edu"
+      passwordLabel="Password"
+      passwordPlaceholder="Enter your password"
+      forgotPasswordLink="/auth/forgot-password"
+      showRememberMe={false}
+      signup={{
+        text: "Need to create an administrator account?",
+        label: "Create account",
+        to: "/auth/admin/signup",
+      }}
+      pageTitle="Admin Login | JGEC"
+      metaDescription="Sign in to the JGEC Administration Portal."
+      onSubmit={handleLogin}
+      otp={{
+        open: otp.open,
+        email: otp.email,
+        role: otp.role,
 
-              <p className="mt-8 text-xs font-medium uppercase tracking-[0.16em] text-white/70">
-                Internship Management Portal
-              </p>
+        onClose: handleCloseOTP,
+        onVerify: handleVerifyOTP,
+        onResend: handleResendOTP,
 
-              <h1 className="mt-3 max-w-md text-3xl font-semibold leading-tight">
-                Administration Portal
-              </h1>
+        isVerifying: verifyMutation.isPending,
+        isResending: resendMutation.isPending,
 
-              <p className="mt-4 max-w-md text-sm leading-6 text-white/75">
-                Manage users, departments, internship activities, and portal
-                operations from one centralized administration workspace.
-              </p>
-            </div>
-
-            <div className="mt-10 border-t border-white/10 pt-5">
-              <p className="text-xs leading-5 text-white/65">
-                Administrative access is restricted to authorized portal
-                administrators.
-              </p>
-            </div>
-          </section>
-
-          {/* Login form */}
-          <section className="flex items-center p-5 sm:p-8 xl:p-10">
-            <div className="mx-auto w-full max-w-md">
-              <div>
-                <p className="eyebrow">Portal Administration</p>
-
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-                  Welcome back
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-ink-muted">
-                  Sign in with your administrator credentials to continue.
-                </p>
-              </div>
-
-              <form
-                onSubmit={handleSubmit}
-                className="mt-8 space-y-5"
-                noValidate
-              >
-                {/* Email */}
-                <div>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    label="Email"
-                    required
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="admin@college.edu"
-                    autoComplete="email"
-                    startIcon={<Mail size={17} strokeWidth={1.8} />}
-                  />
-
-                  {errors.email && (
-                    <p className="mt-1.5 text-xs text-red-600">
-                      {errors.email}
-                    </p>
-                  )}
-                </div>
-
-                {/* Password */}
-                <div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      label="Password"
-                      required
-                      type={showPassword ? "text" : "password"}
-                      value={form.password}
-                      onChange={handleChange}
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                      startIcon={<LockKeyhole size={17} strokeWidth={1.8} />}
-                      endIcon={
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((value) => !value)}
-                          className="pointer-events-auto text-ink-muted transition hover:text-ink focus:outline-none"
-                          aria-label={
-                            showPassword ? "Hide password" : "Show password"
-                          }
-                        >
-                          {showPassword ? (
-                            <EyeOff size={17} strokeWidth={1.8} />
-                          ) : (
-                            <Eye size={17} strokeWidth={1.8} />
-                          )}
-                        </button>
-                      }
-                    />
-                  </div>
-
-                  {errors.password && (
-                    <p className="mt-1.5 text-xs text-red-600">
-                      {errors.password}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between gap-3 my-3">
-                  <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-muted">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-border accent-brand-600"
-                    />
-                    Remember me
-                  </label>
-
-                  <Link
-                    to="/auth/forgot-password"
-                    className="text-sm font-medium text-brand-700 hover:text-brand-900"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-
-                {errors.general && (
-                  <p className="text-sm text-red-600">{errors.general}</p>
-                )}
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  disabled={isSubmitting}
-                  className="w-full justify-center"
-                >
-                  {isSubmitting ? "Signing in..." : "Sign in"}
-
-                  {!isSubmitting && <ArrowRight size={16} strokeWidth={1.8} />}
-                </Button>
-              </form>
-
-              <div className="mt-7 border-t border-border pt-5 text-center">
-                <p className="text-sm text-ink-muted">
-                  Need to create an administrator account?{" "}
-                  <Link
-                    to="/auth/admin/signup"
-                    className="font-medium text-brand-700 hover:underline"
-                  >
-                    Create account
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </main>
+        error: otp.error,
+        resendDelay: 30,
+      }}
+    />
   );
 };
 

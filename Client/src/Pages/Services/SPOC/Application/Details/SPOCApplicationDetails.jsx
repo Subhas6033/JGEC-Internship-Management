@@ -5,8 +5,8 @@ import {
   useSpocApplication,
   useAcceptSpocApplication,
   useSendBackSpocApplication,
-} from "../../../../Services/Queries/spocApplication.quires";
-import { downloadSpocNocPdf } from "../../../../Services/Application/spocApplication.api";
+} from "../../../../../Services/Queries/spocApplication.quires";
+import { downloadSpocNocPdf } from "../../../../../Services/Application/spocApplication.api";
 import ApplicationHeader from "./ApplicationHeader";
 import ApplicationSummary from "./ApplicationSummary";
 import StudentDetails from "./StudentDetails";

@@ -1,4 +1,4 @@
-import { Card } from "../../../../Components/index";
+import { Card } from "../../../../../Components/index";
 
 export const DetailsCard = ({
   icon,

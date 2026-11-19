@@ -5,7 +5,7 @@ import {
   XCircle,
   LoaderCircle,
 } from "lucide-react";
-import { Button, Card } from "../../../../Components/index";
+import { Button, Card } from "../../../../../Components/index";
 
 export default function ApplicationActions({
   canReview,

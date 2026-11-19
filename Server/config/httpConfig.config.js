@@ -1,4 +1,4 @@
-const HTTP_STATUS = {
+export const HTTP_STATUS = {
   // 2XX status code
   SUCCESS: 200,
   OK: 200,
@@ -16,5 +16,3 @@ const HTTP_STATUS = {
   // 5XX Status Code
   INTERNAL_SERVER_ERROR: 502,
 };
-
-export { HTTP_STATUS };

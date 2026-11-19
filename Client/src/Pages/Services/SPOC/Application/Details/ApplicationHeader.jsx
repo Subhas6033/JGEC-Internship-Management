@@ -1,6 +1,6 @@
 import { ArrowLeft, AlertCircle, X } from "lucide-react";
 import { StatusBadge } from "./DetailComponents";
-import { Button } from "../../../../Components/index";
+import { Button } from "../../../../../Components/index";
 
 export default function ApplicationHeader({
   application,

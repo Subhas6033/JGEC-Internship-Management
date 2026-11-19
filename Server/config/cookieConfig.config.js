@@ -1,6 +1,6 @@
 const isProduction = process.env.NODE_ENV === "production";
 
-export const getRefreshCookieName = (userModel) => {
+const getRefreshCookieName = (userModel) => {
   const cookieNames = {
     Student: "studentRefreshToken",
     TPO: "tpoRefreshToken",
@@ -14,16 +14,18 @@ export const getRefreshCookieName = (userModel) => {
   return cookieName;
 };
 
-export const cookieConfig = {
+const cookieConfig = {
   httpOnly: true,
   secure: isProduction,
   sameSite: isProduction ? "strict" : "lax",
   path: "/",
 };
 
-export const clearCookieConfig = {
+const clearCookieConfig = {
   httpOnly: true,
   secure: isProduction,
   sameSite: isProduction ? "strict" : "lax",
   path: "/",
 };
+
+export { getRefreshCookieName, cookieConfig, clearCookieConfig };

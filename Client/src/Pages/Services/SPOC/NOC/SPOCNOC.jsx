@@ -8,19 +8,19 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { Card } from "../../../Components/index";
+import { Card } from "../../../../Components/index";
 
 import {
   fadeUp,
   staggerContainer,
   viewport,
-} from "../../../Animations/animations";
+} from "../../../../Animations/animations";
 
 import {
   useDownloadSpocNoc,
   useViewSpocNoc,
   useSpocApplications,
-} from "../../../Services/Queries/spocApplication.quires";
+} from "../../../../Services/Queries/spocApplication.quires";
 
 const SPOCNOCs = () => {
   const { data, isLoading, isError, error } = useSpocApplications({
@@ -563,7 +563,7 @@ const SPOCNOCs = () => {
         {generatedNOCs.length > 0 ? (
           <div className="mt-4 w-full min-w-0 overflow-hidden rounded-xl border border-border bg-surface shadow-(--shadow-card)">
             <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse">
+              <table className="w-full min-w-225 border-collapse">
                 <thead>
                   <tr className="border-b border-border bg-cream-soft">
                     <th
@@ -717,7 +717,7 @@ const SPOCNOCs = () => {
                         {/* Student */}
 
                         <td className="px-4 py-4">
-                          <div className="min-w-[160px]">
+                          <div className="min-w-40">
                             <p className="text-sm font-semibold text-ink">
                               {student.name || "Unknown Student"}
                             </p>
@@ -758,7 +758,7 @@ const SPOCNOCs = () => {
                         {/* Organisation */}
 
                         <td className="px-4 py-4">
-                          <p className="min-w-[180px] text-sm font-medium text-ink">
+                          <p className="min-w-45 text-sm font-medium text-ink">
                             {noc.company}
                           </p>
                         </td>
@@ -766,7 +766,7 @@ const SPOCNOCs = () => {
                         {/* Location */}
 
                         <td className="px-4 py-4">
-                          <span className="block min-w-[150px] text-sm text-ink-muted">
+                          <span className="block min-w-37.5 text-sm text-ink-muted">
                             {noc.location}
                           </span>
                         </td>

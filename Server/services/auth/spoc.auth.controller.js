@@ -2,11 +2,11 @@ import { asyncHandler, APIERR, APIRES } from "../../utils/helper.utils.js";
 import { SPOC } from "../../models/spoc.models.js";
 import { HTTP_STATUS } from "../../config/httpConfig.config.js";
 import {
-  cookieConfig,
   clearCookieConfig,
   getRefreshCookieName,
 } from "../../config/cookieConfig.config.js";
-import { createUserSession, revokeUserSession } from "./session.service.js";
+import { revokeUserSession } from "./session.service.js";
+import { createLoginOTP } from "./otp.service.js";
 
 const USER_MODEL = "SPOC";
 const REFRESH_COOKIE_NAME = getRefreshCookieName(USER_MODEL);
@@ -31,7 +31,7 @@ const spocRegistration = asyncHandler(async (req, res) => {
   const normalizedSpocId = spocId.trim().toUpperCase();
   const normalizedDepartment = department.trim();
 
-  // Check existin mails
+  // Check existing mails
   const existingEmail = await SPOC.findOne({
     email: normalizedEmail,
   });
@@ -46,7 +46,6 @@ const spocRegistration = asyncHandler(async (req, res) => {
   // validate SPOC ID
   const isSPOCIdValid =
     normalizedSpocId === process.env.SPOC_ID?.trim().toUpperCase();
-  console.log(isSPOCIdValid);
 
   if (!isSPOCIdValid) {
     throw new APIERR(
@@ -54,6 +53,7 @@ const spocRegistration = asyncHandler(async (req, res) => {
       "SPOC ID is not valid. Please provide a valid SPOC ID",
     );
   }
+
   // Create SPOC
   const spoc = await SPOC.create({
     fullName: fullName.trim(),
@@ -78,7 +78,7 @@ const spocRegistration = asyncHandler(async (req, res) => {
   );
 });
 
-// Login SPOC
+// Login SPOC - OTP verification required
 const spocLogin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -88,9 +88,11 @@ const spocLogin = asyncHandler(async (req, res) => {
       "Email and password are required",
     );
   }
-  // normalize mails
+
+  // Normalize email
   const normalizedEmail = email.trim().toLowerCase();
-  // Find SPOC with the password
+
+  // Find SPOC with password
   const spoc = await SPOC.findOne({
     email: normalizedEmail,
   }).select("+password");
@@ -98,44 +100,36 @@ const spocLogin = asyncHandler(async (req, res) => {
   if (!spoc) {
     throw new APIERR(HTTP_STATUS.NOT_FOUND, "No SPOC account found");
   }
+
   // Check active status
   if (!spoc.isActive) {
     throw new APIERR(HTTP_STATUS.FORBIDDEN, "Your SPOC account is inactive");
   }
-  // Verify the password
+
+  // Verify password
   const isPasswordCorrect = await spoc.comparePassword(password);
+
   if (!isPasswordCorrect) {
-    throw new APIERR(HTTP_STATUS.UNAUTHORIZED, "Invalid email or password");
+    throw new APIERR(HTTP_STATUS.UNAUTHORIZE, "Invalid email or password");
   }
-  // Revoke the previous sessions
-  await revokeUserSession(
-    req.cookies?.[REFRESH_COOKIE_NAME],
-    "replaced_by_new_login",
-  );
-  // Create the centralize tokens(access + refresh)
-  const { accessToken, refreshToken } = await createUserSession(
-    spoc,
-    USER_MODEL,
-    req,
-  );
-  // Update last login
-  spoc.lastLoginAt = new Date();
-  await spoc.save();
-  // Remove password from the response
-  const safeSPOC = spoc.toObject();
-  delete safeSPOC.password;
-  // return the data
+
+  // Generate and send OTP.
+  // No access token or refresh token is created here.
+  const otpChallenge = await createLoginOTP({
+    user: spoc,
+    userModel: USER_MODEL,
+  });
+
   return res
     .status(HTTP_STATUS.SUCCESS)
-    .cookie(REFRESH_COOKIE_NAME, refreshToken, cookieConfig)
+    .set("Cache-Control", "no-store")
     .json(
       new APIRES(
         HTTP_STATUS.SUCCESS,
         {
-          spoc: safeSPOC,
-          accessToken,
+          otp: otpChallenge,
         },
-        "Successfully logged in",
+        "Verification code sent to your registered email",
       ),
     );
 });

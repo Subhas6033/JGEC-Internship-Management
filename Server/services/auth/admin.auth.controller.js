@@ -18,19 +18,17 @@ const adminRegistration = asyncHandler(async (req, res) => {
 });
 
 const adminLogin = asyncHandler(async (req, res) => {
-  const { admin, accessToken, refreshToken, refreshCookieName } =
-    await loginAdmin(req.body, req);
+  const result = await loginAdmin(req.body);
 
   res.set("Cache-Control", "no-store");
 
   return res
     .status(HTTP_STATUS.SUCCESS)
-    .cookie(refreshCookieName, refreshToken, cookieConfig)
     .json(
       new APIRES(
         HTTP_STATUS.SUCCESS,
-        { admin, accessToken },
-        "Successfully logged in",
+        result,
+        "OTP sent successfully. Please verify your email.",
       ),
     );
 });

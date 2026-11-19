@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Input, Select } from "../../Components/index";
-import { useRegisterTPO } from "../../Hooks/Auth/useTPOAuth";
+import { useRegisterTPO } from "../../Services/Queries/tpoAuth.quires";
 
 const departments = [
   {

@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { Button, Input, Modal } from "../../../../Components/index";
+import { Button, Input, Modal } from "../../../../../Components/index";
 
 export default function DecisionModal({
   open,
