@@ -6,16 +6,16 @@ import {
   regenerateStudentNOC,
 } from "../Documents/studentDocuments.api";
 
-export const studentDocumentsQueryKey = ["student-documents"];
+const studentDocumentsQueryKey = ["student-documents"];
 
-export const useStudentDocuments = () => {
+const useStudentDocuments = () => {
   return useQuery({
     queryKey: studentDocumentsQueryKey,
     queryFn: getStudentDocuments,
   });
 };
 
-export const useUpdateStudentSignature = () => {
+const useUpdateStudentSignature = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateStudentSignature,
@@ -27,7 +27,7 @@ export const useUpdateStudentSignature = () => {
   });
 };
 
-export const useUpdateStudentResume = () => {
+const useUpdateStudentResume = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateStudentResume,
@@ -39,7 +39,7 @@ export const useUpdateStudentResume = () => {
   });
 };
 
-export const useRegenerateStudentNOC = () => {
+const useRegenerateStudentNOC = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: regenerateStudentNOC,
@@ -49,4 +49,11 @@ export const useRegenerateStudentNOC = () => {
       });
     },
   });
+};
+
+export {
+  useStudentDocuments,
+  useUpdateStudentResume,
+  useUpdateStudentSignature,
+  useRegenerateStudentNOC,
 };

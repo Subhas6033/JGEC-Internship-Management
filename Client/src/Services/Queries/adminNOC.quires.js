@@ -4,7 +4,6 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-
 import {
   approveAndSendNoc,
   bulkApproveAndSendNocs,
@@ -14,7 +13,7 @@ import {
 } from "../admin/adminNOC.api";
 
 // Query keys only contain primitives so they always serialize safely.
-export const adminNocKeys = {
+const adminNocKeys = {
   all: ["admin-noc"],
   list: (params) => ["admin-noc", "list", params],
   stats: () => ["admin-noc", "stats"],
@@ -22,7 +21,7 @@ export const adminNocKeys = {
 };
 
 // List of generated NOCs waiting for the admin
-export const useAdminNocs = (params = {}) =>
+const useAdminNocs = (params = {}) =>
   useQuery({
     queryKey: adminNocKeys.list(params),
     queryFn: () => fetchPendingNocs(params),
@@ -31,7 +30,7 @@ export const useAdminNocs = (params = {}) =>
   });
 
 // Dashboard counters
-export const useAdminNocStats = () =>
+const useAdminNocStats = () =>
   useQuery({
     queryKey: adminNocKeys.stats(),
     queryFn: fetchNocStats,
@@ -39,7 +38,7 @@ export const useAdminNocStats = () =>
   });
 
 // Single NOC (used by the preview modal)
-export const useAdminNocDetails = (applicationId, { enabled = true } = {}) =>
+const useAdminNocDetails = (applicationId, { enabled = true } = {}) =>
   useQuery({
     queryKey: adminNocKeys.details(applicationId),
     queryFn: () => fetchNocDetails(applicationId),
@@ -48,7 +47,7 @@ export const useAdminNocDetails = (applicationId, { enabled = true } = {}) =>
   });
 
 // Approve + email a single NOC
-export const useApproveAndSendNoc = () => {
+const useApproveAndSendNoc = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -60,7 +59,7 @@ export const useApproveAndSendNoc = () => {
 };
 
 // Approve + email many NOCs
-export const useBulkApproveAndSendNocs = () => {
+const useBulkApproveAndSendNocs = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -69,4 +68,11 @@ export const useBulkApproveAndSendNocs = () => {
       queryClient.invalidateQueries({ queryKey: adminNocKeys.all });
     },
   });
+};
+
+export {
+  useAdminNocs,
+  useAdminNocStats,
+  useApproveAndSendNoc,
+  useBulkApproveAndSendNocs,
 };

@@ -1,13 +1,4 @@
-export const initialAdminProfile = {
-  name: "Administrator",
-  email: "admin@jgec.ac.in",
-  phone: "+91 9876543210",
-  designation: "System Administrator",
-  department: "Administration",
-  employeeId: "JGEC-ADMIN-001",
-};
-
-export const initialPreferences = {
+const initialPreferences = {
   emailNotifications: true,
   applicationNotifications: true,
   nocNotifications: true,
@@ -17,7 +8,7 @@ export const initialPreferences = {
   compactDashboard: false,
 };
 
-export const initialLoginActivity = [
+const initialLoginActivity = [
   {
     _id: "LOGIN001",
     device: "Chrome on Linux",
@@ -56,7 +47,7 @@ export const initialLoginActivity = [
   },
 ];
 
-export const initialWorkActivity = [
+const initialWorkActivity = [
   {
     _id: "WORK001",
     action: "Student account updated",
@@ -99,30 +90,42 @@ export const initialWorkActivity = [
   },
 ];
 
-export const settingsTabs = [
-  { id: "profile", label: "Profile", icon: "UserRound" },
+const settingsTabs = [
+  {
+    id: "profile",
+    label: "Profile",
+    icon: "UserRound",
+    comingSoon: false,
+  },
   {
     id: "security",
     label: "Security",
     icon: "ShieldCheck",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "preferences",
     label: "Preferences",
     icon: "SlidersHorizontal",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "login",
     label: "Login Activity",
     icon: "Monitor",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "activity",
     label: "Work Activity",
     icon: "History",
-    comingSoon: true,
+    comingSoon: false,
   },
 ];
+
+export {
+  initialPreferences,
+  initialLoginActivity,
+  initialWorkActivity,
+  settingsTabs,
+};

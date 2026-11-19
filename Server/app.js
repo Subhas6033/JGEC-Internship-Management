@@ -34,6 +34,7 @@ import { adminStaffManagementRoutes } from "./routes/adminStaff.routes.js";
 import { admindDepartmentManagementRoutes } from "./routes/admin.department.routes.js";
 import { adminAnalyticsRoutes } from "./routes/admin.analytics.routes.js";
 import { adminNocRoutes } from "./routes/admin.noc.routes.js";
+import { spocProfileRoutes } from "./routes/spocProfile.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/application", studentApplicationRoutes);
@@ -55,6 +56,8 @@ app.use(
 );
 app.use("/api/v1/admin/analytics", adminAnalyticsRoutes);
 app.use("/api/v1/admin/noc-management", adminNocRoutes);
+app.use("/api/v1/spoc/profile", spocProfileRoutes)
+
 
 //Centralize err handlers
 app.use(errorMiddleware);

@@ -47,7 +47,7 @@ const getRoleConfig = (role) => {
         label: "Admin",
         dashboard: "/admin/dashboard",
         dashboardLabel: "Dashboard",
-        profile: "/admin/profile",
+        profile: "/admin/settings",
       };
 
     default:

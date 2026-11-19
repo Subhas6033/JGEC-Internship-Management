@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAdminAnalytics } from "../admin/adminAnalytics.api";
 
-export const adminAnalyticsKeys = {
+const adminAnalyticsKeys = {
   all: ["admin-analytics"],
   list: (period) => [...adminAnalyticsKeys.all, "list", period],
 };

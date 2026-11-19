@@ -1,16 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
-
 import {
   registerAdmin,
   loginAdmin,
   getCurrentUser,
   logoutUser,
 } from "../Auth/adminAuth.api";
-
 import { setAuth, clearUser } from "../../Store/Slice/authSlice";
 
-export const AUTH_QUERY_KEYS = {
+const AUTH_QUERY_KEYS = {
   currentUser: ["auth", "me"],
 };
 
@@ -51,7 +49,6 @@ const useAdminLogin = () => {
 };
 
 // One centralized current-user query.
-// Use this for any authenticated role, not a separate /admin/me.
 const useCurrentUser = (enabled = true) => {
   return useQuery({
     queryKey: AUTH_QUERY_KEYS.currentUser,

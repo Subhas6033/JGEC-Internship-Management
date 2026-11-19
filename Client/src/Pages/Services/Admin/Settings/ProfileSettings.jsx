@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { UserRound, Mail, Phone, PenLine, Upload } from "lucide-react";
-
 import { Card, Input, Button } from "../../../../Components/index";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
@@ -89,14 +88,13 @@ const ProfileSettings = ({
     setSignaturePreview("");
   };
 
-  const shownSignature = signaturePreview || formData.signature;
+  // Check Changes of Profile Fields
+  const hasChanges =
+    formData.name !== profile.name ||
+    formData.email !== profile.email ||
+    formData.phone !== profile.phone;
 
-  // Read-only fields are shown only when the API actually returns a value
-  const readOnlyFields = [
-    { label: "Designation", value: formData.designation },
-    { label: "Department", value: formData.department },
-    { label: "Employee ID", value: formData.employeeId },
-  ].filter((field) => field.value);
+  const shownSignature = signaturePreview || formData.signature;
 
   return (
     <div className="space-y-5">
@@ -118,11 +116,6 @@ const ProfileSettings = ({
 
           <div>
             <p className="font-semibold text-ink">{formData.name}</p>
-            {formData.designation && (
-              <p className="mt-1 text-sm text-ink-muted">
-                {formData.designation}
-              </p>
-            )}
             <span className="mt-2 inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
               Administrator
             </span>
@@ -131,6 +124,7 @@ const ProfileSettings = ({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Name */}
             <Input
               label="Full Name"
               value={formData.name}
@@ -139,7 +133,7 @@ const ProfileSettings = ({
               disabled={loading}
               required
             />
-
+            {/* Email */}
             <Input
               label="Email Address"
               inputType="email"
@@ -149,7 +143,7 @@ const ProfileSettings = ({
               disabled={loading}
               required
             />
-
+            {/* Mobile Number */}
             <Input
               label="Phone Number"
               value={formData.phone}
@@ -158,15 +152,6 @@ const ProfileSettings = ({
               disabled={loading}
               required
             />
-
-            {readOnlyFields.map((field) => (
-              <Input
-                key={field.label}
-                label={field.label}
-                value={field.value}
-                disabled
-              />
-            ))}
           </div>
 
           {error && (
@@ -176,7 +161,7 @@ const ProfileSettings = ({
           )}
 
           <div className="flex justify-end border-t border-border pt-5">
-            <Button type="submit" disabled={saving || loading}>
+            <Button type="submit" disabled={saving || loading || !hasChanges}>
               {saving ? "Saving..." : "Save Profile Changes"}
             </Button>
           </div>

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAdminDashboard } from "../Dashboard/adminDashboardApi";
 
-export const ADMIN_DASHBOARD_QUERY_KEY = ["admin", "dashboard"];
+const ADMIN_DASHBOARD_QUERY_KEY = ["admin", "dashboard"];
 
 export const useAdminDashboard = (filters = {}) => {
   return useQuery({

@@ -35,9 +35,6 @@ const EMPTY_PROFILE = {
   name: "",
   email: "",
   phone: "",
-  designation: "",
-  department: "",
-  employeeId: "",
   signature: "",
 };
 
@@ -190,16 +187,6 @@ const AdminSettings = () => {
 
               <p className="mt-1 truncate text-sm text-ink-muted">
                 {profile.email}
-              </p>
-
-              <p className="mt-1 text-xs text-ink-muted">
-                {(profile.designation || profile.employeeId) && (
-                  <p className="mt-1 text-xs text-ink-muted">
-                    {[profile.designation, profile.employeeId]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                )}
               </p>
             </div>
           </div>

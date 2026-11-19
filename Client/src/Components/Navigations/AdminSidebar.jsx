@@ -15,7 +15,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-
 import { Card, Button } from "../index";
 
 const navigationGroups = [
@@ -147,12 +146,15 @@ const AdminSidebar = ({
         <div
           className={`
             flex h-17 shrink-0 items-center
-            border-b border-border/70
+            border-b border-border/70 hover:cursor-pointer
             ${collapsed ? "justify-center px-2" : "justify-between px-4"}
           `}
         >
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl">
+            <div
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl"
+              onClick={() => navigate("/")}
+            >
               <img
                 src="/jgecLogo.png"
                 alt="JGEC Logo"
