@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { fadeUp } from "../../../../Animations/animations";
 
-const NocSection = ({ title, description, meta, children }) => (
+const NocSection = ({ title, description, meta, children, loading }) => (
   <motion.section variants={fadeUp} className="mt-6 w-full min-w-0 sm:mt-8">
     <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
@@ -13,7 +13,9 @@ const NocSection = ({ title, description, meta, children }) => (
         </p>
       </div>
 
-      <p className="shrink-0 text-xs font-medium text-ink-muted">{meta}</p>
+      {!loading && (
+        <p className="shrink-0 text-xs font-medium text-ink-muted">{meta}</p>
+      )}
     </div>
 
     <div className="mt-4">{children}</div>
