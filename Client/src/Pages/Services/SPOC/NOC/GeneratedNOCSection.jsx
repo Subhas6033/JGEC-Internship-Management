@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Eye } from "lucide-react";
 import { Button, Table } from "../../../../Components/index";
 import { formatDate } from "./noc.utils";
 import NocSection from "./NOCSection";
 import { identityColumns } from "./NOCColumns";
+import NocPagination from "./NocPagination";
+
+const PAGE_SIZE = 10;
 
 const GeneratedNocsSection = ({
   nocs,
@@ -12,6 +15,17 @@ const GeneratedNocsSection = ({
   onView,
   onDownload,
 }) => {
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(nocs.length / PAGE_SIZE));
+  const pageNocs = useMemo(
+    () => nocs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [nocs, page],
+  );
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
+
   const columns = useMemo(
     () => [
       {
@@ -66,16 +80,25 @@ const GeneratedNocsSection = ({
   return (
     <NocSection
       title="Generated NOCs"
-      description="Company-wise generated NOC records."
+      description="Organisation-wise generated NOC records."
       meta={`${nocs.length} ${nocs.length === 1 ? "NOC" : "NOCs"}`}
     >
       <Table
         columns={columns}
-        data={nocs}
+        data={pageNocs}
         loading={loading}
         getRowKey={(noc) => noc.id}
+        className="rounded-xl border-border bg-surface shadow-none"
+        tableClassName="[&_thead]:bg-brand-50/60 [&_tbody_tr:hover]:bg-brand-50/30"
         emptyTitle="No NOCs generated"
         emptyDescription="NOCs will appear here once they are generated for approved applications."
+      />
+      <NocPagination
+        page={page}
+        pageCount={pageCount}
+        total={nocs.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
       />
     </NocSection>
   );

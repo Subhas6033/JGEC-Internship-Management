@@ -1,27 +1,31 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Outlet } from "react-router-dom";
 import SPOCNavbar from "../Components/Navigations/SPOCNavbar";
 import SPOCSidebar from "../Components/Navigations/SPOCSidebar";
 
-const SPOCLayout = ({ children }) => {
+const SPOCLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const closeSidebar = () => {
+  const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
-  };
+  }, []);
+
+  const openSidebar = useCallback(() => {
+    setSidebarOpen(true);
+  }, []);
 
   return (
     <div className="min-h-screen bg-cream text-ink">
-      <div className="flex min-h-screen">
-        <SPOCSidebar open={sidebarOpen} onClose={closeSidebar} />
+      {/* Sidebar remains fixed on desktop */}
+      <SPOCSidebar open={sidebarOpen} onClose={closeSidebar} />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <SPOCNavbar onMenuClick={() => setSidebarOpen(true)} />
+      {/* Main content reserves the sidebar's width */}
+      <div className="min-w-0 lg:pl-65">
+        <SPOCNavbar onMenuClick={openSidebar} />
 
-          <main className="min-w-0 flex-1">
-            <Outlet />
-          </main>
-        </div>
+        <main className="min-h-[calc(100vh-4rem)] min-w-0">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

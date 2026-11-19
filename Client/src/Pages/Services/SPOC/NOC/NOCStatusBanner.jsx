@@ -45,13 +45,13 @@ const NocStatusBanner = ({ pendingCount, loading }) => {
         <Card.Content className="p-4 sm:p-5">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start">
             <span
-              className={`flex size-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 ${tone.icon}`}
+              className={`mt-2 flex size-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 ${tone.icon}`}
             >
               <Icon size={18} aria-hidden="true" />
             </span>
 
             <div className="min-w-0">
-              <p className={`text-sm font-semibold ${tone.title}`}>
+              <p className={`mt-2 text-sm font-semibold ${tone.title}`}>
                 {hasPending
                   ? `${pendingCount} ${pendingCount === 1 ? "application is" : "applications are"} awaiting NOC generation`
                   : "All approved applications have NOCs"}

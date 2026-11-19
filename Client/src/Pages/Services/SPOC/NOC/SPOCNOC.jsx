@@ -1,6 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { FileCheck2, FileClock, Files, UsersRound } from "lucide-react";
+import {
+  FileCheck2,
+  FileClock,
+  Files,
+  ListChecks,
+  UsersRound,
+} from "lucide-react";
 import { fadeUp, staggerContainer } from "../../../../Animations/animations";
 import {
   useDownloadSpocNoc,
@@ -42,6 +48,7 @@ const SPOCNOC = () => {
 
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [targets, setTargets] = useState([]);
+  const [activeSection, setActiveSection] = useState("pending");
 
   const pendingNocs = useMemo(
     () => toNocRecords(pendingQuery.data, PENDING_STATUS),
@@ -114,10 +121,17 @@ const SPOCNOC = () => {
         initial="hidden"
         animate="visible"
         variants={staggerContainer}
-        className="box-border w-full min-w-0 max-w-none overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+        className="box-border mx-auto w-full min-w-0 max-w-[1600px] overflow-x-hidden px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-9"
       >
-        <motion.header variants={fadeUp} className="w-full min-w-0">
-          <p className="eyebrow">SPOC NOCs</p>
+        <motion.header
+          variants={fadeUp}
+          className="w-full min-w-0 rounded-2xl border border-border bg-surface px-5 py-6 shadow-(--shadow-card) sm:px-7 sm:py-7"
+        >
+          <p className="eyebrow">
+            SPOC WORKSPACE
+            <span className="mx-1 text-ink-muted/50">/</span>
+            NOCS
+          </p>
 
           <h1 className="mt-2 text-2xl font-bold leading-tight tracking-tight text-ink sm:text-3xl">
             NOC Management
@@ -136,58 +150,108 @@ const SPOCNOC = () => {
           />
         ) : (
           <>
-            {!isLoading && (
-              <NocStatusBanner pendingCount={pendingNocs.length} />
-            )}
+            <NocStatusBanner
+              pendingCount={pendingNocs.length}
+              loading={isLoading}
+            />
 
             <motion.section
               variants={staggerContainer}
-              className="mt-6 grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+              className="mt-5 grid w-full min-w-0 auto-rows-29 grid-cols-1 items-stretch gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4"
             >
               <NocStatCard
                 icon={FileClock}
                 label="Pending"
                 value={pendingNocs.length}
                 helper="Awaiting NOC generation"
+                loading={isLoading}
               />
+
               <NocStatCard
                 icon={FileCheck2}
                 label="NOCs Generated"
                 value={generatedNocs.length}
                 helper="Approved applications"
+                loading={isLoading}
               />
+
               <NocStatCard
                 icon={Files}
-                label="Companies"
+                label="Organisations"
                 value={companyCount}
-                helper="Companies with generated NOCs"
+                helper="Organisation with generated NOCs"
+                loading={isLoading}
               />
+
               <NocStatCard
                 icon={UsersRound}
                 label="Students"
                 value={studentCount}
                 helper="Students covered by NOCs"
+                loading={isLoading}
               />
             </motion.section>
 
-            <PendingNocsSection
-              nocs={pendingNocs}
-              loading={pendingQuery.isLoading}
-              selectedIds={selectedIds}
-              generatingIds={generatingIds}
-              onToggle={handleToggle}
-              onToggleAll={handleToggleAll}
-              onClearSelection={handleClearSelection}
-              onGenerate={setTargets}
-            />
+            <div className="mt-6 flex w-full min-w-0 gap-1 overflow-x-auto rounded-xl border border-border bg-surface p-1 sm:mt-7 sm:w-fit">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSection === "pending"}
+                onClick={() => setActiveSection("pending")}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-colors sm:px-4 hover:cursor-pointer ${activeSection === "pending" ? "bg-brand-600 text-white shadow-sm" : "text-ink-muted hover:bg-brand-50 hover:text-brand-800"}`}
+              >
+                <ListChecks size={16} aria-hidden="true" />
+                Pending NOCs
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${activeSection === "pending" ? "bg-white/15 text-white" : "bg-ink-muted/10 text-ink-muted"}`}
+                >
+                  {pendingNocs.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSection === "generated"}
+                onClick={() => setActiveSection("generated")}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-colors sm:px-4 hover:cursor-pointer ${activeSection === "generated" ? "bg-brand-600 text-white shadow-sm" : "text-ink-muted hover:bg-brand-50 hover:text-brand-800"}`}
+              >
+                <FileCheck2 size={16} aria-hidden="true" />
+                Generated NOCs
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${activeSection === "generated" ? "bg-white/15 text-white" : "bg-ink-muted/10 text-ink-muted"}`}
+                >
+                  {generatedNocs.length}
+                </span>
+              </button>
+            </div>
 
-            <GeneratedNocsSection
-              nocs={generatedNocs}
-              loading={generatedQuery.isLoading}
-              activeAction={activeAction}
-              onView={view}
-              onDownload={download}
-            />
+            <div
+              role="tabpanel"
+              aria-label={
+                activeSection === "pending" ? "Pending NOCs" : "Generated NOCs"
+              }
+            >
+              {activeSection === "pending" ? (
+                <PendingNocsSection
+                  nocs={pendingNocs}
+                  loading={pendingQuery.isLoading}
+                  selectedIds={selectedIds}
+                  generatingIds={generatingIds}
+                  onToggle={handleToggle}
+                  onToggleAll={handleToggleAll}
+                  onClearSelection={handleClearSelection}
+                  onGenerate={setTargets}
+                />
+              ) : (
+                <GeneratedNocsSection
+                  nocs={generatedNocs}
+                  loading={generatedQuery.isLoading}
+                  activeAction={activeAction}
+                  onView={view}
+                  onDownload={download}
+                />
+              )}
+            </div>
           </>
         )}
       </motion.div>

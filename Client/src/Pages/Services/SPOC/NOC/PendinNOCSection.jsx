@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FilePlus2, LoaderCircle } from "lucide-react";
 import { Button, Table } from "../../../../Components/index";
@@ -7,6 +7,9 @@ import { formatDate } from "./noc.utils";
 import NocSection from "./NOCSection";
 import SelectCheckbox from "./SelectCheckBox";
 import { identityColumns } from "./NOCColumns";
+import NocPagination from "./NocPagination";
+
+const PAGE_SIZE = 10;
 
 const PendingNocsSection = ({
   nocs,
@@ -18,6 +21,17 @@ const PendingNocsSection = ({
   onClearSelection,
   onGenerate,
 }) => {
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(nocs.length / PAGE_SIZE));
+  const pageNocs = useMemo(
+    () => nocs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [nocs, page],
+  );
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
+
   const selectedNocs = useMemo(
     () => nocs.filter((noc) => selectedIds.has(noc.id)),
     [nocs, selectedIds],
@@ -137,11 +151,20 @@ const PendingNocsSection = ({
 
       <Table
         columns={columns}
-        data={nocs}
+        data={pageNocs}
         loading={loading}
         getRowKey={(noc) => noc.id}
+        className="rounded-xl border-border bg-surface shadow-none"
+        tableClassName="[&_thead]:bg-brand-50/60 [&_tbody_tr:hover]:bg-brand-50/30"
         emptyTitle="No pending NOCs"
         emptyDescription="Approved applications awaiting NOC generation will appear here."
+      />
+      <NocPagination
+        page={page}
+        pageCount={pageCount}
+        total={nocs.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
       />
     </NocSection>
   );
