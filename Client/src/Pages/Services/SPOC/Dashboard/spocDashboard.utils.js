@@ -131,7 +131,7 @@ export const getStatusClass = (status) => {
 
     case "approved_by_spoc":
     case "noc_generated":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+      return "border-brand-200 bg-brand-50 text-brand-700";
 
     case "rejected":
       return "border-red-200 bg-red-50 text-red-700";
@@ -140,7 +140,7 @@ export const getStatusClass = (status) => {
       return "border-orange-200 bg-orange-50 text-orange-700";
 
     default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
+      return "border-border bg-cream text-ink-muted";
   }
 };
 

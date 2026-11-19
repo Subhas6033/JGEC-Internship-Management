@@ -113,6 +113,9 @@ const SPOCProfile = lazy(
 const SPOCApplicationDetails = lazy(
   () => import("./Pages/Services/SPOC/Application/SPOCApplicationDetails.jsx"),
 );
+const SPOCSettings = lazy(
+  () => import("./Pages/Services/SPOC/Settings/SPOCSettings.jsx"),
+);
 
 // Admin Routes
 const AdminSignup = lazy(() => import("./Pages/Auth/AdminSignup.jsx"));
@@ -403,6 +406,10 @@ const router = createBrowserRouter([
           {
             path: "/spoc/profile",
             element: <SPOCProfile />,
+          },
+          {
+            path: "/spoc/settings",
+            element: <SPOCSettings />,
           },
         ],
       },

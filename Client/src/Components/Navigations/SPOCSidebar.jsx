@@ -64,7 +64,7 @@ const SPOCSidebar = ({ open, onClose }) => {
         <div className="border-b border-border">
           <div className="flex min-h-16 items-center justify-between px-4 sm:px-5">
             <Link
-              to="/spoc/dashboard"
+              to="/"
               onClick={onClose}
               aria-label="Internship NOC - JGEC SPOC"
               className="
