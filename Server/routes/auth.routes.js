@@ -28,6 +28,11 @@ import {
   getCurrentUser,
   logoutUser,
 } from "../services/auth/current-user.service.js";
+import {
+  forgotPassword,
+  verifyResetToken,
+  resetPassword,
+} from "../services/auth/passwordReset.controller.js";
 
 const authRoutes = Router();
 // Multer Configurations for File uploads
@@ -81,7 +86,7 @@ authRoutes
   .post("/admin/otp/resend", adminOTP.resendOTP)
 
   /*
-  Centralize Routes for Token Rotations, logout and get the Current Users
+  Centralize Routes for Token Rotations, logout, forgot-password and get the Current Users
   */
 
   // Refresh token rotation
@@ -89,6 +94,10 @@ authRoutes
   // Get currently authenticated user
   .get("/me", authenticateUser, getCurrentUser)
   // Centralized logout
-  .post("/logout", logoutUser);
+  .post("/logout", logoutUser)
+  // Centralize forgot-password
+  .post("/forgot-password", forgotPassword)
+  .post("/verify-reset-token", verifyResetToken)
+  .post("/reset-password", resetPassword);
 
 export { authRoutes };
