@@ -1,126 +1,217 @@
-import { ArrowLeft, Clock3, Mail } from "lucide-react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Card, Input } from "../../Components/index";
+import { Mail, LockKeyhole, ArrowLeft } from "lucide-react";
+import { Button, Card, Input, Select, Toast } from "../../Components/index";
+import { useForgotPasswordMutation } from "../../Services/Queries/forgotPassword.queries";
+
+const roleOptions = [
+  { value: "student", label: "Student" },
+  { value: "TPO", label: "Department TPO" },
+  { value: "SPOC", label: "SPOC" },
+  { value: "admin", label: "Admin" },
+];
 
 const ForgotPassword = () => {
+  const [formData, setFormData] = useState({
+    email: "",
+    role: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  const { mutateAsync: sendResetLink, isPending: loading } =
+    useForgotPasswordMutation();
+
+  // Handle input changes
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.role) {
+      newErrors.role = "Please select your account role.";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Submit forgot password request
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!validateForm()) return;
+
+    try {
+      await sendResetLink({
+        email: formData.email.trim().toLowerCase(),
+        role: formData.role,
+      });
+
+      setSubmitted(true);
+
+      setToast({
+        variant: "success",
+        title: "Request submitted",
+        message:
+          "If an account matches the provided details, password reset instructions will be sent to its registered email.",
+      });
+    } catch (error) {
+      setToast({
+        variant: "error",
+        title: "Request failed",
+        message:
+          error?.response?.data?.message ||
+          "Unable to process your request. Please try again later.",
+      });
+    }
+  };
+
+  // Reset form
+  const handleTryAnotherAccount = () => {
+    setSubmitted(false);
+
+    setFormData({
+      email: "",
+      role: "",
+    });
+
+    setErrors({});
+    setToast(null);
+  };
+
   return (
-    <main className="min-h-screen bg-cream px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-2xl border border-border bg-white shadow-card lg:grid-cols-[1fr_1.05fr]">
-          <section className="hidden bg-brand-700 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
-            <div>
-              <div className="flex size-11 items-center justify-center rounded-full bg-white">
-                <img src="/jgecLogo.png" alt="college logo" />
-              </div>
-
-              <p className="mt-8 text-xs font-medium uppercase tracking-[0.16em] text-white/70">
-                Internship Management Portal
-              </p>
-              <p className="mt-4 max-w-md text-sm leading-6 text-white/75">
-                Secure account recovery for registered Department TPO
-                coordinators.
-              </p>
+    <div className="min-h-screen bg-emerald-50/60 flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md">
+        <Card className="p-5 sm:p-8 border border-emerald-100 shadow-xl shadow-emerald-900/5">
+          {/* Header */}
+          <div className="mb-7 text-center">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-emerald-50">
+              <LockKeyhole size={27} />
             </div>
 
-            <div className="mt-10 border-t border-white/10 pt-5">
-              <p className="text-xs leading-5 text-white/65">
-                Password recovery will be connected to the portal backend during
-                the development process.
-              </p>
-            </div>
-          </section>
+            <h1 className="text-2xl font-bold tracking-tight text-emerald-950">
+              Forgot Password?
+            </h1>
 
-          <section className="flex items-center p-5 sm:p-8 xl:p-10">
-            <Card className="w-full border-0 p-0 shadow-none">
-              <div className="mx-auto w-full max-w-md p-5">
-                <Link
-                  to="/auth/depttpo/login"
-                  className="mb-7 inline-flex items-center gap-2 text-sm font-medium text-ink-muted transition hover:text-brand-700"
-                >
-                  <ArrowLeft size={16} strokeWidth={1.8} />
-                  Back to sign in
-                </Link>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Enter your registered email address and account role. We will send
+              password reset instructions if your account matches.
+            </p>
+          </div>
 
-                <div className="flex size-12 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
-                  <Clock3 size={23} strokeWidth={1.8} />
-                </div>
+          {!submitted ? (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Account Role */}
+              <Select
+                label="Account Role"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                options={roleOptions}
+                placeholder="Select your account role"
+                required
+                error={errors.role}
+              />
 
-                <p className="eyebrow mt-6">Account recovery</p>
+              {/* Email */}
+              <Input
+                label="Registered Email Address"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your registered email"
+                startIcon={<Mail size={18} />}
+                required
+                error={errors.email}
+                autoComplete="email"
+              />
 
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-                  Forgot your password?
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-ink-muted">
-                  Enter your college email and we’ll use it to start the
-                  password recovery process once the feature is available.
-                </p>
-
-                <div className="mt-7 rounded-xl border border-brand-200 bg-brand-50 p-4">
-                  <div className="flex gap-3">
-                    <Clock3
-                      className="mt-0.5 shrink-0 text-brand-700"
-                      size={18}
-                      strokeWidth={1.8}
-                    />
-
-                    <div>
-                      <p className="text-sm font-semibold text-brand-900">
-                        Coming Soon
-                      </p>
-
-                      <p className="mt-1 text-xs leading-5 text-brand-800">
-                        Password reset and email verification are currently
-                        under development.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <form
-                  className="mt-7 space-y-5"
-                  onSubmit={(event) => event.preventDefault()}
-                >
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="mb-1.5 block text-sm font-medium text-ink"
-                    >
-                      College email
-                    </label>
-
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="name@college.edu"
-                      autoComplete="email"
-                      disabled
-                      startIcon={<Mail size={17} strokeWidth={1.8} />}
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="md"
-                    disabled
-                    className="w-full justify-center"
-                  >
-                    Send reset link
-                  </Button>
-                </form>
-
-                <p className="mt-6 text-center text-xs leading-5 text-ink-muted">
-                  This page is ready for backend integration in a future
-                  development phase.
-                </p>
+              {/* Submit */}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full bg-emerald-700! hover:bg-emerald-800! text-white! shadow-lg! shadow-emerald-700/20! transition-all duration-200"
+                disabled={loading}
+              >
+                {loading ? "Sending Request..." : "Send Reset Link"}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-5 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-emerald-50">
+                <Mail size={27} />
               </div>
-            </Card>
-          </section>
-        </div>
+
+              <h2 className="text-lg font-semibold text-emerald-950">
+                Check Your Email
+              </h2>
+
+              <p className="text-sm leading-6 text-slate-600">
+                If an account matches your submitted details, you will receive
+                password reset instructions. Please check your inbox and spam
+                folder.
+              </p>
+
+              <Button
+                variant="outline"
+                className="w-full border-emerald-200! text-emerald-700! hover:bg-emerald-50!"
+                onClick={handleTryAnotherAccount}
+              >
+                Try Another Account
+              </Button>
+            </div>
+          )}
+
+          {/* Back to Login */}
+          <div className="mt-7 border-t border-emerald-100 pt-5">
+            <Link
+              to="/auth/login"
+              className="flex items-center justify-center gap-2 text-sm font-medium text-emerald-700 transition-colors hover:text-emerald-900"
+            >
+              <ArrowLeft size={16} />
+              Back to Login
+            </Link>
+          </div>
+        </Card>
+
+        {/* Toast */}
+        {toast && (
+          <div className="fixed right-4 top-4 z-50">
+            <Toast
+              variant={toast.variant}
+              title={toast.title}
+              message={toast.message}
+              duration={5000}
+              onClose={() => setToast(null)}
+            />
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 };
 

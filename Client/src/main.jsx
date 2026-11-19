@@ -20,6 +20,7 @@ const NotFound = lazy(() => import("./Pages/Not Found/NotFound.jsx"));
 const Landing = lazy(() => import("./Pages/Landing/Landing.jsx"));
 const Contact = lazy(() => import("./Pages/Contact/Contact.jsx"));
 const ForgotPassword = lazy(() => import("./Pages/Auth/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("./Pages/Auth/ResetPassword.jsx"));
 
 // Students Routes
 const Login = lazy(() => import("./Pages/Auth/Login.jsx"));
@@ -280,6 +281,10 @@ const router = createBrowserRouter([
       {
         path: "/auth/forgot-password",
         element: <ForgotPassword />,
+      },
+      {
+        path: "/auth/reset-password",
+        element: <ResetPassword />,
       },
       {
         path: "/contact",
