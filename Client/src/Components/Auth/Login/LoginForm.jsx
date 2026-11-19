@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  Mail,
+  MoveRight,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -308,21 +315,24 @@ const LoginForm = ({
               )}
 
               {/* Other Login Pages */}
-
               {footerLinks.length > 0 && (
-                <div className="mt-5 flex flex-wrap justify-center gap-4 text-xs text-ink-muted">
-                  {footerLinks.map((item, index) => (
-                    <span key={item.to} className="flex items-center gap-4">
-                      {index > 0 && <span className="text-border">•</span>}
+                <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50/80 p-4">
+                  <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-brand-800">
+                    Explore Other Pages
+                  </p>
 
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {footerLinks.map((item) => (
                       <Link
+                        key={item.to}
                         to={item.to}
-                        className="transition-colors hover:text-brand-700"
+                        className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-brand-200 bg-white px-4 py-2 text-xs font-semibold text-brand-800 shadow-sm transition-all duration-200 hover:border-brand-400 hover:bg-brand-100 hover:text-brand-900 hover:shadow-md"
                       >
-                        {item.label}
+                        <span>{item.label}</span>
+                        <MoveRight className="h-3.5 w-3.5 shrink-0" />
                       </Link>
-                    </span>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </motion.div>
