@@ -1,4 +1,5 @@
 const PORTAL_NAME = "JGEC Internship Management Portal";
+const CELL_NAME = "Training and Placement Cell, JGEC";
 
 const PURPOSES = {
   LOGIN: {
@@ -48,7 +49,7 @@ const authOtpTemplate = ({
     "If you did not initiate this request, please ignore this email.",
     "",
     "Regards,",
-    PORTAL_NAME,
+    CELL_NAME,
     "",
     "This is an automated email. Please do not reply.",
   ].join("\n");
@@ -97,7 +98,7 @@ const authOtpTemplate = ({
 
     <p style="margin:0 0 24px;">
       Regards,<br />
-      ${PORTAL_NAME}
+      ${CELL_NAME}
     </p>
 
     <p style="margin:0;font-size:12px;line-height:18px;color:#777777;">

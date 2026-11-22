@@ -141,6 +141,7 @@ const SPOCNavbar = ({ onMenuClick }) => {
               active:scale-95
               focus-visible:ring-brand-500/30
             "
+            onClick={() => navigate("/spoc/notifications")}
           >
             <Bell size={25} strokeWidth={2} />
 

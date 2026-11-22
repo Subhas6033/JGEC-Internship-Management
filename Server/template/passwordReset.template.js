@@ -16,7 +16,7 @@ This link will expire in 20 minutes.
 If you did not request a password reset, you can safely ignore this email.
 
 Regards,
-JGEC Internship Management Portal
+Training and Placement Cell, JGEC
     `,
 
     html: `

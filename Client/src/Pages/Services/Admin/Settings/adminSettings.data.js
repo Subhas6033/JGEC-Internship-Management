@@ -101,25 +101,25 @@ const settingsTabs = [
     id: "security",
     label: "Security",
     icon: "ShieldCheck",
-    comingSoon: false,
+    comingSoon: true,
   },
   {
     id: "preferences",
     label: "Preferences",
     icon: "SlidersHorizontal",
-    comingSoon: false,
+    comingSoon: true,
   },
   {
     id: "login",
     label: "Login Activity",
     icon: "Monitor",
-    comingSoon: false,
+    comingSoon: true,
   },
   {
     id: "activity",
     label: "Work Activity",
     icon: "History",
-    comingSoon: false,
+    comingSoon: true,
   },
 ];
 
